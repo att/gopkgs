@@ -1,0 +1,56 @@
+
+This is a collection of Go (golang) packages (a.k.a. libraries) which might be useful.
+
+
+Currently it includes:
+	arista		Methods for interfacing with an Arista switch which is configured to 
+				use HTTP or HTTPs interface. 
+
+	bleater		A level based logging package.
+
+	chkpt		Provides an easy mechanism for creating dual-tumbler checkpoint files.
+
+	clike		Some tools (atoi-ish) that behave in a Clib manner (not aborting if a
+				non-digit is encountered (ato* family) and add some nice extensions
+				for post fixing (e.g. GiB) a value. 
+
+	config		A configuration file parser which provides for a section based file
+				and allows for inclusion of sub files. 
+
+	ipc			Interprocess communications support.  Provies a simple request/response
+				message block and some wrapper functions to easily send a message
+				on a channel.  Also provides a tickler function that can be started
+				and will send messages to a channel at prescribed times.
+
+	jsontools	Tools which assist with the parsing and use of json strings.
+
+	ostack		Some methods that provide an easy authintication interface and access
+				to some basic functions using OpenStack's API.
+
+	token		String to token methods. 
+
+
+How to use
+Go has a very structured source environment, and while the research.forge git environment
+seems difficult to use with Go's 'go get' function, merging this library into the Go 
+environment should be easy.  Assuming the GOPATH environment variable is set, and there
+are src, bin and pkg directories inside of the GOPATH directory, then move this directory
+into $GOPATH/src/forge.research.att.com/gopkgs.  If you haven't checked out this source
+yet, then create the forge.research.att.com directory, cd to it, and then use git to 
+clone this source (git will create the gopkgs directory)
+
+In your code, use a statement like
+	import "codecloud.att.com/gopkgs/clike"
+
+to cause the compiler to reference a package in this set.  Once it is referenced on an 
+import statement, the 'short name' can be used in the code:
+	ival := clike.Atoi64( varname )
+
+
+Go Package Doc
+Running the Go package documentation tool on any of the packages in this source should 
+generate the documentation needed to make use of these packages.  As an example
+
+	godoc codecloud..att.com/gopkgs/token
+
+Will generate the documentation on the token pacakge. 
