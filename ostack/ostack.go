@@ -348,6 +348,24 @@ type ost_service struct {
 	//Zone "internal"
 }
 
+/*
+	External gateway info. (may have more fields, but this is what was documented)
+*/
+type ost_gwinfo struct {
+	Network_id	string
+}
+
+/*
+	Information returned by v2.0/routers
+*/
+type ost_router struct {
+	Status 		string				// "ACTIVE", other values undocumented in os doc :(
+	Name		string				// we assume the human readable name
+	Admin_state_up bool
+	Tenant_id 	string
+	Id 			string
+	External_gateway_info *ost_gwinfo	// unknown what this might be (no doc)
+}
 
 /*
 	A collection of things that might come back from the various ostack calls. Should serve
@@ -361,6 +379,7 @@ type generic_response struct {
 	Networks 	[]ost_network
 	Ports		[]ost_os_port
 	Roles		[]ost_role
+	Routers		[]ost_router				// from v2.0/routers
 	Servers		[]ost_vm_server
 	Services	[]ost_service				// list of services from os-service
 	Tenants		[]ost_tenant
@@ -390,7 +409,7 @@ type Ostack struct {
 
 // ---- necessary globals --------------------------------------------------------------------
 var (								// counters used by ostack_debug functions -- these apply to all objects!
-	dbug_json_count int = 50			// set to 10 to prevent json dumping of first 10 calls
+	dbug_json_count int = 50		// set >= 10 to prevent json dumping of first 10 calls
 	dbug_url_count int = 50			// set to 10 to prevent url dumping of first 10 calls
 )
 
