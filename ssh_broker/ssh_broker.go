@@ -48,6 +48,11 @@
 				that other script types can be used, though it is known that #!/usr/bin/env awk will fail and
 				thus "pure awk" must be wrapped inside of a ksh or bash script.
 
+
+				There are also two functions which support the running af a command on the remote host in a
+				"traditional" SSH fasion.  Run_cmd (blocking) and NBRun_cmd (non-blocking) run the command
+				in a similar fashion as the script execution methods.
+
 	Author:		E. Scott Daniels
 	Date: 		23 December 2014
 
@@ -101,8 +106,9 @@ type Broker struct  {
 */
 type Broker_msg struct {
 	host	string					// host:port
+	cmd		string					// command to execute (not local script)
 	sname	string					// script name (fully qualified, or in PATH)
-	parms	string					// command line parms to pass
+	parms	string					// command line parms to pass to script
 	id		int						// caller assigned id to make response tracking easier
 	ntries	int						// number of times we've retried this request
 	stdout	bytes.Buffer
@@ -211,6 +217,27 @@ func ( b *Broker ) roar( req *Broker_msg ) ( err error ) {
 	return
 }
 
+/*
+	Run a command on a remote host.
+*/
+func ( b *Broker ) rcmd( req *Broker_msg ) ( err error ) {
+	if req == nil {
+		err = fmt.Errorf( "no request block" )
+		return
+	}
+
+	sess, err := b.session2( req.host )							// get a connection and session
+	if err != nil {
+		return
+	}
+
+	sess.Stdout = &req.stdout
+	sess.Stderr = &req.stderr
+
+	err = sess.Run( req.cmd )
+
+	return
+}
 
 /*
 	Given a key file, open, and read it, then convert its contents into a "signer" that 
@@ -331,7 +358,12 @@ func ( b *Broker ) initiator( id int ) {
 
 		}
 
-		req.err = b.roar( req )							// send the request to the remote host
+		if req.cmd != "" {								// remote command to execute rather than a local script
+			req.err = b.rcmd( req )						// run it 
+		} else {
+			req.err = b.roar( req )						// local script: send the request to the remote host
+		}
+
 		if req.err != nil {
 			if req.ntries < 10  &&  strings.Contains( fmt.Sprintf( "%s", req.err ), "administratively prohibited" ) {	// likely over max sessions
 				c, err := b.connect2( req.host )			// find the connection
@@ -464,7 +496,7 @@ func ( b *Broker ) Close( ) {
 */
 func ( b *Broker ) Run_on_host( host string, script string, parms string ) ( stdout *bytes.Buffer, stderr *bytes.Buffer, err error ) {
 	if b == nil || b.was_closed {
-		err = fmt.Errorf( "broker pointer was nil, or broker has been closed" )
+		err = fmt.Errorf( "run_on_host: broker pointer was nil, or broker has been closed" )
 		return
 	}
 
@@ -483,6 +515,7 @@ func ( b *Broker ) Run_on_host( host string, script string, parms string ) ( std
 	req = <- req.resp_ch					// wait on the response
 	stdout = &req.stdout
 	stderr = &req.stderr
+	req.resp_ch = nil
 	err = req.err
 
 	return
@@ -495,7 +528,7 @@ func ( b *Broker ) Run_on_host( host string, script string, parms string ) ( std
 */
 func ( b *Broker ) NBRun_on_host( host string, script string, parms string,  uid int, uch chan *Broker_msg  ) ( err error ) {
 	if b == nil || b.was_closed {
-		err = fmt.Errorf( "broker pointer was nil, or broker has been closed" )
+		err = fmt.Errorf( "nbrun_on_host: broker pointer was nil, or broker has been closed" )
 		return
 	}
 
@@ -503,6 +536,60 @@ func ( b *Broker ) NBRun_on_host( host string, script string, parms string,  uid
 		host: 	host,
 		sname:	script,
 		parms:	parms,	
+		id:		uid,
+		resp_ch:	uch,
+	}
+
+	b.init_ch <- req						// send request to initiator queue
+
+	return
+}
+
+/*
+	Execute the command on the named host. The cmd string is expected to be the 
+	complete command line.
+*/
+func ( b *Broker ) Run_cmd( host string, cmd string ) ( stdout *bytes.Buffer, stderr *bytes.Buffer, err error ) {
+	if b == nil || b.was_closed {
+		err = fmt.Errorf( "run_cmd: broker pointer was nil, or broker has been closed" )
+		return
+	}
+
+	req := &Broker_msg {
+		host: 	host,
+		cmd:	cmd,
+	}
+	req.resp_ch = make( chan *Broker_msg )			// we'll listen on this channel for response
+	defer close( req.resp_ch )
+
+	stdout = nil
+	stderr = nil
+
+	b.init_ch <- req						// send request to initiator queue
+	req = <- req.resp_ch					// wait on the response
+	stdout = &req.stdout
+	stderr = &req.stderr
+	err = req.err
+	req.resp_ch = nil
+
+	return
+}
+
+/*
+	Run a command on the remote host, non-blocking. The cmd string is expected to 
+	be the complete command line. 
+*/
+func ( b *Broker ) NBRun_cmd( host string, cmd string,  uid int, uch chan *Broker_msg  ) ( err error ) {
+	if b == nil || b.was_closed {
+		err = fmt.Errorf( "nbrun_cmd: broker pointer was nil, or broker has been closed" )
+		return
+	}
+
+	req := &Broker_msg {
+		host: 	host,
+		cmd:	cmd,
+		sname:	"",
+		parms:	"",
 		id:		uid,
 		resp_ch:	uch,
 	}
