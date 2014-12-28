@@ -416,17 +416,30 @@ func (m *Broker_msg) Get_info( ) ( host string, sname string, id int ) {
 	Create a broker for the given user and with the given key files.
 */
 func Mk_broker( user string, keys []string ) ( broker *Broker ) {
+	if len( keys ) <= 0 {
+		broker = nil
+		return
+	}
+
 	broker = &Broker { }
 	broker.conns = make( map[string]*connection, 100 )		// value is a hint, not limit
 	broker.was_closed = false
 
 	auth_list := make( []ssh.AuthMethod, len( keys ) )
 
+	j := 0
 	for i := range keys {
 		s, err := read_key_file( keys[i]  ) 
 		if err == nil {										// error isn't fatal to the process, but not having the key later might cause issues
-			auth_list[i] = ssh.PublicKeys( s )
+			auth_list[j] = ssh.PublicKeys( s )
+			j++
 		}
+	}
+
+	if j <= 0 {												// didn't find a suitable key
+		fmt.Fprintf( os.Stderr, "mk_broker: no suitable key found\n" )
+		broker = nil
+		return
 	}
 
 	broker.config = &ssh.ClientConfig {						// set up the config info that ssh needs to open a connection
