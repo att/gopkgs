@@ -19,7 +19,7 @@ import (
 */
 func test_script( broker *ssh_broker.Broker, ch chan int, host *string, script *string, parms *string ) {
 
-	fmt.Fprintf( os.Stderr, "running commnand parms=%s\n", *parms )
+	fmt.Fprintf( os.Stderr, "running commnand=%s parms=%s\n", *script, *parms )
 	stdout, stderr, err := broker.Run_on_host( *host, *script, *parms )
 	if err != nil {
 		fmt.Fprintf( os.Stderr, "command failed: %s:  %s \n", *host, err )
@@ -86,17 +86,37 @@ func main( ) {
 	var ch chan int
 	var rch chan *ssh_broker.Broker_msg		// response channel
 	var err error
+	var user *string
+
+	def_user := os.Getenv( "USER" )
 
 	asynch := flag.Bool( "a", false, "asynch processing" )
 	cmd := flag.String( "c", "", "command to execute" )
 	host_list := flag.String( "h", "localhost", "host name" )
+	key := flag.String( "k", "", "key file" )
 	parms := flag.String( "p", "", "parms" )
 	parallel := flag.Int( "P", 1, "parallel scripts" )
 	script := flag.String( "s", "test_script", "script to execute" )
+	user = flag.String ( "u", def_user, "user name" )
 	flag.Parse()
 
-	keys := []string { "key" }
-	broker := ssh_broker.Mk_broker( "scooter", keys )
+	if *key == "" {
+		home := os.Getenv( "HOME" )
+		k := fmt.Sprintf( "%s/.ssh/id_rsa", home )
+		_, err = os.Stat( k )
+		if err != nil {
+			k = fmt.Sprintf( "%s/.ssh/id_dsa", home )
+			_, err = os.Stat( k )
+			if err != nil {
+				fmt.Fprintf( os.Stderr, "cannot find default key file ~/.ssh/id_dsa\n" )
+				os.Exit( 1 )
+			}
+		}
+		key = &k
+	}
+
+	keys := []string { *key }
+	broker := ssh_broker.Mk_broker( *user, keys )
 	if broker == nil {
 		fmt.Fprintf( os.Stderr, "unable to create an ssh broker\n" )
 		os.Exit( 1 )
@@ -116,22 +136,21 @@ func main( ) {
 	for i := 0; i < *parallel; i++  {
 		for j := range host {
 			wait4++
-			p := fmt.Sprintf( "%s %d", *parms,  i )
 			if ! *asynch {
 				if *cmd == "" {
-					go test_script( broker, ch, &host[j], script, &p )
+					go test_script( broker, ch, &host[j], script, parms )
 				} else {
 					go test_cmd( broker, ch, &host[j], cmd )
 				}
 			} else {
-				fmt.Fprintf( os.Stderr, "running asynch commnand parms=%s\n", p )
+				fmt.Fprintf( os.Stderr, "running asynch commnand parms=%s\n", *parms )
 				if *cmd == "" {					// -c supplied
-					err = broker.NBRun_on_host( host[j], *script, p, (i*100)+j, rch )
+					err = broker.NBRun_on_host( host[j], *script, *parms, (i*100)+j, rch )
 				} else {
 					err = broker.NBRun_cmd( host[j], *cmd, (i*100)+j, rch )
 				}
 				if err != nil {
-					fmt.Fprintf( os.Stderr, "asynch commnand submit failed: parms=%s: %s\n", host[j], p, err )
+					fmt.Fprintf( os.Stderr, "asynch commnand submit failed: parms=%s: %s\n", host[j], *parms, err )
 				}
 			}
 		}
