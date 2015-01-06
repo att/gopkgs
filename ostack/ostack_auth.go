@@ -18,6 +18,7 @@
 							Added endpoint function.
 				10 Nov 2014 : Added checks to ensure response data structs aren't nil
 							Added support for md5-token
+				06 Jan 2015 - Added check for nil project id in response.
 ------------------------------------------------------------------------------------------------
 */
 
@@ -123,7 +124,12 @@ func (o *Ostack) Authorise( ) ( err error ) {
 		o.small_tok = o.token
 	}
 
-	o.project_id = &auth_data.Access.Token.Tenant.Id
+	if auth_data.Access.Token != nil &&  auth_data.Access.Token.Tenant != nil   {
+		o.project_id = &auth_data.Access.Token.Tenant.Id
+	} else {
+		dup_str := ""
+		o.project_id = &dup_str
+	}
 	o.user_id = &auth_data.Access.User.Id
 	o.chost = nil
 

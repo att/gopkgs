@@ -33,6 +33,8 @@
 				04 Oct 2014 - Changed list_net_hosts to look for the agent string "quantum-openvswitch-agent"
 					to be compatable with grizzley (bloody openstack renaming mid-stream).
 				04 Dec 2014 - Now reports network host only if service shows alive.
+				10 Dec 2014 - Added support to look up a specific gateway (router) in order to 
+					suss out it's physical location.
 ------------------------------------------------------------------------------------------------
 */
 
@@ -52,6 +54,61 @@ import (
 
 	//"forge.research.att.com/gopkgs/jsontools"
 )
+
+/*
+	Given a gateway ID, make the call to generate the physical host.
+*/
+func (o *Ostack) Gw2phost( id *string ) ( phost *string, err error ) {
+	var (
+		resp generic_response		// top level data mapped from ostack json
+		jdata	[]byte				// raw json response data
+	)
+
+	phost = nil
+	if o == nil {
+		err = fmt.Errorf( "net_netinfo: openstack creds were nil" )
+		return
+	}
+	if id == nil || *id == "" {
+		err = fmt.Errorf( "id was not supplied" )
+		return
+	}
+
+	err = o.Validate_auth()						// reauthorise if needed
+	if err != nil {
+		return
+	}
+
+	if o.nhost == nil || *o.nhost == "" {
+		err = fmt.Errorf( "no network host url to query %s", o.To_str()  )
+		return
+	}
+
+	jdata = nil
+	body := bytes.NewBufferString( "" )
+
+	//url := fmt.Sprintf( "%s/v2.0/routers/%s/l3-agents.json", *o.nhost, *id )
+	url := fmt.Sprintf( "%s/v2.0/routers/%s/l3-agents", *o.nhost, *id )
+	dump_url( "gw2phost", 90, url )
+	jdata, _, err = o.Send_req( "GET",  &url, body )
+	dump_json( "gw2phost", 90, jdata )
+
+	if err != nil {
+		return
+	}
+
+	err = json.Unmarshal( jdata, &resp )			// unpack the json into response struct
+	if err != nil {
+		fmt.Fprintf( os.Stderr, "ostack/gw2phost: unable to unpack json: %s\n", err )		//TESTING
+		fmt.Fprintf( os.Stderr, "offending_json=%s\n", jdata )
+		return
+	}
+
+	host := "not implemented"
+	phost = &host
+	
+	return 
+}
 
 /*
 	Generate a string containing a space separated list of physical host names which 

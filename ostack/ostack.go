@@ -18,6 +18,7 @@
 				19 Aug 2014 - Added scan of json for non-jsonish things. 
 				28 Oct 2014 - Added support for identity requests as admin.
 				04 Dec 2014 - To support generating a list of hosts that are 'active'.
+				06 Jan 2015 - Additional nil pointer checks.
 ------------------------------------------------------------------------------------------------
 */
 
@@ -541,6 +542,10 @@ func (o *Ostack) Send_req( method string, url *string, data *bytes.Buffer ) (jda
 	Returns true if this object matches the passed in ID string. 
 */
 func (o *Ostack) Equals_id( id *string ) ( bool ) {
+	if o == nil || o.project_id == nil {
+		return false
+	}
+
 	return *o.project_id == *id
 }
 
@@ -548,6 +553,10 @@ func (o *Ostack) Equals_id( id *string ) ( bool ) {
 	Returns true if this object matches the passed in name string. 
 */
 func (o *Ostack) Equals_name( name *string ) ( bool ) {
+	if o == nil || o.project == nil {
+		return false
+	}
+
 	return *o.project == *name
 }
 
@@ -555,6 +564,10 @@ func (o *Ostack) Equals_name( name *string ) ( bool ) {
 	Return the token that was generated for the object (testing)
 */
 func (o *Ostack) Get_tok( ) ( string ) {
+	if o == nil || o.token == nil {
+		return ""
+	}
+
 	return *o.token
 }
 
@@ -562,6 +575,10 @@ func (o *Ostack) Get_tok( ) ( string ) {
 	Returns the user name associated with the credntial block.
 */
 func (o *Ostack)  Get_user() ( *string ) {
+	if o == nil || o.user == nil {
+		return nil
+	}
+
 	return o.user
 }
 
