@@ -35,6 +35,7 @@
 			26 Oct 2014 - Fixed bug in newdata (copy).
 			03 Dec 2014 - Session struct now implements true Writer interface.
 						  Added direct UDP writing via Writer interface.
+			06 Jan 2014 - Ensure goroutine exits when session is lost.
 */
 
 package connman
@@ -162,10 +163,14 @@ func (this *Cmgr) conn_reader( cp *connection )   {
 		var err		error
 		var from	*net.UDPAddr = nil 	// packet source if udp
 
-		if cp.conn != nil {
+		if cp.conn != nil {							// nil if this is udp, or if the session isn't connected
 			nread, err = cp.conn.Read( buf );	
 		} else {
-			nread, from, err = cp.uconn.ReadFromUDP( buf );	
+			if cp.uconn != nil {
+				nread, from, err = cp.uconn.ReadFromUDP( buf );	
+			} else {
+				return				// no session just stop the reader
+			}
 		}
 
 /*
