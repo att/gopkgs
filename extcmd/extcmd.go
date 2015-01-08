@@ -28,15 +28,15 @@ type Response struct {
 
 /*
 	Accept and build a command, run it writing the output into a json buffer that is 
-	returned.  Currently, output response is truncated at 4096 records.
+	returned.  Currently, output response is truncated at 8192 records.
 	If a caller needs more, then it should redirect the output and parse the 
 	file rather than reading it all into core.
 */
 	
 func Cmd2strings( cbuf string ) ( rdata []string, edata []string, err error ) {
 
-	rdata = make( []string, 4096 )
-	edata = make( []string, 4095 )
+	rdata = make( []string, 8192 )
+	edata = make( []string, 8192 )
 
 	ntokens, tokens := token.Tokenise_qpopulated( cbuf, " " )
 	if ntokens < 1 {
