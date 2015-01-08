@@ -17,7 +17,7 @@ import (
 	//"sync"
 	"time"
 
-	"forge.research.att.com/gopkgs/ostack"
+	"codecloud.web.att.com/gopkgs/ostack"
 )
 
 func main( ) {
@@ -47,13 +47,14 @@ func main( ) {
 	url = flag.String( "U", *url, "auth-url" )
 	verbose := flag.Bool( "v", false, "verbose" )
 
-	run_all := flag.Bool( "A", false, "run all tests" )
+	run_all := flag.Bool( "A", false, "run all tests" )				// the various tests
 	run_fip := flag.Bool( "F", false, "run fixed-ip test" )
 	run_gw_map := flag.Bool( "G", false, "run gw list test" )
 	run_mac := flag.Bool( "H", false, "run mac-ip map test" )
 	run_hlist := flag.Bool( "L", false, "run list-host test" )
 	run_maps := flag.Bool( "M", false, "run maps test" )
 	run_user := flag.Bool( "R", false, "run user/role test" )
+	run_subnet := flag.Bool( "S", false, "run subnet map test" )
 	run_vfp := flag.Bool( "V", false, "run token valid for project test" )
 	run_projects := flag.Bool( "T", false, "run projects test" )
 	flag.Parse()									// actually parse the commandline
@@ -260,14 +261,37 @@ invoked.  bloody openstack.
 	}
 
 	if !(*run_all || *run_maps) && *run_gw_map {
-		gm1, _, err := o2.Mk_gwmaps( nil, nil, true, *inc_project )
+		// order back:  mac2ip, ip2mac, mac2id, id2mac
+		gm1, _, gm2, gm3, err := o2.Mk_gwmaps( nil, nil, nil, nil, true, *inc_project )
 		if err == nil {
-			fmt.Fprintf( os.Stderr, "[OK]    generated gateway map with %d entries\n", len( gm1 ) )
+			gw_id := ""
+
+			fmt.Fprintf( os.Stderr, "[OK]    generated gateway map with %d entries, gw id map with %d entries\n", len( gm1 ), len( gm2 ) )
 			if *verbose {
 				for k, v := range( gm1 ) {
-					fmt.Fprintf( os.Stderr, "\tgw: %s --> %s\n", k, *v )
+					fmt.Fprintf( os.Stderr, "\tgw1: %s --> %s\n", k, *v )
+				}
+
+				fmt.Fprintf( os.Stderr, "\n\tgw mac -> gw-id\n" )
+				for k, v := range( gm2 ) {
+					gw_id = *v												// capture one of the IDs for next test
+					fmt.Fprintf( os.Stderr, "\tgw2: %s --> %s\n", k, *v )
+				}
+
+				fmt.Fprintf( os.Stderr, "\n\tgw-id  -> mac\n" )
+				for k, v := range( gm3 ) {
+					fmt.Fprintf( os.Stderr, "\tgw3: %s --> %s\n", k, *v )
 				}
 			}
+
+			host, err := o2.Gw2phost( &gw_id )								// see if we can look up the phost
+			if err == nil {
+				fmt.Fprintf( os.Stderr, "[OK]    lookup of physical host for ID %s lives on %s\n", gm3[gw_id], *host )
+			} else {
+				fmt.Fprintf( os.Stderr, "[FAIL]  lookup of physical host for ID %s failed: %s\n", gw_id, err )
+				err_count++
+			}
+
 		} else {
 			fmt.Fprintf( os.Stderr, "[FAIL]  error generating gateway map: %s\n", err )
 			err_count++
@@ -281,7 +305,7 @@ invoked.  bloody openstack.
 		if err != nil {
 			fmt.Fprintf( os.Stderr, "[FAIL] error generating maps: %s\n", err )
 		} else {
-			gm1, _, err := o2.Mk_gwmaps( nil, nil, true, *inc_project )
+			gm1, _, _, _, err := o2.Mk_gwmaps( nil, nil, nil, nil, true, *inc_project )
 			if err != nil {
 				fmt.Fprintf( os.Stderr, "[FAIL] error generating gw maps: %s\n", err )
 			} else {
@@ -421,11 +445,42 @@ invoked.  bloody openstack.
 			fmt.Fprintf( os.Stderr, "\n[INFO]     no token supplied with -V option; test skipped\n" )	
 		}
 	}
+
+	if *run_all || *run_subnet {
+		msn, mgw, err := o2.Mk_snlists( )
+		if err == nil { 
+			if msn != nil {
+				fmt.Fprintf( os.Stderr, "\n[OK]       subnet map contained %d entries\n", len( msn ) )
+				if *verbose {
+					for k, v := range msn {
+						fmt.Fprintf( os.Stderr, "\tsnet: %s = %s\n", k, *v )
+					}
+				}
+			}
+			if mgw != nil {
+				fmt.Fprintf( os.Stderr, "\n[OK]       gateway to cidr map contained %d entries\n", len( mgw ) )
+				if *verbose {
+					for k, v := range mgw {
+						fmt.Fprintf( os.Stderr, "\tgw2cidr: %s = %s\n", k, *v )
+					}
+				}
+			}
+		} else {
+			if err == nil {
+				fmt.Fprintf( os.Stderr, "\n[FAIL]     subnet map was nil\n" )
+			} else {
+				fmt.Fprintf( os.Stderr, "\n[FAIL]     subnet map generation failed: %s\n", err )
+			}
+			err_count++
+		}
+	}
 	
+	// ----------------------------------------------------------------------------------------------------
 	if err_count == 0 {
 		fmt.Fprintf( os.Stderr, "\n[OK]     all tests passed\n" )
 	} else {
 		fmt.Fprintf( os.Stderr, "\n[WARN]   %d errors noticed\n", err_count )
-	}
+	} 
+
 }
 
