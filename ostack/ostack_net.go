@@ -452,6 +452,65 @@ func (o *Ostack) Mk_gwlist( ) ( gwlist []string, err error ) {
 }
 
 
+/*
+ 	Creates several maps based on subnet information:
+		snlist	is a map of subnet information indexed by subnet ID. Each entry in the map is a string of space 
+				separated values in the following order: Name, Tenant ID, CIDR, Gateway IP.
+		gw2cidr is a map of gateway project-id/ipaddress to cidr
+*/
+func (o *Ostack) Mk_snlists( ) ( snlist map[string]string, gw2cidr map[string]string, err error ) {
+	var (
+		resp 	generic_response		// unpacked json from response
+		jdata	[]byte					// raw json response data
+	)
+
+	snlist = nil
+	gw2cidr = nil
+
+	if o == nil {
+		err = fmt.Errorf( "mk_snlist: openstack creds were nil" )
+		return
+	}
+
+	err = o.Validate_auth()						// reauthorise if needed
+	if err != nil {
+		return
+	}
+
+	jdata = nil
+	body := bytes.NewBufferString( "" )
+
+	if o.nhost == nil || *o.nhost == "" {
+		err = fmt.Errorf( "no network host url to query %s", o.To_str() )
+		return
+	}
+
+	url := fmt.Sprintf( "%s/v2.0/subnets", *o.nhost )				// nhost is the host where the network service is running
+	dump_url( "mk_snlist", 10, url )
+	jdata, _, err = o.Send_req( "GET",  &url, body )
+	dump_json( "mk_snlist", 10, jdata )
+
+	if err != nil {
+		return
+	}
+
+	err = json.Unmarshal( jdata, &resp )			// unpack the json into response struct
+	if err != nil {
+		dump_json( "mk_snlist", 90, jdata )
+		return
+	}
+
+	snlist = make( map[string]string )
+	gw2cidr = make( map[string]string )
+	for j := range resp.Subnets {
+		snlist[resp.Subnets[j].Id] = resp.Subnets[j].Name + " " + resp.Subnets[j].Tenant_id + " " + resp.Subnets[j].Cidr + " " + resp.Subnets[j].Gateway_ip
+		gw2cidr[resp.Subnets[j].Tenant_id + "/" + resp.Subnets[j].Gateway_ip] = resp.Subnets[j].Cidr
+	}
+
+	return
+}
+
+
 func (o *Ostack) Dump_json( uurl string ) ( err error ) {
 	var (
 		jdata	[]byte				// raw json response data

@@ -225,9 +225,9 @@ type ost_subnet struct {
 	Cidr 			string
 	Gateway_ip 		string
 	Host_routes 	[]string
-	Id 				string
 	Name 			string
-	Network_id 		string
+	Id 				string		// this is the id listed in output from v2/networks in the subnet list
+	Network_id 		string		// who knows what this ID really is
 	Tenant_id 		string
 }
 
@@ -383,6 +383,7 @@ type generic_response struct {
 	Routers		[]ost_router				// from v2.0/routers
 	Servers		[]ost_vm_server
 	Services	[]ost_service				// list of services from os-service
+	Subnets		[]ost_subnet
 	Tenants		[]ost_tenant
 	Agents		[]ost_net_agent
 }
