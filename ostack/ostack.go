@@ -224,7 +224,7 @@ type ost_subnet struct {
 	Allocation_pools []ost_pool
 	Cidr 			string
 	Gateway_ip 		string
-	Host_routes 	[]string
+	//Host_routes 	[]string	// this is not an array of string that comes back from openstack -- array of objects
 	Name 			string
 	Id 				string		// this is the id listed in output from v2/networks in the subnet list
 	Network_id 		string		// who knows what this ID really is

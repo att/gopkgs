@@ -458,7 +458,7 @@ func (o *Ostack) Mk_gwlist( ) ( gwlist []string, err error ) {
 				separated values in the following order: Name, Tenant ID, CIDR, Gateway IP.
 		gw2cidr is a map of gateway project-id/ipaddress to cidr
 */
-func (o *Ostack) Mk_snlists( ) ( snlist map[string]string, gw2cidr map[string]string, err error ) {
+func (o *Ostack) Mk_snlists( ) ( snlist map[string]*string, gw2cidr map[string]*string, err error ) {
 	var (
 		resp 	generic_response		// unpacked json from response
 		jdata	[]byte					// raw json response data
@@ -500,11 +500,14 @@ func (o *Ostack) Mk_snlists( ) ( snlist map[string]string, gw2cidr map[string]st
 		return
 	}
 
-	snlist = make( map[string]string )
-	gw2cidr = make( map[string]string )
+	snlist = make( map[string]*string )
+	gw2cidr = make( map[string]*string )
 	for j := range resp.Subnets {
-		snlist[resp.Subnets[j].Id] = resp.Subnets[j].Name + " " + resp.Subnets[j].Tenant_id + " " + resp.Subnets[j].Cidr + " " + resp.Subnets[j].Gateway_ip
-		gw2cidr[resp.Subnets[j].Tenant_id + "/" + resp.Subnets[j].Gateway_ip] = resp.Subnets[j].Cidr
+		list := resp.Subnets[j].Name + " " + resp.Subnets[j].Tenant_id + " " + resp.Subnets[j].Cidr + " " + resp.Subnets[j].Gateway_ip
+		snlist[resp.Subnets[j].Id] = &list
+
+		dup_str := resp.Subnets[j].Cidr
+		gw2cidr[resp.Subnets[j].Tenant_id + "/" + resp.Subnets[j].Gateway_ip] = &dup_str
 	}
 
 	return
