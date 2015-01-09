@@ -63,7 +63,7 @@ func Cmd2strings( cbuf string ) ( rdata []string, edata []string, err error ) {
 		if err != nil {
 			break
 		}
-		if i < 4095 {					// must read it all before calling wait, but only snarf 4095
+		if i < len( rdata ) {					// must read it all before calling wait, but don't overrun our buffer
 			if len( buf ) > 0 {
 				nb := make( []byte, len( buf ) )
 				copy( nb, buf )
@@ -80,7 +80,7 @@ func Cmd2strings( cbuf string ) ( rdata []string, edata []string, err error ) {
 		if err != nil {
 			break
 		}
-		if i < 4095  {					// must read it all before calling wait, but only snarf 4095
+		if i < len( edata )  {					// must read it all before calling wait, but don't overrun our buffer
 	
 			if len( buf ) > 0 {
 				nb := make( []byte, len( buf ) )
