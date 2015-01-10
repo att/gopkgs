@@ -44,7 +44,7 @@ import (
 	"os"
 	//"time"
 
-	"forge.research.att.com/gopkgs/jsontools"
+	//"forge.research.att.com/gopkgs/jsontools"
 )
 
 // ------------- structs that are used to unbundle the json auth response data -------------------
@@ -106,9 +106,10 @@ type floatip_list struct {
 
 	This function can provide all of the logic needed to build both the ip and tip translation maps
 	with the presence of the inc_tenant flag. When set, the tenant information is added to the IP-address
-	as it is used as either the key or value.
+	as it is used as either the key or value. Further, if save_name is true, the map is generated
+	with the name as the value rather than the id. 
 */
-func (o *Ostack) xip2vmid( deftab map[string]*string, inc_tenant bool, usr_jdata []byte, reverse bool ) ( symtab map[string]*string, err error ) {
+func (o *Ostack) xip2vmid( deftab map[string]*string, inc_tenant bool, usr_jdata []byte, save_name bool, reverse bool ) ( symtab map[string]*string, err error ) {
 	var (
 		vm_data	generic_response	// "root" of the response goo after pulling out of json format
 		jdata	[]byte				// raw json response data
@@ -150,26 +151,39 @@ func (o *Ostack) xip2vmid( deftab map[string]*string, inc_tenant bool, usr_jdata
 		symtab = make( map[string]*string )
 	}
 
-	goo_map := make( map[string]interface{} )			// we have to disect the variable named portion of addresses by hand; do it in goo_map
-	for i := range vm_data.Servers {
-		for _, v := range vm_data.Servers[i].Addresses.( map[string]interface{} ) {		// pull the variable named networks off; we'll only use the first
+	for i := range vm_data.Servers {							// for each vm
+		have_reverse := false									// we only capture first address when mapping by vmid
 
-			jsontools.Jif2map( goo_map, v, 0, "goo", false )							// pull out the address, and version
-			addr = goo_map["goo[0].addr"].( string )
-			break										// we only look at the first network listed
-		}
+		for _, v := range vm_data.Servers[i].Addresses {		// for each network interface (addresses is a poor choice)
+			var dup_vminfo string
 
-		if inc_tenant {
-			addr = vm_data.Servers[i].Tenant_id  + "/" + addr
-		} 
+			if len( v ) > 0 {									// it is possible to have an interface with no addresses, so prevent failures
+				for j := range v {								// for each address assigned to this interface
+					addr = v[j].Addr
 
-		dup_addr := addr								// MUST assign to a new variable for each declared HERE not on the stack
-		dup_vmid := vm_data.Servers[i].Id
+					if inc_tenant {
+						addr = vm_data.Servers[i].Tenant_id  + "/" + addr
+					} 
+
+					dup_addr := addr								// MUST assign to a new variable for each declared HERE not on the stack
+					if save_name {
+						if inc_tenant {
+							dup_vminfo = vm_data.Servers[i].Tenant_id + "/" + vm_data.Servers[i].Name
+						} else {
+							dup_vminfo = vm_data.Servers[i].Name
+						}
+					} else {
+						dup_vminfo = vm_data.Servers[i].Id
+					}
 		
-		if reverse {
-			symtab[dup_vmid] = &dup_addr
-		} else {
-			symtab[dup_addr] = &dup_vmid
+					if reverse && ! have_reverse {
+						symtab[dup_vminfo] = &dup_addr
+						have_reverse = true
+					} else {
+						symtab[dup_addr] = &dup_vminfo
+					}
+				}
+			}
 		}
 	}
 
@@ -180,28 +194,42 @@ func (o *Ostack) xip2vmid( deftab map[string]*string, inc_tenant bool, usr_jdata
 	Returns a map allowing for translation of tenant/IP-address to UUID (VM-id)
 */
 func (o *Ostack) Mk_tip2vmid( deftab map[string]*string ) ( symtab map[string]*string, err error ) {
-	return o.xip2vmid( deftab, true, nil, false )
+	return o.xip2vmid( deftab, true, nil, false, false )
 }
 
 /*
 	Returns a map allowing for translation of IP-address to UUID (VM-id)
 */
 func (o *Ostack) Mk_ip2vmid( deftab map[string]*string ) ( symtab map[string]*string, err error ) {
-	return o.xip2vmid( deftab, false, nil, false )
+	return o.xip2vmid( deftab, false, nil, false, false )
 }
 
 /*
 	Returns a map allowing for translation of UUID (VMid) to tenant/IP-address
 */
 func (o *Ostack) Mk_vmid2tip( deftab map[string]*string ) ( symtab map[string]*string, err error ) {
-	return o.xip2vmid( deftab, true, nil, true )
+	return o.xip2vmid( deftab, true, nil, false, true )
 }
 
 /*
 	Returns a map allowing for translation of UUID (VMid) to IP-address.
 */
 func (o *Ostack) Mk_vmid2ip( deftab map[string]*string ) ( symtab map[string]*string, err error ) {
-	return o.xip2vmid( deftab, false, nil, true )
+	return o.xip2vmid( deftab, false, nil, false, true )
+}
+
+/*
+	Returns a map allowing for translation of tenant/IP-address to vmname
+*/
+func (o *Ostack) Mk_tip2vm( deftab map[string]*string ) ( symtab map[string]*string, err error ) {
+	return o.xip2vmid( deftab, true, nil, true, false )
+}
+
+/*
+	Returns a map allowing for translation of IP-address to vm name
+*/
+func (o *Ostack) Mk_ip2vm( deftab map[string]*string ) ( symtab map[string]*string, err error ) {
+	return o.xip2vmid( deftab, false, nil, true, false )
 }
 
 //----------- vm-id -> IP  and vm-name -> IP mapping -------------------------------------------------------
@@ -211,6 +239,9 @@ func (o *Ostack) Mk_vmid2ip( deftab map[string]*string ) ( symtab map[string]*st
 	[tenant/]IP address. With the setting of one boolean switch this can provide the 
 	function for either the ip or tip translation.  This is similar to xip2vmid() function
 	except that it produces both sets of keys (vm-name and vm-id) in the same map.
+
+	Because a VM may have multiple interfaces, only the first interface ip address is mapped
+	to the name or ID. 
 */
 func (o *Ostack) vm2xip( deftab map[string]*string, inc_tenant bool, usr_jdata []byte ) ( symtab map[string]*string, err error ) {
 	var (
@@ -254,29 +285,33 @@ func (o *Ostack) vm2xip( deftab map[string]*string, inc_tenant bool, usr_jdata [
 		symtab = make( map[string]*string )
 	}
 
-	goo_map := make( map[string]interface{} )			// we have to disect the variable named portion of addresses by hand; do it in goo_map
-	for i := range vm_data.Servers {
+	for i := range vm_data.Servers {						// for each VM
+		for _, v := range vm_data.Servers[i].Addresses {	// for each interface -- addresses is a poor choice of label
+			addr = ""
+			for j := range v {
+				if v[j].Addr != "" {
+					addr = v[j].Addr
+					break
+				}
+			}
+	
+			if addr != "" {
+				if inc_tenant {
+					addr = vm_data.Servers[i].Tenant_id  + "/" + addr
+					vmname = vm_data.Servers[i].Tenant_id  + "/" + vm_data.Servers[i].Name 
+				} else {
+					vmname = vm_data.Servers[i].Name
+				}
+			
+				dup_addr := addr								// MUST create a new string for each hash here rather than a statically defined variable 
+				dup_name := vmname
+			
+				symtab[vm_data.Servers[i].Id] = &dup_addr		// two sets of keys: ID and [tenant/]name 
+				symtab[dup_name] = &dup_addr		
 
-		//TODO:  we probably should examine the address and select only 10.* or 192.* addresses
-		for _, v := range vm_data.Servers[i].Addresses.( map[string]interface{} ) {		// pull the variable named networks off; we'll only use the first
-
-			jsontools.Jif2map( goo_map, v, 0, "goo", false )							// pull out the address, and version
-			addr = goo_map["goo[0].addr"].( string )
-			break										// we only look at the first network listed
+				break											// exit loop through interfaces
+			}
 		}
-
-		if inc_tenant {
-			addr = vm_data.Servers[i].Tenant_id  + "/" + addr
-			vmname = vm_data.Servers[i].Tenant_id  + "/" + vm_data.Servers[i].Name 
-		} else {
-			vmname = vm_data.Servers[i].Name
-		}
-
-		dup_addr := addr								// MUST create a new string for each hash here rather than a statically defined variable 
-		dup_name := vmname
-		
-		symtab[vm_data.Servers[i].Id] = &dup_addr		// two sets of keys: ID and [tenant/]name 
-		symtab[dup_name] = &dup_addr		
 	}
 
 	return
@@ -625,11 +660,13 @@ func (o *Ostack) Mk_vm_maps(
 			def_ip2vmid map[string]*string, 
 			def_vm2ip map[string]*string, 
 			def_vmid2host map[string]*string, 
+			def_ip2vm map[string]*string,
 		inc_tenant bool ) ( 
 			vmid2ip map[string]*string, 
 			ip2vmid map[string]*string, 
 			vm2ip map[string]*string, 
 			vmid2host map[string]*string, 
+			ip2vm map[string]*string, 
 		err error ) {
 
 	var (
@@ -640,6 +677,7 @@ func (o *Ostack) Mk_vm_maps(
 	ip2vmid = def_ip2vmid 
 	vm2ip = def_vm2ip 
 	vmid2host = def_vmid2host 
+	ip2vm = def_ip2vm
 
 	err = o.Validate_auth()						// reauthorise if needed
 	if err != nil {
@@ -657,8 +695,9 @@ func (o *Ostack) Mk_vm_maps(
 		return
 	}
 
-	ip2vmid, err = o.xip2vmid( ip2vmid, inc_tenant, jdata, false )
-	vmid2ip, err = o.xip2vmid( vmid2ip, inc_tenant, jdata, true )
+	ip2vmid, err = o.xip2vmid( ip2vmid, inc_tenant, jdata, false, false )
+	vmid2ip, err = o.xip2vmid( vmid2ip, inc_tenant, jdata, false, true )
+	ip2vm, err = o.xip2vmid( ip2vm, inc_tenant, jdata, true, false )	// map ip to vm name
 	vm2ip, err = o.vm2xip( vm2ip, inc_tenant, jdata )					// maps both vmname and vmid to ip
 	vmid2host, err = o.vmid2host( vmid2host, jdata )
 

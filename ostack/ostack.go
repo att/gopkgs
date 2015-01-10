@@ -312,11 +312,14 @@ type ost_server_meta struct {
  	Host_name	string	`json:"My Server Name"`			// bloody python programmers who use spaces in field names should be shot
 }
 
+type ost_addr struct {
+	Addr	string
+}
+
 type ost_vm_server struct {			// we don't use all of the data; fields not included are commented out
 	Accessipv4	string				// huh?
 	Accessipv6	string
-	//Addresses	ost_vm_addr
-	Addresses	interface{}
+	Addresses	map[string][]ost_addr
 	Created		string
 	//flavour
 	Hostid		string

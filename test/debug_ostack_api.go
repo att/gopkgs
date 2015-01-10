@@ -299,7 +299,7 @@ invoked.  bloody openstack.
 	}
 
 	if  *run_all || *run_maps {
-		m1, m2, m3, m4, err := o2.Mk_vm_maps( nil, nil, nil, nil, *inc_project )
+		m1, m2, m3, m4, m5, err := o2.Mk_vm_maps( nil, nil, nil, nil, nil, *inc_project )
 
 	
 		if err != nil {
@@ -329,6 +329,11 @@ invoked.  bloody openstack.
 					os.Exit( 1 )
 				}
 
+				if m5 == nil {
+					fmt.Fprintf( os.Stderr, "\n[FAIL] unable to alloc map m5 for projet %s\n", *project )
+					os.Exit( 1 )
+				}
+
 				if *verbose {
 					fmt.Fprintf( os.Stderr, "\n[OK]   all VM maps were allocated for %s\n", *project )
 					for k, v := range( m1 ) {
@@ -348,6 +353,10 @@ invoked.  bloody openstack.
 				
 					for k, v := range( m4 ) {
 						fmt.Fprintf( os.Stderr, "\tm4: %s --> %s\n", k, *v )
+					}
+
+					for k, v := range( m5 ) {
+						fmt.Fprintf( os.Stderr, "\tm5: %s --> %s\n", k, *v )
 					}
 
 					for k, v := range( gm1 ) {
