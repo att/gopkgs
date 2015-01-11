@@ -257,7 +257,7 @@ type iface struct {
 
 type ost_os_port struct {
 	Status			string
-	Bind_host_id	string	`json:"binding:host_id""`			// tag to handle bloody awful json names
+	Bind_host_id	string	`json:"binding:host_id""`			// assume this is the physical host name
 	Bind_vif_type	string	`json:"binding:vif_type"`
 	//Bind_capabilities	port_abilities	`json:"binding:capabilities"`
 	Name			string

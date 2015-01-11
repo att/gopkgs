@@ -244,16 +244,23 @@ func (o *Ostack) Mk_netinfo_map( ) ( nmap map[string]*string, err error ) {
 
 /*
 	Reads through the openstack crap passed in, or rquests the crap, and generates 
-	two maps for each gateway (router):
+	maps for each gateway (router):
 		1) mac -> tenant/ip			(umap_ad)
 		2) mac -> gateway-id		(umap_id)
+		3) mac -> phost				(umap_phost)
 
 	If the reverse option is set, then 
 		1) tenant/ip -> mac
 		2) gateway/id -> mac
+		3) uuid -> physical host	(umap_phost)
 
 */
-func (o *Ostack) gwmac2xip(  umap_ad map[string]*string, umap_id map[string]*string, usr_jdata []byte, inc_tenant bool, reverse bool ) ( m_ad map[string]*string, m_id map[string]*string, err error ) {
+func (o *Ostack) gwmac2xip(  umap_ad map[string]*string, umap_id map[string]*string, umap_phost map[string]*string, usr_jdata []byte, inc_tenant bool, reverse bool ) ( 
+	m_ad map[string]*string, 
+	m_id map[string]*string, 
+	m_phost map[string]*string,
+	err error ) {
+
 	var (
 		ports 	generic_response	// unpacked json from response
 		addr	string				// ip address
@@ -262,6 +269,7 @@ func (o *Ostack) gwmac2xip(  umap_ad map[string]*string, umap_id map[string]*str
 
 	m_ad = umap_ad					// ensure that if we bail the original map goes back on return
 	m_id = umap_id
+	m_phost = umap_phost
 	if o == nil {
 		err = fmt.Errorf( "net_gwmac2xip: openstack creds were nil" )
 		return
@@ -307,6 +315,10 @@ func (o *Ostack) gwmac2xip(  umap_ad map[string]*string, umap_id map[string]*str
 		m_id = make( map[string]*string )
 	}
 
+	if m_phost == nil {
+		m_phost = make( map[string]*string )
+	}
+
 	for j := range ports.Ports {
 		if inc_tenant {
 			addr = ports.Ports[j].Tenant_id + "/" + ports.Ports[j].Fixed_ips[0].Ip_address
@@ -317,13 +329,16 @@ func (o *Ostack) gwmac2xip(  umap_ad map[string]*string, umap_id map[string]*str
 		dup_addr := addr						// MUST duplicate them 
 		dup_id := ports.Ports[j].Id
 		dup_mac := ports.Ports[j].Mac_address
+		dup_phost := ports.Ports[j].Bind_host_id
 
 		if reverse {
 			m_ad[dup_addr] = &dup_mac
 			m_id[dup_id] = &dup_mac
+			m_phost[dup_id] = &dup_phost
 		} else {
 			m_ad[dup_mac] = &dup_addr
 			m_id[dup_mac] = &dup_id
+			m_phost[dup_mac] = &dup_phost
 		}
 	}
 
@@ -332,7 +347,8 @@ func (o *Ostack) gwmac2xip(  umap_ad map[string]*string, umap_id map[string]*str
 
 /*
 	Generates gateway [tenant/]ip to mac and mac to [tenant/]ip maps and gateway-id to mac and mac 
-	to gateway-id maps.  Needs only one call to openstack to generate all maps. 
+	to gateway-id maps.  Needs only one call to openstack to generate all maps.  A fifth map,
+	translating uuid to phost, is also generated.
 
 	The u* maps are updated if supplied. If nil is passed, a new map is created.
 	If use_project is true, then the request is made using the project_id, otherwise the 
@@ -340,11 +356,18 @@ func (o *Ostack) gwmac2xip(  umap_ad map[string]*string, umap_id map[string]*str
 	ID,  with an admin user ID, resulted in a complete list of gateways. With icehouse, it 
 	seems that we must request for each project.
 */
-func (o *Ostack) Mk_gwmaps( umac2ip map[string]*string, uip2mac map[string]*string, umac2id map[string]*string, umid2mac map[string]*string, inc_tenant bool, use_project bool ) ( 
+func (o *Ostack) Mk_gwmaps( umac2ip map[string]*string, 
+			uip2mac map[string]*string, 
+			umac2id map[string]*string, 
+			umid2mac map[string]*string, 
+			uid2phost map[string]*string, 
+			inc_tenant bool, use_project bool ) ( 
+
 			mac2ip map[string]*string, 
 			ip2mac map[string]*string, 
 			mac2id map[string]*string,
 			id2mac map[string]*string,
+			id2phost map[string]*string,
 			err error ) {
 	var (
 		jdata []byte
@@ -355,6 +378,7 @@ func (o *Ostack) Mk_gwmaps( umac2ip map[string]*string, uip2mac map[string]*stri
 	mac2ip = umac2ip
 	mac2id = umac2id
 	id2mac = umac2id
+	id2phost = uid2phost
 
 	err = o.Validate_auth()						// reauthorise if needed
 	if err != nil {
@@ -383,11 +407,11 @@ func (o *Ostack) Mk_gwmaps( umac2ip map[string]*string, uip2mac map[string]*stri
 		return
 	}
 
-	ip2mac, id2mac, err = o.gwmac2xip( ip2mac, id2mac, jdata, inc_tenant, true )
+	ip2mac, id2mac, id2phost, err = o.gwmac2xip( ip2mac, id2mac, id2phost, jdata, inc_tenant, true )
 	if err != nil {
 		return
 	}
-	mac2ip, mac2id, err = o.gwmac2xip( mac2ip, mac2id, jdata, inc_tenant, false )
+	mac2ip, mac2id, _, err = o.gwmac2xip( mac2ip, mac2id, nil, jdata, inc_tenant, false )
 
 	return
 }
