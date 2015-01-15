@@ -56,6 +56,8 @@
 	Author:		E. Scott Daniels
 	Date: 		23 December 2014
 
+	Mods:		15 Jan 2015 - Added ability to send an environment file before the named script file.
+
 	CAUTION:	This package reqires go 1.3.3 or later.
 */
 
@@ -65,6 +67,7 @@ import (
 	"bytes"
 	"bufio"
     "fmt"
+	"io"
 	"os"
 	"os/exec"
 	"strings"
@@ -109,6 +112,7 @@ type Broker_msg struct {
 	cmd		string					// command to execute (not local script)
 	sname	string					// script name (fully qualified, or in PATH)
 	parms	string					// command line parms to pass to script
+	env		string					// file where the script's environment lives (optional)
 	id		int						// caller assigned id to make response tracking easier
 	ntries	int						// number of times we've retried this request
 	stdout	bytes.Buffer
@@ -120,12 +124,54 @@ type Broker_msg struct {
 // --------------------------------------------------------------------------------------------------
 
 /*
+	Given a filename, test to see if it is fully or partially qualified (has a slant). If it is not
+	then the PATH is searched for a matching file and that fully qualified filename is returned or
+	error is set.  If the filename isn't qualified in any way, then the file name is returned. 
+	Error is set if path is searched and no match is found.
+*/
+func find_file( fname string ) ( pname string, err error ) {
+	pname = fname
+	if fname[0:1] != "." && fname[0:1] != "/" {					// not absolute or relative name
+		pname, err = exec.LookPath( fname )						// search the path
+	}
+
+	return
+}
+
+/*
+	Read from src and write to dest trashing leading white space if ditch_lws is true.
+*/
+func send_file( src *bufio.Reader, dest io.WriteCloser, ditch_lws bool ) {
+    for {
+		var i int
+
+        rec, rerr := src.ReadBytes( '\n' );
+        if rerr == nil {
+			if ditch_lws {
+				for i = 0; i < len( rec ) && (rec[i] == ' ' || rec[i] == '\n'); i++ { 
+					/* nop */ 
+				}
+				rec = rec[i:]
+			}
+
+			if len( rec ) > 0  &&  rec[0] != '#' {				// skip blank lines and comment lines
+				dest.Write( rec )
+			}
+		} else {
+			return
+		}
+	}
+
+}
+
+/*
 	Expected to be invoked as a gorotine which runs in parallel to sending the ssh command to the 
 	far side. This function reads from the input buffer reader br and writes to the target stripping 
 	blank and comment lines as it goes. If ditch_lws is set to true, then we'll strip the leading 
 	whitespace before sending the record. 
 */
-func send_script( sess *ssh.Session, argv0 string, parms string, br *bufio.Reader, ditch_lws bool ) {
+//func send_script( sess *ssh.Session, argv0 string, parms string, br *bufio.Reader, env string, ditch_lws bool ) {
+func send_script( sess *ssh.Session, argv0 string, env_file string, br *bufio.Reader, ditch_lws bool ) {
 
 	target, err := sess.StdinPipe( )				// we create the pipe here so that we can close here
 	if err != nil {
@@ -138,25 +184,24 @@ func send_script( sess *ssh.Session, argv0 string, parms string, br *bufio.Reade
 		target.Write( []byte( "ARGV0=\"" + argv0 + "\"\n" ) )			// $0 isn't valid using this, so simulate $0 with argv0
 	}
 
-    for {
-		var i int
+	if env_file != "" {										// must push out the environment first
+		env_file, err = find_file( env_file )				// find it in the path if not a qualified name
+		if err == nil {
+			ef, err := os.Open( env_file )
 
-        rec, rerr := br.ReadBytes( '\n' );
-        if rerr == nil {
-			if ditch_lws {
-				for i = 0; i < len( rec ) && (rec[i] == ' ' || rec[i] == '\n'); i++ { 
-					/* nop */ 
-				}
-				rec = rec[i:]
-			}
-
-			if len( rec ) > 0  &&  rec[0] != '#' {				// skip blank lines and comment lines
-				target.Write( rec )
+			if err != nil {
+				fmt.Fprintf( os.Stderr, "ssh_broker: could not open environment file: %s: %s\n", env_file, err )
+			} else {
+				ebr := bufio.NewReader( ef );								// get a buffered reader for the file
+				send_file( ebr, target, ditch_lws )
+				ef.Close()
 			}
 		} else {
-			break
+			fmt.Fprintf( os.Stderr, "ssh_broker: could not find  environment file: %s: %s\n", env_file, err )
 		}
 	}
+
+	send_file( br, target, ditch_lws )
 }
 
 /*
@@ -183,13 +228,11 @@ func ( b *Broker ) roar( req *Broker_msg ) ( err error ) {
 	sess.Stdout = &req.stdout
 	sess.Stderr = &req.stderr
 
-	pname := req.sname
-	if req.sname[0:1] != "." && req.sname[0:1] != "/" {				// not absolute or relative name
-		pname, err = exec.LookPath( req.sname )					// find it's spot in the path
-		if err != nil {
-			return
-		}
+	pname, err := find_file( req.sname )
+	if err != nil {
+		return
 	}
+
 
 	f, err := os.Open( pname )							// open script and read first line here to suss off shell
 	if err != nil {
@@ -208,7 +251,8 @@ func ( b *Broker ) roar( req *Broker_msg ) ( err error ) {
 			ditch_lws = false
 		}
 
-		go send_script( sess, pname, req.parms, br, ditch_lws )			// write the remainder of the script in parallel
+		//go send_script( sess, pname, req.parms, br, ditch_lws )			// write the remainder of the script in parallel
+		go send_script( sess, pname, req.env, br, ditch_lws )			// write the remainder of the script in parallel
 		err = sess.Run( shell )
 	} else {
 		err = fmt.Errorf( "not run: run on a remote requires script to have leading #! directive on the first line: %s\n", pname )
@@ -507,7 +551,7 @@ func ( b *Broker ) Close( ) {
 	than execution.
 
 */
-func ( b *Broker ) Run_on_host( host string, script string, parms string ) ( stdout *bytes.Buffer, stderr *bytes.Buffer, err error ) {
+func ( b *Broker ) Run_on_host( host string, script string, parms string, env_file string ) ( stdout *bytes.Buffer, stderr *bytes.Buffer, err error ) {
 	if b == nil || b.was_closed {
 		err = fmt.Errorf( "run_on_host: broker pointer was nil, or broker has been closed" )
 		return
@@ -516,6 +560,7 @@ func ( b *Broker ) Run_on_host( host string, script string, parms string ) ( std
 	req := &Broker_msg {
 		host: 	host,
 		sname:	script,
+		env:	env_file,
 		parms:	parms,	
 	}
 	req.resp_ch = make( chan *Broker_msg )			// we'll listen on this channel for response

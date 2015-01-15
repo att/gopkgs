@@ -9,3 +9,5 @@ need to get the crypto package in order to get the ssh support:
 	go get src/code.google.com/p/go.crypto
 
 
+Related doc:
+	https://godoc.org/golang.org/x/crypto/ssh
