@@ -35,6 +35,7 @@
 				04 Dec 2014 - Now reports network host only if service shows alive.
 				10 Dec 2014 - Added support to look up a specific gateway (router) in order to 
 					suss out it's physical location.
+				10 Jan 2015 - Lots of updates to support wa interface.
 ------------------------------------------------------------------------------------------------
 */
 
@@ -56,15 +57,15 @@ import (
 )
 
 /*
-	Given a gateway ID, make the call to generate the physical host.
+	Given a gateway ID, make the call to dig out the external network id.
 */
-func (o *Ostack) Gw2phost( id *string ) ( phost *string, err error ) {
+func (o *Ostack) Gw2extid( id *string ) ( extid *string, err error ) {
 	var (
 		resp generic_response		// top level data mapped from ostack json
 		jdata	[]byte				// raw json response data
 	)
 
-	phost = nil
+	extid = nil
 	if o == nil {
 		err = fmt.Errorf( "net_netinfo: openstack creds were nil" )
 		return
@@ -88,10 +89,72 @@ func (o *Ostack) Gw2phost( id *string ) ( phost *string, err error ) {
 	body := bytes.NewBufferString( "" )
 
 	//url := fmt.Sprintf( "%s/v2.0/routers/%s/l3-agents.json", *o.nhost, *id )
-	url := fmt.Sprintf( "%s/v2.0/routers/%s/l3-agents", *o.nhost, *id )
-	dump_url( "gw2phost", 90, url )
+	//url := fmt.Sprintf( "%s/v2.0/routers/%s/l3-agents", *o.nhost, *id )
+	url := fmt.Sprintf( "%s/v2.0/routers/%s", *o.nhost, *id )
+	//url := fmt.Sprintf( "%s/v2.0/routers", *o.nhost )
+	dump_url( "gw2extid", 10, url )
 	jdata, _, err = o.Send_req( "GET",  &url, body )
-	dump_json( "gw2phost", 90, jdata )
+	dump_json( "gw2extid", 10, jdata )
+
+	if err != nil {
+		return
+	}
+
+	err = json.Unmarshal( jdata, &resp )			// unpack the json into response struct
+	if err != nil {
+		fmt.Fprintf( os.Stderr, "ostack/gw2extid: unable to unpack json: %s\n", err )		//TESTING
+		dump_url( "gw2extid", 90, url )
+		dump_json( "gw2extid", 90, jdata )
+		return
+	}
+
+	extid = nil
+	if resp.Router != nil &&  resp.Router.External_gateway_info != nil {
+		dup_str := resp.Router.External_gateway_info.Network_id
+		extid = &dup_str
+	} else {
+		err = fmt.Errorf( "Router or external gateway info was missing in openstack data" )
+	}
+	
+	return 
+}
+
+/*
+	Given a gateway ID, make the call to dig out the physical host that the gatway lives on.
+*/
+func (o *Ostack) Gw2phost( id *string ) ( host *string, err error ) {
+	var (
+		resp generic_response		// top level data mapped from ostack json
+		jdata	[]byte				// raw json response data
+	)
+
+	host = nil
+	if o == nil {
+		err = fmt.Errorf( "net_netinfo: openstack creds were nil" )
+		return
+	}
+	if id == nil || *id == "" {
+		err = fmt.Errorf( "id was not supplied" )
+		return
+	}
+
+	err = o.Validate_auth()						// reauthorise if needed
+	if err != nil {
+		return
+	}
+
+	if o.nhost == nil || *o.nhost == "" {
+		err = fmt.Errorf( "no network host url to query %s", o.To_str()  )
+		return
+	}
+
+	jdata = nil
+	body := bytes.NewBufferString( "" )
+
+	url := fmt.Sprintf( "%s/v2.0/routers/%s/l3-agents", *o.nhost, *id )
+	dump_url( "gw2phost", 10, url )
+	jdata, _, err = o.Send_req( "GET",  &url, body )
+	dump_json( "gw2phost", 10, jdata )
 
 	if err != nil {
 		return
@@ -100,12 +163,17 @@ func (o *Ostack) Gw2phost( id *string ) ( phost *string, err error ) {
 	err = json.Unmarshal( jdata, &resp )			// unpack the json into response struct
 	if err != nil {
 		fmt.Fprintf( os.Stderr, "ostack/gw2phost: unable to unpack json: %s\n", err )		//TESTING
-		fmt.Fprintf( os.Stderr, "offending_json=%s\n", jdata )
+		dump_url( "gw2phost", 90, url )
+		dump_json( "gw2phost", 90, jdata )
 		return
 	}
 
-	host := "not implemented"
-	phost = &host
+	host = nil
+	if resp.Agents != nil  && len ( resp.Agents ) > 0 {
+		host = resp.Agents[0].Host
+	} else {
+		err = fmt.Errorf( "agent list missing in openstack output" )
+	}
 	
 	return 
 }
@@ -247,12 +315,12 @@ func (o *Ostack) Mk_netinfo_map( ) ( nmap map[string]*string, err error ) {
 	maps for each gateway (router):
 		1) mac -> tenant/ip			(umap_ad)
 		2) mac -> gateway-id		(umap_id)
-		3) mac -> phost				(umap_phost)
+		3) ten/ip -> phost				(umap_phost)
 
 	If the reverse option is set, then 
 		1) tenant/ip -> mac
-		2) gateway/id -> mac
-		3) uuid -> physical host	(umap_phost)
+		2) gateway-id -> mac
+		3) gateway-id -> physical host	(umap_phost)
 
 */
 func (o *Ostack) gwmac2xip(  umap_ad map[string]*string, umap_id map[string]*string, umap_phost map[string]*string, usr_jdata []byte, inc_tenant bool, reverse bool ) ( 
@@ -327,18 +395,20 @@ func (o *Ostack) gwmac2xip(  umap_ad map[string]*string, umap_id map[string]*str
 		}
 
 		dup_addr := addr						// MUST duplicate them 
-		dup_id := ports.Ports[j].Id
+		dup_id := ports.Ports[j].Device_id				// id of the device that this port is on (the router
 		dup_mac := ports.Ports[j].Mac_address
 		dup_phost := ports.Ports[j].Bind_host_id
+//fmt.Fprintf( os.Stderr, ">>>> len=%d mac=%s  id=%s  net=%s\n", len(  ports.Ports[j].Fixed_ips ), dup_mac, dup_id,  ports.Ports[j].Device_id )
 
 		if reverse {
 			m_ad[dup_addr] = &dup_mac
 			m_id[dup_id] = &dup_mac
-			m_phost[dup_id] = &dup_phost
+			//m_phost[dup_id] = &dup_phost
+			m_phost[dup_addr] = &dup_phost
 		} else {
 			m_ad[dup_mac] = &dup_addr
 			m_id[dup_mac] = &dup_id
-			m_phost[dup_mac] = &dup_phost
+			m_phost[dup_id] = &dup_phost
 		}
 	}
 
@@ -361,6 +431,7 @@ func (o *Ostack) Mk_gwmaps( umac2ip map[string]*string,
 			umac2id map[string]*string, 
 			umid2mac map[string]*string, 
 			uid2phost map[string]*string, 
+			uip2phost map[string]*string,
 			inc_tenant bool, use_project bool ) ( 
 
 			mac2ip map[string]*string, 
@@ -368,6 +439,7 @@ func (o *Ostack) Mk_gwmaps( umac2ip map[string]*string,
 			mac2id map[string]*string,
 			id2mac map[string]*string,
 			id2phost map[string]*string,
+			ip2phost map[string]*string,
 			err error ) {
 	var (
 		jdata []byte
@@ -407,11 +479,11 @@ func (o *Ostack) Mk_gwmaps( umac2ip map[string]*string,
 		return
 	}
 
-	ip2mac, id2mac, id2phost, err = o.gwmac2xip( ip2mac, id2mac, id2phost, jdata, inc_tenant, true )
+	ip2mac, id2mac, ip2phost, err = o.gwmac2xip( ip2mac, id2mac, id2phost, jdata, inc_tenant, true )
 	if err != nil {
 		return
 	}
-	mac2ip, mac2id, _, err = o.gwmac2xip( mac2ip, mac2id, nil, jdata, inc_tenant, false )
+	mac2ip, mac2id, id2phost, err = o.gwmac2xip( mac2ip, mac2id, nil, jdata, inc_tenant, false )
 
 	return
 }

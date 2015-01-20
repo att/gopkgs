@@ -116,7 +116,10 @@ func (o *Ostack) Authorise( ) ( err error ) {
 	o.expiry, err = Unix_time( &auth_data.Access.Token.Expires )			// convert openstack human time string to timestamp
 	if err != nil {
 		o.expiry = time.Now().Unix() + 300; 	// unable to parse the expiry date, assume it's good for 5min
+	} else {
+		o.expiry -= 60							// we'll chase a new token a minute before the actual expiration
 	}
+
 	o.token = &auth_data.Access.Token.Id
 	if len( *o.token ) > 100 { 					// take the md5 only if it's huge, othewise we'll use the original here too
 		o.small_tok = str2md5_str( *o.token )

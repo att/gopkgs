@@ -38,6 +38,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"time"
 )
 
 
@@ -384,6 +385,7 @@ type generic_response struct {
 	Ports		[]ost_os_port
 	Roles		[]ost_role
 	Routers		[]ost_router				// from v2.0/routers
+	Router		*ost_router					// from v2.0/routers/<routerid>/l3-agent
 	Servers		[]ost_vm_server
 	Services	[]ost_service				// list of services from os-service
 	Subnets		[]ost_subnet
@@ -573,6 +575,14 @@ func (o *Ostack) Get_tok( ) ( string ) {
 	}
 
 	return *o.token
+}
+
+/*
+	Test the expiration value in the set of credentials against the current
+	time and return true if it is in the past.
+*/
+func (o *Ostack) Is_expired() ( bool ) {
+	return o.expiry < time.Now().Unix()
 }
 
 /*
