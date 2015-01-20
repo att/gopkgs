@@ -14,12 +14,28 @@ import (
 	"testing"
 	//"time"
 
-	"forge.research.att.com/gopkgs/extcmd"
+	"codecloud.web.att.com/gopkgs/extcmd"
 )
 
 func TestExec( t *testing.T ) {
 	fmt.Fprintf( os.Stderr, "test started\n" );
 	jdata, err := extcmd.Cmd2json( `test_script.ksh foo bar you "this is one" last`, "test_cmd" ) 
+
+	if err != nil {
+		fmt.Fprintf( os.Stderr, "command error: %s\n", err )
+		t.Fail()
+	}
+
+	if jdata != nil {
+		fmt.Fprintf( os.Stderr, "%s\n", jdata );
+	} else {
+		fmt.Fprintf( os.Stderr, "{jdata was nil}\n" )
+	}
+}
+
+func TestLong( t *testing.T ) {
+	fmt.Fprintf( os.Stderr, "long test started\n" );
+	jdata, err := extcmd.Cmd2json( `test_script.ksh long foo bar you "this is one" last`, "test_cmd" ) 
 
 	if err != nil {
 		fmt.Fprintf( os.Stderr, "command error: %s\n", err )

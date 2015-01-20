@@ -5,6 +5,8 @@
 				channel (not implemented yet).
 	Date: 		04 May 2014
 	Author: 	E. Scott Daniels
+	Mods:		11 Jan 2015 - Fix bug that was improperly truncating the stdout stderr
+							array (failing to limit it if the command could not be run).
 */
 
 package extcmd
@@ -35,15 +37,13 @@ type Response struct {
 	
 func Cmd2strings( cbuf string ) ( rdata []string, edata []string, err error ) {
 
-	rdata = make( []string, 8192 )
-	edata = make( []string, 8192 )
 
 	ntokens, tokens := token.Tokenise_qpopulated( cbuf, " " )
 	if ntokens < 1 {
 		return
 	}
 
-	cmd := &exec.Cmd{}				// set the command up
+	cmd := &exec.Cmd{}						// set the command up
 	cmd.Path, _ = exec.LookPath( tokens[0] )
 	cmd.Args = tokens
 	stdout, err := cmd.StdoutPipe()			// create pipes for stderr/out 
@@ -54,8 +54,13 @@ func Cmd2strings( cbuf string ) ( rdata []string, edata []string, err error ) {
 
 	err = cmd.Start()
 	if err != nil {
+		rdata = make( []string, 1 )
+		edata = make( []string, 1 )
 		return
 	}
+
+	rdata = make( []string, 8192 )
+	edata = make( []string, 8192 )
 
 	i := 0
 	for {
@@ -72,7 +77,11 @@ func Cmd2strings( cbuf string ) ( rdata []string, edata []string, err error ) {
 			}	
 		}
 	}
-	rdata = rdata[0:i]					// scale back the output to just what was used 
+	if i > 0 {
+		rdata = rdata[0:i]					// scale back the output to just what was used 
+	} else {
+		rdata = rdata[0:1]
+	}
 
 	i = 0
 	for {
@@ -90,7 +99,11 @@ func Cmd2strings( cbuf string ) ( rdata []string, edata []string, err error ) {
 			}		
 		}
 	}
-	edata = edata[0:i]					// scale back the output to just what was used 
+	if i > 0 {
+		edata = edata[0:i]					// scale back the output to just what was used 
+	} else {
+		edata = edata[0:1]
+	}
 	
 	err = cmd.Wait()
 
