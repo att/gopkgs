@@ -260,21 +260,22 @@ invoked.  bloody openstack.
 
 	}
 
-	if !(*run_all || *run_maps) && *run_gw_map {
-		// order back:  mac2ip, ip2mac, mac2id, id2mac
-		gm1, _, gm2, gm3, err := o2.Mk_gwmaps( nil, nil, nil, nil, true, *inc_project )
+	if !(*run_all || *run_maps) && *run_gw_map {						// just gateway maps (dup below if all maps are generated)
+		// order back:  mac2ip, ip2mac, mac2id, id2mac, id2phost
+		gm1, _, gm2, gm3, gm4, gm5, err := o2.Mk_gwmaps( nil, nil, nil, nil, nil, nil, true, *inc_project )
 		if err == nil {
 			gw_id := ""
 
 			fmt.Fprintf( os.Stderr, "[OK]    generated gateway map with %d entries, gw id map with %d entries\n", len( gm1 ), len( gm2 ) )
 			if *verbose {
+				fmt.Fprintf( os.Stderr, "\n\tgw mac -> gw-ip\n" )
 				for k, v := range( gm1 ) {
 					fmt.Fprintf( os.Stderr, "\tgw1: %s --> %s\n", k, *v )
 				}
 
+				/* skip ip->mac */
 				fmt.Fprintf( os.Stderr, "\n\tgw mac -> gw-id\n" )
 				for k, v := range( gm2 ) {
-					gw_id = *v												// capture one of the IDs for next test
 					fmt.Fprintf( os.Stderr, "\tgw2: %s --> %s\n", k, *v )
 				}
 
@@ -282,14 +283,32 @@ invoked.  bloody openstack.
 				for k, v := range( gm3 ) {
 					fmt.Fprintf( os.Stderr, "\tgw3: %s --> %s\n", k, *v )
 				}
+
+				fmt.Fprintf( os.Stderr, "\n\tgw-id  --> phost\n" )
+				for k, v := range( gm4 ) {
+					gw_id = k
+					extid, _  := o2.Gw2extid( &k )								// see if we can look up the external network id
+					if extid != nil {
+						fmt.Fprintf( os.Stderr, "\tgw4: %s --> %s   extid=%s\n", k, *v, *extid )
+					} else {
+						fmt.Fprintf( os.Stderr, "\tgw4: %s --> %s\n", k, *v )
+					}
+				}
+
+				fmt.Fprintf( os.Stderr, "\n\tgw-ip  -> phost\n" )
+				for k, v := range( gm5 ) {
+					fmt.Fprintf( os.Stderr, "\tgw4: %s --> %s\n", k, *v )
+				}
 			}
 
-			host, err := o2.Gw2phost( &gw_id )								// see if we can look up the phost
-			if err == nil {
-				fmt.Fprintf( os.Stderr, "[OK]    lookup of physical host for ID %s lives on %s\n", gm3[gw_id], *host )
-			} else {
-				fmt.Fprintf( os.Stderr, "[FAIL]  lookup of physical host for ID %s failed: %s\n", gw_id, err )
-				err_count++
+			if gw_id != "" {													// just one phost look up to confirm it's working
+				host, err := o2.Gw2phost( &gw_id )								// see if we can look up the phost
+				if err == nil {
+					fmt.Fprintf( os.Stderr, "\n[OK]    lookup of phys host for gateway ID %s:  %s\n", gw_id, *host )
+				} else {
+					fmt.Fprintf( os.Stderr, "\n[FAIL]  lookup of phys host for  gateway ID %s returned nil: %s\n", gw_id, err )
+					err_count++
+				}
 			}
 
 		} else {
@@ -305,7 +324,7 @@ invoked.  bloody openstack.
 		if err != nil {
 			fmt.Fprintf( os.Stderr, "[FAIL] error generating maps: %s\n", err )
 		} else {
-			gm1, _, _, _, err := o2.Mk_gwmaps( nil, nil, nil, nil, true, *inc_project )
+			gm1, _, _, _, gm2, gm3, err := o2.Mk_gwmaps( nil, nil, nil, nil, nil, nil, true, *inc_project )		// yes this is a dup, but a shorter output of gw info
 			if err != nil {
 				fmt.Fprintf( os.Stderr, "[FAIL] error generating gw maps: %s\n", err )
 			} else {
@@ -334,6 +353,11 @@ invoked.  bloody openstack.
 					os.Exit( 1 )
 				}
 
+				if gm1 == nil || gm2 == nil || gm3 == nil {
+					fmt.Fprintf( os.Stderr, "\n[FAIL] unable to alloc gateway maps for projet %s   (%v %v %v)\n", *project, gm2, gm2, gm3 )
+					os.Exit( 1 )
+				}
+
 				if *verbose {
 					fmt.Fprintf( os.Stderr, "\n[OK]   all VM maps were allocated for %s\n", *project )
 					for k, v := range( m1 ) {
@@ -354,12 +378,24 @@ invoked.  bloody openstack.
 					for k, v := range( m4 ) {
 						fmt.Fprintf( os.Stderr, "\tm4: %s --> %s\n", k, *v )
 					}
+					fmt.Fprintf( os.Stderr, "\n" )
 
 					for k, v := range( m5 ) {
 						fmt.Fprintf( os.Stderr, "\tm5: %s --> %s\n", k, *v )
 					}
+					fmt.Fprintf( os.Stderr, "\n" )
 
 					for k, v := range( gm1 ) {
+						fmt.Fprintf( os.Stderr, "\tgw: %s --> %s\n", k, *v )
+					}
+					fmt.Fprintf( os.Stderr, "\n" )
+
+					for k, v := range( gm2 ) {
+						fmt.Fprintf( os.Stderr, "\tgw: %s --> %s\n", k, *v )
+					}
+					fmt.Fprintf( os.Stderr, "\n" )
+
+					for k, v := range( gm3 ) {
 						fmt.Fprintf( os.Stderr, "\tgw: %s --> %s\n", k, *v )
 					}
 				} else {

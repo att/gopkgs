@@ -17,10 +17,10 @@ import (
 /*
 	run a local script --  run as a go routine to run multiple in parallel
 */
-func test_script( broker *ssh_broker.Broker, ch chan int, host *string, script *string, parms *string ) {
+func test_script( broker *ssh_broker.Broker, ch chan int, host *string, script *string, parms *string, env_file *string ) {
 
 	fmt.Fprintf( os.Stderr, "running commnand=%s parms=%s\n", *script, *parms )
-	stdout, stderr, err := broker.Run_on_host( *host, *script, *parms )
+	stdout, stderr, err := broker.Run_on_host( *host, *script, *parms, *env_file )
 	if err != nil {
 		fmt.Fprintf( os.Stderr, "command failed: %s:  %s \n", *host, err )
 		fmt.Fprintf( os.Stderr, "%s", stderr.String() )
@@ -39,7 +39,7 @@ func test_script( broker *ssh_broker.Broker, ch chan int, host *string, script *
 */
 func test_cmd( broker *ssh_broker.Broker, ch chan int, host *string, cmd *string ) {
 
-	fmt.Fprintf( os.Stderr, "running commnand %s\n", *cmd )
+	fmt.Fprintf( os.Stderr, "test_cmd: running commnand %s\n", *cmd )
 	stdout, stderr, err := broker.Run_cmd( *host, *cmd )
 	if err != nil {
 		fmt.Fprintf( os.Stderr, "command failed: %s:  %s \n", *host, err )
@@ -49,7 +49,7 @@ func test_cmd( broker *ssh_broker.Broker, ch chan int, host *string, cmd *string
 		fmt.Printf( "%s\n", stdout.String() )	
 	}
 
-	fmt.Fprintf( os.Stderr, "go routine done:%s \n", *cmd )
+	fmt.Fprintf( os.Stderr, "go routine done: %s \n", *cmd )
 	ch <- 1
 
 	return
@@ -89,11 +89,13 @@ func main( ) {
 	var user *string
 
 	def_user := os.Getenv( "USER" )
+	def_key := os.Getenv( "HOME" ) + "/.ssh/id_dsa"
 
 	asynch := flag.Bool( "a", false, "asynch processing" )
 	cmd := flag.String( "c", "", "command to execute" )
+	env_file := flag.String( "e", "", "environment file for script" )
 	host_list := flag.String( "h", "localhost", "host name" )
-	key := flag.String( "k", "", "key file" )
+	key := flag.String( "k", def_key, "key file" )
 	parms := flag.String( "p", "", "parms" )
 	parallel := flag.Int( "P", 1, "parallel scripts" )
 	script := flag.String( "s", "test_script", "script to execute" )
@@ -138,13 +140,15 @@ func main( ) {
 			wait4++
 			if ! *asynch {
 				if *cmd == "" {
-					go test_script( broker, ch, &host[j], script, parms )
+					fmt.Fprintf( os.Stderr, "running synch script parms=%s\n", *parms )
+					go test_script( broker, ch, &host[j], script, parms, env_file )
 				} else {
+					fmt.Fprintf( os.Stderr, "running synch commnand %s\n", *cmd )
 					go test_cmd( broker, ch, &host[j], cmd )
 				}
 			} else {
 				fmt.Fprintf( os.Stderr, "running asynch commnand parms=%s\n", *parms )
-				if *cmd == "" {					// -c supplied
+				if *cmd == "" {					// -c not supplied
 					err = broker.NBRun_on_host( host[j], *script, *parms, (i*100)+j, rch )
 				} else {
 					err = broker.NBRun_cmd( host[j], *cmd, (i*100)+j, rch )
