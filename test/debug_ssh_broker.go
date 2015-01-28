@@ -1,3 +1,10 @@
+/*
+	Mnemonic:	debug_ssh_broker.go
+	Abstract:	More than just functional tests that might be provided in a *_test.go
+				module, this provides an end to end test of the ssh_broker.
+	Author:		E. Scott Daniels
+	Date:		23 December 2014
+*/
 
 package main
 
@@ -9,8 +16,7 @@ import (
 	"os"
 	"strings"
 
-	"codecloud.web.att.com/gopkgs/ssh_broker"
-
+	"codecloud.web.att.com/gopkgs/ssh_broker"		// CAUTION: ssh_broker requires a fairly recent version of go
 )
 
 
@@ -34,6 +40,7 @@ func test_script( broker *ssh_broker.Broker, ch chan int, host *string, script *
 
 	return
 }
+
 /*
 	run a command --  run as a go routine to run multiple in parallel
 */
@@ -98,6 +105,7 @@ func main( ) {
 	key := flag.String( "k", def_key, "key file" )
 	parms := flag.String( "p", "", "parms" )
 	parallel := flag.Int( "P", 1, "parallel scripts" )
+	rsync := flag.String( "r", "", "rsync files:dir" )
 	script := flag.String( "s", "test_script", "script to execute" )
 	user = flag.String ( "u", def_user, "user name" )
 	flag.Parse()
@@ -130,6 +138,17 @@ func main( ) {
 	if *asynch {
 		rch = make( chan *ssh_broker.Broker_msg, 10 )	
 		go handle_responses( ch, rch )
+	}
+
+	if *rsync != "" {
+		toks := strings.Split( *rsync, ":" )		// assume file,file,file:dest_dir
+		if len( toks ) != 2 {
+			fmt.Fprintf( os.Stderr, "bad rsynch string, expected file,file,file...:destdir\n" )
+			os.Exit( 1 )
+		}
+
+		broker.Add_rsync( &toks[0], &toks[1] )
+		broker.Set_verbose( true )
 	}
 
 	host := strings.Split( *host_list, "," )

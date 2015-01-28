@@ -100,6 +100,9 @@ type Broker struct  {
 	retry_ch	chan *Broker_msg		// channel where we'll queue retries popped from a host retry queue
 	ninitiators	int						// number of initiators started
 	was_closed	bool					// set to true if Close called on us so we don't try to reuse
+	rsync_src	*string					// space separated list of files to rsynch to the other side
+	rsync_dir	*string					// target directory for rsync
+	verbose		bool					// we might get chatty if it's true
 }
 
 /*
@@ -350,9 +353,14 @@ func ( b *Broker ) connect2( host string ) ( c *connection, err error ) {
 
 /*
 	Create a new sesson to the named host establishing the connection if
-	we must.
+	we must. If the rsync parms are not nil, then we'll execute an rsync
+	command with the host as a target before returning.
 */
 func ( b *Broker ) session2( host string ) ( s *ssh.Session, err error ) {
+
+	if b.rsync_src != nil && b.rsync_dir != nil {
+		b.synch_host( &host )
+	}
 
 	s = nil
 	c, err := b.connect2( host )			// ensure we have a connection first
@@ -540,6 +548,31 @@ func ( b *Broker ) Close( ) {
 	b.ninitiators = 0
 }
 
+/*
+	Close a session to the named host.
+*/
+func ( b *Broker ) Close_session( name *string ) ( err error ) {
+	err = nil
+
+	if b == nil {
+		err = fmt.Errorf( "close_session: broker pointer was nil" )
+	}
+
+	if b.was_closed {
+		return
+	}
+	
+	c := b.conns[*name]
+	if c == nil {					// nothing to close
+		return
+	}
+
+	err = c.schan.Close()
+	b.conns[*name] = nil
+
+	return
+}
+
 
 /*
 	Execute the script (a local shell/python script) on the remote host. 
@@ -655,4 +688,11 @@ func ( b *Broker ) NBRun_cmd( host string, cmd string,  uid int, uch chan *Broke
 	b.init_ch <- req						// send request to initiator queue
 
 	return
+}
+
+/*
+	Set/reset verbose.
+*/
+func ( b *Broker ) Set_verbose( value bool ) {
+	b.verbose = value
 }
