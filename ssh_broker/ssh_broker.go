@@ -72,6 +72,7 @@ import (
 	"os/exec"
 	"strings"
 	"sync"
+	"time"
 
     "code.google.com/p/go.crypto/ssh"
 )
@@ -118,6 +119,8 @@ type Broker_msg struct {
 	env		string					// file where the script's environment lives (optional)
 	id		int						// caller assigned id to make response tracking easier
 	ntries	int						// number of times we've retried this request
+	startt	int64					// start/end times for elapsed info
+	endt	int64
 	stdout	bytes.Buffer
 	stderr	bytes.Buffer
 	err		error					// any resulting error
@@ -411,9 +414,13 @@ func ( b *Broker ) initiator( id int ) {
 		}
 
 		if req.cmd != "" {								// remote command to execute rather than a local script
+			req.startt = time.Now().Unix()
 			req.err = b.rcmd( req )						// run it 
+			req.endt = time.Now().Unix()
 		} else {
+			req.startt = time.Now().Unix()
 			req.err = b.roar( req )						// local script: send the request to the remote host
+			req.endt = time.Now().Unix()
 		}
 
 		if req.err != nil {
@@ -448,10 +455,11 @@ func ( b *Broker ) initiator( id int ) {
 
 // ----- public msg functions ------------------------------------------------------------------------------
 /*
-	Returns the standard out, standard error and the overall error state contained in the message.
+	Returns the standard out, standard error elapsed time (sec) and the overall error state contained in 
+	the message.
 */
-func (m *Broker_msg) Get_results( ) ( stdout bytes.Buffer, stderr bytes.Buffer, err error ) {
-	return m.stdout, m.stderr, m.err
+func (m *Broker_msg) Get_results( ) ( stdout bytes.Buffer, stderr bytes.Buffer, elapsed int64, err error ) {
+	return m.stdout, m.stderr, m.endt - m.startt, m.err
 }
 
 /*
