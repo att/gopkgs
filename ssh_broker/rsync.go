@@ -73,7 +73,8 @@ func ( b *Broker ) synch_host( host *string ) ( err error ) {
 
 	stdout, stderr, err := extcmd.Cmd2strings( cmd )
 	if err != nil {
-		fmt.Fprintf( os.Stderr, "unable to rsync for host %s: %s\n", *host, err )
+		fmt.Fprintf( os.Stderr, "ssh-broker: unable to rsync for host %s: %s\n", *host, err )
+		fmt.Fprintf( os.Stderr, "ssh-broker: command: %s\n", cmd )
 		verbose = true
 	}
 	if verbose {

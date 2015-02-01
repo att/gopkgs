@@ -57,6 +57,7 @@
 	Date: 		23 December 2014
 
 	Mods:		15 Jan 2015 - Added ability to send an environment file before the named script file.
+				01 Feb 2015 - Corrected bug, rsync happening on session2, not new connection.
 
 	CAUTION:	This package reqires go 1.3.3 or later.
 */
@@ -318,7 +319,9 @@ func read_key_file( kfname string ) ( s ssh.Signer, err error ) {
 }
 
 /*
-	Find or create our connection to the named host
+	Find or create our connection to the named host. If a connection doesn't
+	exist, then we'll create one. If the rsync data is present, then we'll
+	rsynch stuff over while we have the lock.
 */
 func ( b *Broker ) connect2( host string ) ( c *connection, err error ) {
 	err = nil
@@ -332,6 +335,11 @@ func ( b *Broker ) connect2( host string ) ( c *connection, err error ) {
 	b.conns_lock.RUnlock()
 	if c != nil {										// we've already connected, just return
 		return
+	}
+
+	if b.rsync_src != nil && b.rsync_dir != nil {		// no connection, rsynch if we need to
+		toks := strings.Split( host, ":" )				// must split off port for rsynch
+		b.synch_host( &toks[0] )
 	}
 
 	b.conns_lock.Lock( )								// get a write lock
@@ -356,14 +364,9 @@ func ( b *Broker ) connect2( host string ) ( c *connection, err error ) {
 
 /*
 	Create a new sesson to the named host establishing the connection if
-	we must. If the rsync parms are not nil, then we'll execute an rsync
-	command with the host as a target before returning.
+	we must. 
 */
 func ( b *Broker ) session2( host string ) ( s *ssh.Session, err error ) {
-
-	if b.rsync_src != nil && b.rsync_dir != nil {
-		b.synch_host( &host )
-	}
 
 	s = nil
 	c, err := b.connect2( host )			// ensure we have a connection first
