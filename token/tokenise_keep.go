@@ -11,7 +11,8 @@ import (
 	Mnemonic:	tokenise_keep (split and keep separaters as individual tokens)
 	Date:		22 Apr 2012
 	Author: 	E. Scott Daniels
-	Modes:		01 May 2012 : Added escape character support
+	Mods:		01 May 2012 : Added escape character support
+				03 Feb 2015 : Removed unreachable code.
 ---------------------------------------------------------------------------------------
 */
 
@@ -69,8 +70,6 @@ func Tokenise_keep(  buf string, sepchrs string ) (int, []string) {
 		}
 	
 	}	
-
-	return 0, nil;
 }
 
 

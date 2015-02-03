@@ -19,6 +19,7 @@
 				10 Nov 2014 : Added checks to ensure response data structs aren't nil
 							Added support for md5-token
 				06 Jan 2015 - Added check for nil project id in response.
+				03 Feb 2015 - Correct fmt format string error.
 ------------------------------------------------------------------------------------------------
 */
 
@@ -205,7 +206,7 @@ func (o *Ostack) Validate_auth( ) ( err error ) {
 
 	if err == nil {
 		if o.token == nil {				// parninoia
-			err = fmt.Errorf( "openstack did not generate an authorisation token for %s/%s", o.user, o.project )
+			err = fmt.Errorf( "openstack did not generate an authorisation token for %s/%s", *o.user, *o.project )
 		}
 	}
 

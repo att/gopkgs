@@ -7,6 +7,8 @@
 	Date:		4 December 2013
 	Author:		E. Scott Daniels
 
+	Mods:		03 Feb 2015 - Fix straggling % in sprintf format, remove
+					unneeded ;'s.
 */
 
 /*
@@ -38,10 +40,10 @@
 
 				chkpt implements the io.Writer interface such that it is possible
 				to use the pointer to the object in an fmt.Fprintf() call:
-					c = Mk_chkpt( "/usr2/ckpts/agama", 5, 25 );
-					c.Create();
-					fmt.Fprintf( c, "%s\n", data );
-					c.Close();
+					c = Mk_chkpt( "/usr2/ckpts/agama", 5, 25 )
+					c.Create()
+					fmt.Fprintf( c, "%s\n", data )
+					c.Close()
 
 				The method Write_string( string ) can also be used to write to 
 				an open checkpoint file.
@@ -55,8 +57,6 @@ import (
 	"hash"
 	"io"
 	"os"
-	//"strings"
-	//"time"
 
 	"forge.research.att.com/gopkgs/clike"
 	"forge.research.att.com/gopkgs/token"
@@ -68,17 +68,17 @@ import (
 	Defines a checkpoint environment.
 */
 type Chkpt struct {
-	path	*string;			// path where chkpt files are saved: [/path/path/]fname-prefix
-	aval	int;				// current tumbler values
-	bval	int;
-	amax	int;				// rollover points for each tumbler
-	bmax	int;
-	errors	bool;				// errors during write -- reported on close
-	output	*os.File;			// open ckpt file
-	bw		*bufio.Writer;		// wrapping writer to file
-	br		*bufio.Reader;		// wrapping reader
-	md5hash	hash.Hash;			// we compute the md5 on write and add to the name
-	open_name	*string;		// name of the file that is being written to
+	path	*string			// path where chkpt files are saved: [/path/path/]fname-prefix
+	aval	int				// current tumbler values
+	bval	int
+	amax	int				// rollover points for each tumbler
+	bmax	int
+	errors	bool				// errors during write -- reported on close
+	output	*os.File			// open ckpt file
+	bw		*bufio.Writer		// wrapping writer to file
+	br		*bufio.Reader		// wrapping reader
+	md5hash	hash.Hash			// we compute the md5 on write and add to the name
+	open_name	*string		// name of the file that is being written to
 	addmd5	bool				// true if we should add the md5 value to the file name (prevents overlay)
 }
 
@@ -89,38 +89,38 @@ type Chkpt struct {
 */
 func (c *Chkpt) read_tumblers( ) (aval int, bval int, err error) {
 	var (
-		buffer	[]byte;
+		buffer	[]byte
 	)
 
-	fname := fmt.Sprintf( "%s.ckpt", *c.path );
+	fname := fmt.Sprintf( "%s.ckpt", *c.path )
 	f, err := os.Open( fname )
 
-	aval = c.amax;					// default to starting such that we roll both over on first write
-	bval = c.bmax;
+	aval = c.amax					// default to starting such that we roll both over on first write
+	bval = c.bmax
 	if err != nil {
-		return;
+		return
 	}
-	defer f.Close();
+	defer f.Close()
 
-	buffer = make( []byte, 1024 );
-	nread, err := f.Read( buffer ); 
+	buffer = make( []byte, 1024 )
+	nread, err := f.Read( buffer )
 	if nread <= 0 {
-		err = fmt.Errorf( "empty tumbler info file: %s", fname );
-		return;
+		err = fmt.Errorf( "empty tumbler info file: %s", fname )
+		return
 	}
 
-	ntokens, tokens := token.Tokenise_populated(  string( buffer ), ", " );
+	ntokens, tokens := token.Tokenise_populated(  string( buffer ), ", " )
 
 	if ntokens < 2 {
-		err = fmt.Errorf( "missing info from tumbler file: %s", fname );
-		return;
+		err = fmt.Errorf( "missing info from tumbler file: %s", fname )
+		return
 	}
 
-	aval = clike.Atoi( tokens[0] );
-	bval = clike.Atoi( tokens[1] );
-	err = nil;
+	aval = clike.Atoi( tokens[0] )
+	bval = clike.Atoi( tokens[1] )
+	err = nil
 
-	return;
+	return
 }
 
 /*
@@ -130,26 +130,26 @@ func (c *Chkpt) read_tumblers( ) (aval int, bval int, err error) {
 */
 func (c *Chkpt) save_tumblers( ) (error) {
 
-	old_fname := fmt.Sprintf( "%s.ckpt", *c.path );
-	new_fname := fmt.Sprintf( "%s%", old_fname );
+	old_fname := fmt.Sprintf( "%s.ckpt", *c.path )
+	new_fname := fmt.Sprintf( "%s", old_fname )
 
-	f, err := os.Create( new_fname );
+	f, err := os.Create( new_fname )
 	if err != nil {
-		return err;
+		return err
 	}
 	// do NOT defer f.close() because we must close it before exit to allow for rename
 
-	s := fmt.Sprintf( "%d %d\n", c.aval, c.bval );
-	b := []byte( s );
-	_, err = f.Write( b );
+	s := fmt.Sprintf( "%d %d\n", c.aval, c.bval )
+	b := []byte( s )
+	_, err = f.Write( b )
 	if err != nil {
-		f.Close( );
-		return err;
+		f.Close( )
+		return err
 	}
-	f.Close( );
+	f.Close( )
 
-	err = os.Rename( new_fname, old_fname );
-	return err;
+	err = os.Rename( new_fname, old_fname )
+	return err
 }
 
 // --------------- public -----------------------------------------------------------------
@@ -167,16 +167,16 @@ func Mk_chkpt( path string, amax int, bmax int ) (c *Chkpt) {
 		path:	&path,
 	}
 
-	c.aval, c.bval, _ = c.read_tumblers( );
+	c.aval, c.bval, _ = c.read_tumblers( )
 
 	if c.aval > c.amax { 
-		c.aval = 0;
+		c.aval = 0
 	}
 	if c.bval > c.bmax { 
-		c.bval = 0;
+		c.bval = 0
 	}
 
-	return;
+	return
 }
 
 /*
@@ -192,14 +192,14 @@ func (c *Chkpt) Add_md5( ) {
 */
 func (c *Chkpt) Write_string( s string ) (n int, err error ) {
 	if c.md5hash != nil {
-		io.WriteString( c.md5hash, s );
+		io.WriteString( c.md5hash, s )
 	}
 
-	n, err = io.WriteString( c.output, s );
+	n, err = io.WriteString( c.output, s )
 	if err != nil {
-		c.errors = true;
+		c.errors = true
 	}
-	return;
+	return
 }
 
 /*
@@ -210,18 +210,18 @@ func (c *Chkpt) Write_string( s string ) (n int, err error ) {
 func (c *Chkpt) Write( b []byte ) (n int, err error ) {
 
 	if c.output == nil {			// silently ignore attempt to write before it's open
-		return;
+		return
 	}
 
 	if c.md5hash != nil {
-		io.WriteString( c.md5hash, string( b ) );
+		io.WriteString( c.md5hash, string( b ) )
 	}
 
-	n, err = c.output.Write( b );
+	n, err = c.output.Write( b )
 	if err != nil {
-		c.errors = true;
+		c.errors = true
 	}
-	return;
+	return
 }
 
 /*
@@ -233,42 +233,42 @@ func (c *Chkpt) Close( ) (final_name string, err error) {
 
 
 	if c.output == nil {
-		return "", nil;
+		return "", nil
 	}
 
 	if c.bw != nil {		// flush if writing
-		c.bw.Flush( );
+		c.bw.Flush( )
 	} 
 
-	err = c.output.Close( );
+	err = c.output.Close( )
 
-	c.bw = nil;
-	c.br = nil;
-	c.output = nil;
+	c.bw = nil
+	c.br = nil
+	c.output = nil
 
-	final_name = "";
+	final_name = ""
 	if err == nil && c.md5hash != nil {
-		md5 := c.md5hash.Sum( nil );
+		md5 := c.md5hash.Sum( nil )
 
-		c.md5hash = nil;
+		c.md5hash = nil
 
 		if c.open_name != nil {
 			if c.addmd5 {
 				final_name = fmt.Sprintf( "%s-%x.ckpt", *c.open_name, md5 )
-				err = os.Rename( *c.open_name + ".ckpt", final_name );
+				err = os.Rename( *c.open_name + ".ckpt", final_name )
 			} else {
 				final_name = *c.open_name
 			}
 		}
 	}
 
-	c.open_name = nil;
+	c.open_name = nil
 
 	if err == nil && c.errors {			// no close error, but write errors, fail the close
-		err = fmt.Errorf( "close successful, but write errors detected; file may be corrupt: %s", final_name );
+		err = fmt.Errorf( "close successful, but write errors detected; file may be corrupt: %s", final_name )
 	}
 
-	return;
+	return
 }
 
 /*
@@ -278,44 +278,44 @@ func (c *Chkpt) Close( ) (final_name string, err error) {
 */
 func (c *Chkpt) Create( )  ( error ) {
 	var (
-		err		error;
-		tval	int;			// tumbler value for filename
-		tch		string = "b";	// tumbler letter for filename; likely it will be 'b'
+		err		error
+		tval	int				// tumbler value for filename
+		tch		string = "b"	// tumbler letter for filename; likely it will be 'b'
 	)
 	
 	if c.output != nil {		// user didn't close last one
-		c.Close( );				// we'll ignore errors -- little we can do if they didn't drive the close
+		c.Close( )				// we'll ignore errors -- little we can do if they didn't drive the close
 	}
 
-	c.errors = false;
-	c.bval++;					// inc the tumbler(s) and set the ch/value pair for name
+	c.errors = false
+	c.bval++					// inc the tumbler(s) and set the ch/value pair for name
 	if c.bval > c.bmax {
-		c.bval = 0;
-		tch = "a";
-		c.aval++;
+		c.bval = 0
+		tch = "a"
+		c.aval++
 		if c.aval > c.amax {
-			c.aval = 1;
+			c.aval = 1
 		}
 
-		tval = c.aval;
+		tval = c.aval
 	} else {
-		tval = c.bval;
+		tval = c.bval
 	}
 
-	fname := fmt.Sprintf( "%s_%s%d.ckpt", *c.path, tch, tval );
-	c.output, err = os.Create( fname );
+	fname := fmt.Sprintf( "%s_%s%d.ckpt", *c.path, tch, tval )
+	c.output, err = os.Create( fname )
 	if err != nil {
-		return err; 	
+		return err
 	}
 
-	on := fmt.Sprintf( "%s_%s%d", *c.path, tch, tval );
-	c.open_name = &on;
+	on := fmt.Sprintf( "%s_%s%d", *c.path, tch, tval )
+	c.open_name = &on
 
-	c.save_tumblers( );
+	c.save_tumblers( )
 
-	c.bw = bufio.NewWriter( c.output );
-	c.md5hash = md5.New();
+	c.bw = bufio.NewWriter( c.output )
+	c.md5hash = md5.New()
 
-	return nil;
+	return nil
 }
 

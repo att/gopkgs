@@ -8,7 +8,7 @@
 
 	Date:		17 June 2014
 	Author:		E. Scott Daniels
-	Mod:		
+	Mod:		03 Feb 2015 - Fixed fprintf() statement -- too many %s
 ------------------------------------------------------------------------------------------------
 */
 
@@ -29,7 +29,7 @@ func (o *Ostack) Dump_cmd_response( cmd string ) ( error ) {
 
 	err := o.Validate_auth()				// reauthorise if needed
 	if err != nil {
-    	fmt.Fprintf( os.Stderr, "cmmand not executed (%s) unable to validate creds: %s\n", err );               
+    	fmt.Fprintf( os.Stderr, "unable to validate creds: %s\n", err );               
 		return err
 	}
 

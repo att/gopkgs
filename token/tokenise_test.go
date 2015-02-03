@@ -9,7 +9,7 @@ import (
 	"testing"
 	//"time"
 
-	"forge.research.att.com/gopkgs/token"
+	"codecloud.web.att.com/gopkgs/token"
 )
 
 func TestToken_count( t *testing.T ) {

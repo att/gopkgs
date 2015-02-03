@@ -19,6 +19,7 @@
 				28 Oct 2014 - Added support for identity requests as admin.
 				04 Dec 2014 - To support generating a list of hosts that are 'active'.
 				06 Jan 2015 - Additional nil pointer checks.
+				03 Feb 2015 - Correct bad tag in structure def.
 ------------------------------------------------------------------------------------------------
 */
 
@@ -258,7 +259,7 @@ type iface struct {
 
 type ost_os_port struct {
 	Status			string
-	Bind_host_id	string	`json:"binding:host_id""`			// assume this is the physical host name
+	Bind_host_id	string	`json:"binding:host_id"`			// assume this is the physical host name
 	Bind_vif_type	string	`json:"binding:vif_type"`
 	//Bind_capabilities	port_abilities	`json:"binding:capabilities"`
 	Name			string

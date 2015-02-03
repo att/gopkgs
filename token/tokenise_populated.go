@@ -12,6 +12,7 @@ import (
 	Returns:	ntokens, tokens[]
 	Date:		21 November 2013
 	Author: 	E. Scott Daniels
+	Mod:		03 Feb 2015 - Removed unreachable code.
 ---------------------------------------------------------------------------------------
 */
 
@@ -57,6 +58,4 @@ func Tokenise_populated(  buf string, sepchrs string ) (int, []string) {
 			return idx, tokens[0:idx+1];
 		}
 	}	
-
-	return 0, nil;
 }

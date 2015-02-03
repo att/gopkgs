@@ -4,6 +4,7 @@
 				module, this provides an end to end test of the ssh_broker.
 	Author:		E. Scott Daniels
 	Date:		23 December 2014
+	Mods:		Fixed fmt statement in printf.
 */
 
 package main
@@ -173,7 +174,7 @@ func main( ) {
 					err = broker.NBRun_cmd( host[j], *cmd, (i*100)+j, rch )
 				}
 				if err != nil {
-					fmt.Fprintf( os.Stderr, "asynch commnand submit failed: parms=%s: %s\n", host[j], *parms, err )
+					fmt.Fprintf( os.Stderr, "asynch commnand submit failed: host=%s parms=%s: %s\n", host[j], *parms, err )
 				}
 			}
 		}

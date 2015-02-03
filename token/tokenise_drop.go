@@ -12,6 +12,7 @@ import (
 	Returns:	ntokens, tokens[]
 	Date:		22 Apr 2012
 	Author: 	E. Scott Daniels
+	Mod:		03 Feb 2015 - Removed unreachable code
 ---------------------------------------------------------------------------------------
 */
 
@@ -56,8 +57,4 @@ func Tokenise_drop(  buf string, sepchrs string ) ( ntokens int, tokens []string
 			return 
 		}
 	}	
-
-	tokens = nil
-	ntokens = 0
-	return
 }
