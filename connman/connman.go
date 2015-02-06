@@ -531,6 +531,29 @@ func (this *connection) Write( buf []byte ) ( nw int, err error ) {
 }
 
 /*
+	Allow udp from address to be captured for fast replies -- users should avoid doing
+	this as all writes will go to the bound address rather than to the sender if 
+	sess_data.Write() is used after this.
+*/
+func (s *Sess_data) Bind2sender( ) ( err error ) {
+	err = nil
+	if s.sender.uconn != nil { 
+		s.sender.uaddr, err = net.ResolveUDPAddr( "udp", s.From )
+	} else {
+		return fmt.Errorf( "cannot bind to sender: no uconn in connection" )
+	}
+
+	return
+}
+
+/*
+	Allows a previously bound sender to be dropped.
+*/
+func (s *Sess_data) Unbind_sender( ) {
+	s.sender.uaddr = nil
+}
+
+/*
 	Allows session data to be used as a Writer interface for connection oriented sessions.
 */
 func (s *Sess_data) Write( buf []byte ) ( nw int, err error ) {
@@ -551,9 +574,11 @@ func (this *Sess_data ) Write_n( buf []byte, n int ) ( err error ) {
 	}
 	if this.sender == nil {
 		err = fmt.Errorf( "sender not associated with session" )
+		return
 	}
 	if this.sender.conn == nil {
 		err = fmt.Errorf( "connection not associated with session" )
+		return
 	}
 
 	this.sender.bytes_out += int64( n )
@@ -596,6 +621,18 @@ func (this *Cmgr) String2udp_addr ( astr string ) ( addr *net.UDPAddr, err error
 
 
 
+// -------------------------------------------------------------------------------------------------------------------
+func ( cm *Cmgr ) Get_conn( id string ) ( conn *connection ) {
+	conn = cm.clist[id]
+	return
+}
+
+/*
+	Might be a faster way to send udp than using the Cmgr interface
+*/
+func ( conn *connection ) Direct_udp_send( addr *net.UDPAddr, buf []byte ) {
+		conn.uconn.WriteToUDP( buf, addr );
+}
 // -------------------------------------------------------------------------------------------------------------------
 
 
