@@ -1,0 +1,483 @@
+.** Mnemonic:	ssh_broker.xfm
+.** Abstract:	Doc for the ssh_broker
+.** Author: 	E. Scott Daniels
+.** Date:		10 Feb 2014
+.** Mods:		
+.** -----------------------------------------------------------------------
+
+.cd 1 6.5i i=.25i
+.ll 6i
+.in 1i
+.pn on noline center f=-%d-
+.ju on
+.hn off
+
+.dv super .sm .tf superscript 2/3 $1 ^:
+.dv _next_enn 1
+.dv reference_id .dv $1 ^&_next_enn ^: .dv _next_enn ^[ ^&_next_enn 1 + ] ^:
+.** reference_id provides a way to give a name to a reference that is then
+.** used in a superscript/end note.
+
+
+.dh 1 e=off p=14 i=0 m=1i f=Helvetica-bold
+.dh 2 s=20 p=10 i=0 m=1i f=Helvetica-bold
+.dh 3 s=10 p=12 i=0 m=1i f=Helvetica-bold
+
+.dv indent .ll -.25i .in +.25i
+.dv uindent .in -.25i .ll +.25i
+.dv bindent .ll -.5i .in +.25i
+.dv buindent .in -.25i .ll +.5i
+
+.dv textfont Times-roman
+.dv boldfont Times-Bold
+.dv italfont Times-Oblique
+.dv cwfont Courier
+.dv textsize 10p
+.dv ital .sf ^&italfont $1 .sf ^&textfont
+.dv bold .sf ^&boldfont $1 .sf ^&textfont
+.dv cw .sf ^&cwfont $1 .sf ^&textfont
+
+
+
+.sf Helvetica
+.st 14p
+.ce The SSH Broker
+.st &textsize
+.ce 10 February 2015
+.sp 2
+
+.sf &textfont
+.st &textsize
+.dv sb SSH broker
+
+.h1 Introduction
+The &sb is a Go package which allows a process to create and maintain persistant 
+SSH sessions with multiple hosts, and to execute multiple commands via the sessions
+without incuring the &ital(login) overhead with each command.  
+In addition, the &sb provides the ability to rsync a set of scripts or binaries 
+with the remote hosts, and to remotely execute scripts that reside only on the local host.
+When the &sb environment is initialised, the number of parallel sessions is defined 
+which allows for the parallel execution of commands. 
+
+.sp
+The &sb supports both a blocking and non-blocking method of command execution. 
+In blocking mode, the calling application blocks until the command is executed in 
+the remote environment and the results are returned. 
+In non-blocking mode, execution of the calling application continues as soon as 
+the request is queued with the &sb; the calling application must supply a channel through which 
+the results are returned when the command completes (should the calling application 
+wish to ignore the results, no channel need be supplied). 
+
+.h2 Terminology
+The following words or phrases are used in this document with these meanings.
+&indent
+.bd 1.25i &boldfont
+.di application : The application that is making use of the &sb. (Also referred to as the
+	calling application or the user application.
+.sp .5
+.di connection : A TCP session to a remote host which is the primary SSH control mechanism.
+	(See session)
+.di key : The private ssh key (rsa or dsa) that is needed to authenticate with a remote host.
+.sp .5
+.di local host : The host where the user application is running.
+.sp .5
+.di remote host : Any host to which an SSH connection is established.
+.sp .5
+.di session : A communication &ital(channel) that is established on an SSH connection for 
+	the purpose of executing a single command.
+.sp .5
+.di script : Any interpreted programme which has a hash-bang (#!) directive as the first 
+	line.  
+.sp .5
+.di structure : A data structure. In Go, data structures are similar to objects inasmuch as 
+	they may mark fields as private or public, and have functions which operate directly 
+	on the data structure.
+.sp .5
+.di user : The programmer who wrote the application that is using the &sb.
+.ed
+&uindent
+.sp
+
+.h1 Simple Use
+In it's simplest form, the user application need only create a &cw(Broker) structure and then 
+invoke one of the run functions supported by the structure to run a command on a remote host.
+(Assuming that the user name and keys are recognised on the remote host.)
+The following sections describe the process of creating the structure and running a command.
+
+.h2 The Broker Structure
+The interface to the &sb is through a single structure: &cw(Broker.) 
+The structure is created by the user application, which then uses the exposed public functions
+to execute commands on remote hosts.  
+The structure is created using the &lit(Mk_broker) function to which the user name and 
+one or more key filenames are supplied. 
+The following code snippet illustrates how to create a Broker structure assuming 
+one key file:
+.sp .5
+&indent
+.sf &cwfont
+.st 8p
+.nf
+	keys := make( []string, 1 )
+	keys[0] = "/home/scooter/.ssh/id_rsa"
+	user = "scooter"
+	broker := ssh_broker.Mk_broker( &user, keys )
+.fo
+.sf &textfont
+.st &textsize
+&uindent
+.sp
+ 
+More than one key file can be supplied and when a connection with a remote host is established
+all keys will be tried until one is found that works, or the list is exhausted.  
+Only one user may be associated with a broker structure. 
+
+.h2 Running A Command
+Once the Broker structure is created, the &cw(Run_cmd) function can be used to cause 
+a command to be executed on a remote host. When the &cw(Run_cmd) function is invoked 
+several tasks are performed:
+.sp .5
+.cc 1i
+&bindent
+.bd .25i f=%d) a=1 &boldfont
+.di : A connection is established with the remote host if one does not exist (SSH key
+	validation and "login").
+.sp .5
+.di : A new session is created over which the command will be executed. 
+.sp .5
+.di : The command is sent to the remote host for execution. 
+.sp .5
+.di : The standard output, standard error, and status are returned to the caller.
+.ed
+&buindent
+.sp
+
+The following illustrates how the &cw(hostname) command can be executed on a remote host (assuming
+the &cw(broker) was allocated as illustrated in the previous example) :
+
+.sp .5
+.sf &cwfont
+.st 8p
+.nf
+   stdout, stderr, err := broker.Run_cmd( "charlie", "hostname" )
+.fo
+.sf &textfont
+.st &textsize
+.sp
+
+The &cw(Run_cmd()) function blocks until the command is complete and returns three values:
+.sp .5
+&bindent
+.bd 1i &boldfont
+.di stdout : A pointer to a &cw(bytes.Buffer) (Go bytes package) containing the standard output 
+	(newline separated records) that were the result of command execution.
+.sp .5
+.di stderr : Similar to the standard out, stderr is a &cw(bytes.Buffer) structure with the 
+	standard error output from the command.
+.sp .5
+.di err : Error is a pointer to an error structure that will be nil if the command executed 
+	successfully. Otherwise it's string representation might have useful information 
+	with respect to diagnosing the problem.
+.ed
+&buindent
+.sp
+The output from the commands is fairly raw, and it is an expectation that the calling application 
+will do any necessary processing to format and use the information.
+
+.h2 Closing Connections
+Once a command has been executed on a host, the &sb will keep the connection alive until 
+explicitly closed.  
+This allows multiple commands to be executed on the host with only the first requiring any 
+extra connection and authenticiation setup. 
+If it becomes necessary for the user application to terminate  a connection, the 
+Broker function &cw(Close_session()) can be passed the name of a host, and the &sb will 
+close the connection to that host.
+The Broker structure also exposes a public function &cw(Close()) which will close all
+connections.
+
+
+.cc 2i
+.h1 Parallel Use
+The &sb supports executing up to a user defined number of commands in parallel.  
+This is accomplished by creating parallel execution goroutines (threads) and allowing each 
+to execute and manage a remote command. 
+These parallel threads are called &ital(command initiators,) and by default a single initiator is started
+when the Broker structure is created.
+
+.h2 Establishing Initiators
+The &cw(Start_initiators()) function is used to start more than one  initiator;
+the desired number of initiators passed as a parameter to the function.
+As a result of this call, the &sb creates the requested number of goroutines (thread) and starts an 
+initiator running in each.
+The initiators share a common input channel allowing command requests to be executed by the next 
+available initiator and preventing a task from being blocked in an initiator's queue while another
+sits idle. 
+Initiators are not bound to a single host, and thus are capable of executing any host command pair that is 
+dispatched by the user application.
+
+
+.h2 Multithreaded User Programmes
+If the user programme is already a threaded application, with its threads executing SSH commands (blocking),
+then the conversion to use &sb is fairly trivial. 
+The user programme would start &ital(i) initiators where &ital(i) is the number of threads that are 
+executing in the user code. 
+Each SSH call in the user programme is simply replaced with a &cw(broker.Run_cmd()) call which will 
+place the command into the initiator queue, and block until it has been executed. 
+Each of the user threads will block during command execution, similarly to the way a &cw(system()) call 
+to execute an SSH command would block, but because of the one to one mapping of initiators to threads 
+all of the commands would be started immediately.
+
+.h2 Single Threaded User Programmes
+It is also possible for a single threaded user programme to execute multiple commands through the &sb with 
+only a minimal amount of modification. 
+To achieve this, the user programme  creates a batch of commands and passes them to the &sb via the 
+&cw(NBRun_cmd()) (non-blocking) function. 
+The non-blocking run function queues the command on the main initiator queue, and then immediately 
+returns to the caller, allowing the caller to submit the next command immediately.
+When all of the caller's command batch has been submitted, it can then wait for the command responses 
+and process them as they become available. 
+
+.sp
+When submitting a command in non-blocking mode, the calling application must supply the &sb with a 
+channel on which to return the results of the command when they become available.  
+The non-blocking function also accepts a command ID which allows the calling application the 
+ability to match the result to the specific command that was executed. 
+A Broker_msg structure is returned on the channel and the user application can extract the 
+necessary information from the structure using one or more of the structure access functions:
+
+.sp .5
+&bindent
+.bd 1i &boldfont
+.di Get_results() : This function returns the standard output, error and error information 
+	as described earlier. In addition, the elapsed time (seconds) that was required to execute 
+	the command is also returned.
+.sp .5
+.di Get_info() : This function returns information about the command itself: the host that the command
+	was executed on, the command string, and the ID that the calling application assigned to 
+	the command. 
+.ed
+&buindent
+.sp
+
+.h2 Command Execution Order
+When multiple initiators are started, the order of command execution cannot be guaranteed, nor 
+can it be specified.  
+It is still possible for a user application to ensure order of some commands while allowing 
+other command batches to execute in parallel.  
+This would be achieved by executing the commands requiring serialisation from a thread that 
+invokes the blocking &cw(Run_cmd()) function, while other thread(s) use the non-blocking
+function to submit their work.  
+In  a busy environment, this might have a drawback of the serialised commands waiting behind
+several parallel commands in the main initiator queue that arrived and started while the 
+previous serial command was executing.
+If this becomes a problem it is possible for the user application to create two &sb structures 
+using one, with a single initiator, for serialised execution and the other for parallelised execution. 
+
+.cc 2i
+.h1 The rsync Mechanism
+To this point in the discussion the assumption has been that the command(s) needed for execution
+on the remote hosts were already installed on those hosts. 
+If this is not the case, then the &sb provides a simple mechanism through which one or more 
+files can be copied to the remote hosts, and their location placed into the PATH so that they
+are found for normal execution.  
+
+.h2 Rsync Parameters
+The broker function &cw(Add_rsync()) can be invoked to define the source and destination information 
+that will ultimately be given to the &cw(rsync) command to do the work. 
+The function accepts a space separated string of file and/or directory names, and a string 
+containing the destination directory.  
+Because of the limits of &cw(rsync,) the destination directory's parent path must exist. 
+The following would set up the rsync mechanism to send three scripts to a directory in &cw(tmp.)
+
+.cc 2i
+.sp .5
+&indent
+.sf &cwfont
+.st 8p
+.nf
+   cmd_list := "/usr/bin/send_ovs_fmod" + 
+               "/usr/bin/ovs_sp2uuid" + 
+               "/opt/app/bin/suss_ovs_queues"
+   target_dir := "/tmp/tegu_b"
+   broker.Add_rsync( &cmd_list, &target_dir )
+.fo
+.sf &textfont
+.st &textsize
+&uindent
+.sp
+
+.h2 Rsync Timing
+In order to keep the impact of the &sb to a minimum, files are sent using &cw(rsync) only when a 
+connection to a remote host is established.  
+The &sb does &bold(not) track the files listed and thus does not resend files when they have changed. 
+If a user application needs to refresh a remote host, or all remote hosts, then connections must be 
+closed and reestablished. 
+
+
+
+.** because of supercscript and end note in first para of next section we need more room
+.** this must be BEFORE the column note on the off chance that it causes an eject
+.cc 2.25i
+.h1 Script Pushing
+
+&reference_id( orig_ref )
+.cn start atbot Times-roman 8 .5i
+	This was the original intent for the &sb, but the limitation that all scripts and binaries 
+	referenced by the pushed script must already be in place made it difficult to use without
+	customisation of the scripts.
+.cn end
+
+Scripts which reside on the local host can be sent to a remote host and executed without the need to 
+copy them to disk on the remote side. 
+The &cw(Run_on_host()) and the &cw(NBRun_on_host()) functions provide the ability to remotely 
+execute the script in this manner. &super( &orig_ref )
+It is likely that the rsync mechanism will be used more frequently, but there are still 
+some cases where being able to push a script for execution has its advantages. 
+
+.h2 Pushing Mechanism
+When the user application invokes one of the &ital(on_host) functions it supplies the script name 
+and a list of parameters.
+If the script name is qualified (has a leading slant character or dot slant pair), then that file is located
+and its contents are used. 
+If the script name is not qualified, the &sb searches the current PATH and will use the first 
+reference that is found.
+
+.sp
+Once located, the file is opened and the hash-bang line is read. 
+The hash-bang directive is used to determine which interpreter should be used to run the script.
+The script is executed by causing the interpreter to be run on the remote
+host, and then writing the contents of the local script file to the standard input of the 
+interpreter.  
+Effectively it is the same as:
+.cc 2i
+.sp .5
+&indent
+.sf &cwfont
+.st 8p
+.nf
+   cat my_script | ksh
+.fo
+.sf &textfont
+.st &textsize
+&uindent
+.sp
+
+This mechanism is not without disadvantages:
+.sp .5
+&bindent
+.bl l
+.li The script cannot read from standard input as there is no way to supply data on stdin.
+.sp .5
+.li The &cw($0) variable (bash and Kshell) will not reflect the actual script name. 
+.el
+&buindent
+.sp
+There is nothing that can be done for the first issue, but to help with the &cw($0) issue
+the &sb sets an environment variable &cw(ARGV0) to be the name of the script. 
+This does mean that a script executed using this mechanism must know to reference this 
+variable rather than &cw($0,)  but that is a simple modification when needed. 
+
+.sp
+The &sb attempts to reduce the amount of data that is written into the standard input of the 
+interpreter and thus will eliminate all leading and trailing whitespace. 
+The hash-bang information is also used to determine when an interpreter might be sensitive
+to this (um, python), and when one of these interpreters is used the &sb will not strip 
+the leading whitespace.  
+
+.h2 Main Use Case
+The use of the rsync mechanism will probably eliminate much of the use of the push script 
+function, however there is one case where this mechanism has an advantage: supplying data on 
+standard input to a remotely executing command. 
+When a remotely executing command needs to have data that is known to the user application, or resides
+on the local system, then there are a couple of ways to make that data available to the 
+remote process:
+.sp .5
+&indent
+.bd .25i a=1 f=%d) &boldfont
+.di : Copy the data to the remote host and execute the command using standard input redirection
+	from the remote file.
+.sp .5
+.di : Execute the command and write the local data to the command's standard input. 
+.ed
+&uindent
+.sp
+
+Copying data to the remote host isn't difficult, but problems such as unique filenames
+and file cleanup become issues that the user might not wish to deal with. 
+If the user application saves the data locally as a small script, then that script can 
+be executed with the push mechanism, and the data written into the standard input of 
+the remotely executing process. 
+The following is a small illustration of a script that the user application might create.
+
+.cc 2i
+.sp .5
+&indent
+.sf &cwfont
+.st 8p
+.nf
+   #!/usr/bin/env ksh
+   cat <<endKat | use_data
+   raw data for use, line 1
+    :
+    :
+   raw data for use, line last
+   endKat
+.fo
+.sf &textfont
+.st &textsize
+&uindent
+.sp
+
+This can be further simplified if the command being executed supports the same &cw(-s --) command line 
+parameter and ignores comment lines in the input data as Kshell or bash do.
+When this is the case the interpreter specified in the script file would be replaced by the 
+command name, and the here document constructs would not be necessary.
+(See the future work section.)
+
+
+.cc 2i
+.h1 Limits, Failures, Retries
+The &sb hasn't been stress tested, but given that goroutines are fairly lightweight, and most of 
+the CPU utilisation related to the remote execution of a command is on the remote host, the upper
+bound for number of iterators should be fairly large. 
+The only limit encountered thus far is related to the maximum number of sessions that an SSH connection
+is permitted to have.  
+This limit seems to be a host configured value, and thus it might vary from remote host to remote
+host, and it also seems that there is no way to suss out this setting in advance of a failure. 
+With the exception of session capacity failures, the &sb does not make any attempt to retry or 
+resubmit a command that was not successful. 
+
+
+.** --- column note referenced in next section ---
+&reference_id( nfail_ref )
+.cn start atbot Times-roman 8 .5i
+	Commands are requeued a maximum of 10 times before an error is returned to the
+	calling programme.  This prevents what the &sb might think is an oversubscription error, but 
+	isn't, from looping forever.
+.cn end
+
+.h2 Handling Session Capacity Failures
+When an SSH connection has reached its capacity, the next attempt to create a new session fails
+in such a way that the &sb can detect this state as the reason for failure. 
+A command that fails because of an overloaded channel is queued on a retry channel associated with 
+the host.  &super( &nfail_ref )
+Host retry queues are emptied onto a special retry queue when a command executing on the host
+finishes (dropping the session count enough to allow another command on the host.)
+Initiators give preference to the main retry queue so that these retries are executed before 
+other pending work. 
+
+.cc 2i
+.h1 Future Work
+The following is a list of enhancements which would be nice to have.
+.sp .5
+&indent
+.bl l
+.li the ability to supply the command line to &cw(Run_on_host())  or &cw(NBRun_on_host()) 
+with a local standard input file.  This would invoke the command, and write the input 
+to the command's standard input  without the need to create a special, temporary, script to 
+do the work.
+.el
+&uindent
+.sp
+
+.qu
+
