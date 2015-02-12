@@ -58,6 +58,8 @@
 
 	Mods:		15 Jan 2015 - Added ability to send an environment file before the named script file.
 				01 Feb 2015 - Corrected bug, rsync happening on session2, not new connection.
+				12 Feb 2015 - Dropped the ability to ditch leading/trailing whitspace when sending to 
+					standard input.
 
 	CAUTION:	This package reqires go 1.3.3 or later.
 */
@@ -146,39 +148,27 @@ func find_file( fname string ) ( pname string, err error ) {
 }
 
 /*
-	Read from src and write to dest trashing leading white space if ditch_lws is true.
+	Read from src and write to dest.
 */
-func send_file( src *bufio.Reader, dest io.WriteCloser, ditch_lws bool ) {
+func send_file( src *bufio.Reader, dest io.WriteCloser ) {
     for {
-		var i int
-
         rec, rerr := src.ReadBytes( '\n' );
         if rerr == nil {
-			if ditch_lws {
-				for i = 0; i < len( rec ) && (rec[i] == ' ' || rec[i] == '\n'); i++ { 
-					/* nop */ 
-				}
-				rec = rec[i:]
-			}
-
-			if len( rec ) > 0  &&  rec[0] != '#' {				// skip blank lines and comment lines
+			if len( rec ) > 0  &&  rec[0] != '#' {				// skip empty lines and comment lines
 				dest.Write( rec )
 			}
 		} else {
 			return
 		}
 	}
-
 }
 
 /*
 	Expected to be invoked as a gorotine which runs in parallel to sending the ssh command to the 
 	far side. This function reads from the input buffer reader br and writes to the target stripping 
-	blank and comment lines as it goes. If ditch_lws is set to true, then we'll strip the leading 
-	whitespace before sending the record. 
+	blank and comment lines as it goes.
 */
-//func send_script( sess *ssh.Session, argv0 string, parms string, br *bufio.Reader, env string, ditch_lws bool ) {
-func send_script( sess *ssh.Session, argv0 string, env_file string, br *bufio.Reader, ditch_lws bool ) {
+func send_script( sess *ssh.Session, argv0 string, env_file string, br *bufio.Reader ) {
 
 	target, err := sess.StdinPipe( )				// we create the pipe here so that we can close here
 	if err != nil {
@@ -200,7 +190,7 @@ func send_script( sess *ssh.Session, argv0 string, env_file string, br *bufio.Re
 				fmt.Fprintf( os.Stderr, "ssh_broker: could not open environment file: %s: %s\n", env_file, err )
 			} else {
 				ebr := bufio.NewReader( ef );								// get a buffered reader for the file
-				send_file( ebr, target, ditch_lws )
+				send_file( ebr, target )
 				ef.Close()
 			}
 		} else {
@@ -208,7 +198,7 @@ func send_script( sess *ssh.Session, argv0 string, env_file string, br *bufio.Re
 		}
 	}
 
-	send_file( br, target, ditch_lws )
+	send_file( br, target )
 }
 
 /*
@@ -220,8 +210,6 @@ func send_script( sess *ssh.Session, argv0 string, env_file string, br *bufio.Re
 
 */
 func ( b *Broker ) roar( req *Broker_msg ) ( err error ) {
-	var ditch_lws bool = true									// allow reader to ditch the leading white space
-
 	if req == nil {
 		err = fmt.Errorf( "no request block" )
 		return
@@ -255,11 +243,9 @@ func ( b *Broker ) roar( req *Broker_msg ) ( err error ) {
 		shell := string( rec[2:] ) + " -s -- " + req.parms		// assume ksh or bash
 		if strings.Index( shell, "python" ) > 0 {
 			shell = string( rec[2:] ) + " - " +  req.parms		// shell to execute with python style command line for stdin
-			ditch_lws = false
 		}
 
-		//go send_script( sess, pname, req.parms, br, ditch_lws )			// write the remainder of the script in parallel
-		go send_script( sess, pname, req.env, br, ditch_lws )			// write the remainder of the script in parallel
+		go send_script( sess, pname, req.env, br )			// write the remainder of the script in parallel
 		err = sess.Run( shell )
 	} else {
 		err = fmt.Errorf( "not run: run on a remote requires script to have leading #! directive on the first line: %s\n", pname )
