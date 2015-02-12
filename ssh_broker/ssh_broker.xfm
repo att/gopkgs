@@ -294,8 +294,8 @@ The following would set up the rsync mechanism to send three scripts to a direct
 .sf &cwfont
 .st 8p
 .nf
-   cmd_list := "/usr/bin/send_ovs_fmod" + 
-               "/usr/bin/ovs_sp2uuid" + 
+   cmd_list := "/usr/bin/send_ovs_fmod " + 
+               "/usr/bin/ovs_sp2uuid " + 
                "/opt/app/bin/suss_ovs_queues"
    target_dir := "/tmp/tegu_b"
    broker.Add_rsync( &cmd_list, &target_dir )
@@ -375,13 +375,6 @@ There is nothing that can be done for the first issue, but to help with the &cw(
 the &sb sets an environment variable &cw(ARGV0) to be the name of the script. 
 This does mean that a script executed using this mechanism must know to reference this 
 variable rather than &cw($0,)  but that is a simple modification when needed. 
-
-.sp
-The &sb attempts to reduce the amount of data that is written into the standard input of the 
-interpreter and thus will eliminate all leading and trailing whitespace. 
-The hash-bang information is also used to determine when an interpreter might be sensitive
-to this (um, python), and when one of these interpreters is used the &sb will not strip 
-the leading whitespace.  
 
 .h2 Main Use Case
 The use of the rsync mechanism will probably eliminate much of the use of the push script 
