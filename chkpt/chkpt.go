@@ -58,8 +58,8 @@ import (
 	"io"
 	"os"
 
-	"forge.research.att.com/gopkgs/clike"
-	"forge.research.att.com/gopkgs/token"
+	"codecloud.web.att.com/gopkgs/clike"
+	"codecloud.web.att.com/gopkgs/token"
 )
 
 // --------------------------------------------------------------------------------------

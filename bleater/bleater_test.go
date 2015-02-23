@@ -7,7 +7,7 @@ import (
 	"os"
 	"fmt"
 
-	"forge.research.att.com/gopkgs/bleater"
+	"codecloud.web.att.com/gopkgs/bleater"
 )
 
 /*

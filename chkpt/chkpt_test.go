@@ -7,7 +7,7 @@ import (
 	"time"
 	"testing"
 
-	"forge.research.att.com/gopkgs/chkpt"
+	"codecloud.web.att.com/gopkgs/chkpt"
 )
 
 func TestChkpt( t *testing.T ) {

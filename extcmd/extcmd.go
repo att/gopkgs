@@ -16,7 +16,7 @@ import (
 	"encoding/json"
 	"os/exec"
 
-	"forge.research.att.com/gopkgs/token"
+	"codecloud.web.att.com/gopkgs/token"
 )
 
 

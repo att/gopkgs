@@ -8,7 +8,7 @@ import (
 	"testing"
 	"os"
 
-	"forge.research.att.com/gopkgs/jsontools"
+	"codecloud.web.att.com/gopkgs/jsontools"
 )
 
 func TestJsonblob( t *testing.T ) {
