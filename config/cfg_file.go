@@ -23,8 +23,8 @@ import (
 	"strings"
 	//"time"
 
-	"forge.research.att.com/gopkgs/clike"
-	"forge.research.att.com/gopkgs/token"
+	"codecloud.web.att.com/gopkgs/clike"
+	"codecloud.web.att.com/gopkgs/token"
 )
 
 
@@ -84,7 +84,9 @@ func Parse( sectmap map[string]map[string]interface{}, fname string, all_str boo
 
 			switch rec[0] {
 				case ':':							// section 
-					sname = rec[1:];
+					//sname = rec[1:];
+					_, tokens := token.Tokenise_qpopulated( rec, " \t" )		// easy way to ditch everything after the first token
+					sname = tokens[0][1:]
 					if m[sname]  == nil {
 						sect = make( map[string]interface{} );
 						m[sname] = sect;

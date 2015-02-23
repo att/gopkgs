@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"os"
 
-	"forge.research.att.com/gopkgs/config"
+	"codecloud.web.att.com/gopkgs/config"
 )
 
 func TestConfig( t *testing.T ) {
@@ -20,7 +20,7 @@ func TestConfig( t *testing.T ) {
 	}
 
 	for sname, smap := range sects {
-		fmt.Fprintf( os.Stderr, "section: %s has %d items\n", sname, len( smap ) );
+		fmt.Fprintf( os.Stderr, "section: (%s) has %d items\n", sname, len( smap ) );
 		for key, value := range smap {
 			switch value.( type ) {
 				case string:
@@ -38,9 +38,9 @@ func TestConfig( t *testing.T ) {
 	} 
 
 	smap := sects["default"]
-	fmt.Fprintf( os.Stderr, "qfoo>>> (%s)\n", *(smap["qfoo"].(*string)) ); 
-	fmt.Fprintf( os.Stderr, "ffoo>>> %8.2f\n", smap["ffoo"].(float64) ); 
-	fmt.Fprintf( os.Stderr, "jfoo>>> (%s)\n", *(smap["jfoo"].(*string)) ); 
+	fmt.Fprintf( os.Stderr, "qfoo=== (%s)\n", *(smap["qfoo"].(*string)) ); 
+	fmt.Fprintf( os.Stderr, "ffoo=== %8.2f\n", smap["ffoo"].(float64) ); 
+	fmt.Fprintf( os.Stderr, "jfoo=== (%s)\n", *(smap["jfoo"].(*string)) ); 
 }
 
 /*
@@ -59,6 +59,7 @@ func TestStrings( t *testing.T ) {
 	dup = "initial value, should exist after read";
 	my_map["default"]["init-val"] = &dup;
 
+fmt.Fprintf( os.Stderr, ">>>>> parsing\n" )
 	sects, err := config.Parse2strs( my_map, "test.cfg" );
 
 	if err != nil {
@@ -68,15 +69,15 @@ func TestStrings( t *testing.T ) {
 	}
 
 	for sname, smap := range sects {
-		fmt.Fprintf( os.Stderr, "section: %s has %d items\n", sname, len( smap ) );
+		fmt.Fprintf( os.Stderr, "section: (%s) has %d items\n", sname, len( smap ) );
 		for key, value := range smap {
 			fmt.Fprintf( os.Stderr, "\t%s = (%s)\n", key, *value );
 		}
 	} 
 
 	smap := sects["default"]									// can be referenced two different ways
-	fmt.Fprintf( os.Stderr, "qfoo>>> (%s)\n", *smap["qfoo"] ); 
-	fmt.Fprintf( os.Stderr, "ffoo>>> (%s)\n", *smap["ffoo"] ); 
-	fmt.Fprintf( os.Stderr, "ffoo>>> (%s)\n", *sects["default"]["ffoo"] ); 
+	fmt.Fprintf( os.Stderr, "qfoo=== (%s)\n", *smap["qfoo"] ); 
+	fmt.Fprintf( os.Stderr, "ffoo=== (%s)\n", *smap["ffoo"] ); 
+	fmt.Fprintf( os.Stderr, "ffoo=== (%s)\n", *sects["default"]["ffoo"] ); 
 }
 
