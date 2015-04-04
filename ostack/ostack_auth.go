@@ -20,6 +20,9 @@
 							Added support for md5-token
 				06 Jan 2015 - Added check for nil project id in response.
 				03 Feb 2015 - Correct fmt format string error.
+				12 Mar 2015 - Changed Token_auth to compress a large token since openstack
+							cannot handle it's huge tokens on requests (or the proxy refuses
+							to forward them).
 ------------------------------------------------------------------------------------------------
 */
 
@@ -229,7 +232,11 @@ func (o *Ostack) Expire( ) {
 func (o *Ostack) Insert_token( tok *string ) {
 	if o != nil {
 		o.token = tok
-		o.small_tok = str2md5_str( *o.token )
+		if len( *tok ) > 100 {
+			o.small_tok = str2md5_str( *o.token )		// ostack can't handle huge tokens it issues; assume >100 can be md5sum'd for use
+		} else {
+			o.small_tok = tok							// small enough to use as is
+		}
 	}
 }
 
@@ -266,6 +273,9 @@ func (o *Ostack) Token_validation( token *string, usr_match *string ) ( expiry i
 		return
 	}
 
+	if len( *token ) > 100 {						// ostack cannot handle its own large tokens, so compress before sending
+		token = str2md5_str( *token )
+	}
 	o.Validate_auth()							// ensure we're still auth to make requests
 
 	rjson = fmt.Sprintf( `{ "auth": { "token": { "id": %q }}}`, *token );	// auth block contains the token to authenticate
@@ -317,6 +327,7 @@ func (o *Ostack) Token_validation( token *string, usr_match *string ) ( expiry i
 
 	return
 }
+
 
 /*
 	Return the url for the desired service as defined by the EP_ constants.

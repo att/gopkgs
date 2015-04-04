@@ -319,6 +319,7 @@ type ost_addr struct {
 }
 
 type ost_vm_server struct {			// we don't use all of the data; fields not included are commented out
+	Azone		string	`json:"OS-EXT-AZ:availability_zone"`
 	Accessipv4	string				// huh?
 	Accessipv6	string
 	Addresses	map[string][]ost_addr
@@ -373,12 +374,25 @@ type ost_router struct {
 	External_gateway_info *ost_gwinfo	// unknown what this might be (no doc)
 }
 
+type ost_aggregate struct {
+	Availability_zone 	string
+	Created_at 	string
+	Deleted 	bool 
+	Deleted_at 	string
+	Hosts 		[]string
+	Id 			int
+	//Metadata { "availability_zone "nova" },
+	Name 		string
+	Updated_at 	string
+}
+
 /*
 	A collection of things that might come back from the various ostack calls. Should serve
 	as a receiver for unbundling any json response.
 */
 type generic_response struct {
 	Access		*ost_access
+	Aggregates	[]ost_aggregate
 	Error		*error_obj
 	Hosts		[]ost_os_host
     Interfaceattachments	 []ost_ifattach
@@ -595,6 +609,17 @@ func (o *Ostack)  Get_user() ( *string ) {
 	}
 
 	return o.user
+}
+
+/* 
+	Returns the project name and id
+*/
+func (o *Ostack) Get_project( ) ( name *string, id *string ) {
+	if o == nil {
+		return nil, nil
+	}
+
+	return o.project, o.project_id
 }
 
 /*
