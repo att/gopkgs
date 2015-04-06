@@ -60,6 +60,7 @@
 				01 Feb 2015 - Corrected bug, rsync happening on session2, not new connection.
 				12 Feb 2015 - Dropped the ability to ditch leading/trailing whitspace when sending to 
 					standard input.
+				02 Apr 2015 - Attempt to prevent core dump if ssh has connection issues.
 
 	CAUTION:	This package reqires go 1.3.3 or later.
 */
@@ -88,6 +89,7 @@ type connection struct {
 	host		string				// host name:port connected to
 	schan		*ssh.Client			// the ssh supplied connection
 	retry_ch	chan *Broker_msg	// retry channel for the host
+	last_cmd	int64				// timestamp of last command to prevent ssh from going stale
 }
 
 // ------ public structures -----------------------------------------------------------------------------
@@ -312,6 +314,11 @@ func read_key_file( kfname string ) ( s ssh.Signer, err error ) {
 func ( b *Broker ) connect2( host string ) ( c *connection, err error ) {
 	err = nil
 
+	if b == nil || b.was_closed {
+		err = fmt.Errorf( "run_cmd: broker pointer was nil, or broker has been closed" )
+		return
+	}
+
 	if strings.Index( host, ":" ) < 0  {
 		host = host + ":22"							// add default port if not supplied
 	}
@@ -325,7 +332,11 @@ func ( b *Broker ) connect2( host string ) ( c *connection, err error ) {
 
 	if b.rsync_src != nil && b.rsync_dir != nil {		// no connection, rsynch if we need to
 		toks := strings.Split( host, ":" )				// must split off port for rsynch
-		b.synch_host( &toks[0] )
+		err = b.synch_host( &toks[0] )
+		if err != nil {
+			err = fmt.Errorf( "unable to rsynch to %s: %s", host, err )
+			return
+		}
 	}
 
 	b.conns_lock.Lock( )								// get a write lock
@@ -344,6 +355,7 @@ func ( b *Broker ) connect2( host string ) ( c *connection, err error ) {
 		return
 	}
 	
+	c.last_cmd = time.Now().Unix()
 	b.conns[host] = c									// finally, add to our map (host:port)
 	return
 }
@@ -354,15 +366,35 @@ func ( b *Broker ) connect2( host string ) ( c *connection, err error ) {
 */
 func ( b *Broker ) session2( host string ) ( s *ssh.Session, err error ) {
 
+	var c *connection
+
 	s = nil
-	c, err := b.connect2( host )			// ensure we have a connection first
+	c, err = b.connect2( host )			// ensure we have a connection first
 	if err != nil {
 		return
 	}
 
-	s, err = c.schan.NewSession( )
-	if err != nil {
+	s, err = c.schan.NewSession( )		// create a new session
+	if err != nil {										// could fail because of too many open, or timeout
 		s = nil
+
+		if c.last_cmd < time.Now().Unix() - 300	{ 		// if it's been a while, try resetting things
+			
+fmt.Fprintf( os.Stderr, ">>>session creation failed, and it has been a while: reconnecting to: %s\n", host )
+			c.schan.Close()
+			b.conns[host] = nil
+			c, err = b.connect2( host )
+			if err != nil {
+				return
+			}
+
+			s, err = c.schan.NewSession( )
+			if err != nil {							// time to give up and return error
+				s = nil
+			} else {
+fmt.Fprintf( os.Stderr, ">>>session reconnected: %s\n", host )
+			}
+		}
 	}
 
 	return
