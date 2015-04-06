@@ -53,6 +53,13 @@
 				"traditional" SSH fasion.  Run_cmd (blocking) and NBRun_cmd (non-blocking) run the command
 				in a similar fashion as the script execution methods.
 
+				The user can also associate an rsync command to be executed on each successful connection
+				to a host.  This is done using the Add_rsync() function which supplies a list of files
+				(space separated) and a directory to which they are to be placed on the remote hosts. The
+				directory name should have a trailing slant (/) to ensure that rsync properly creates
+				it.  Because it _might_ be acceptable to the caller that the directory does not need a 
+				slant, this code will not add one if it is missing. 
+
 	Author:		E. Scott Daniels
 	Date: 		23 December 2014
 
@@ -60,7 +67,9 @@
 				01 Feb 2015 - Corrected bug, rsync happening on session2, not new connection.
 				12 Feb 2015 - Dropped the ability to ditch leading/trailing whitspace when sending to 
 					standard input.
-				02 Apr 2015 - Attempt to prevent core dump if ssh has connection issues.
+				02 Apr 2015 - Attempt to prevent core dump if ssh has connection issues. The rsync call
+					is now executed after the connection to the host is successful so that if the user isn't
+					knonw on the remote host there isn't a prompt for password which would block.
 
 	CAUTION:	This package reqires go 1.3.3 or later.
 */
@@ -313,6 +322,7 @@ func read_key_file( kfname string ) ( s ssh.Signer, err error ) {
 */
 func ( b *Broker ) connect2( host string ) ( c *connection, err error ) {
 	err = nil
+	need_sync := false					// must detect early and execute late so flag if needed
 
 	if b == nil || b.was_closed {
 		err = fmt.Errorf( "run_cmd: broker pointer was nil, or broker has been closed" )
@@ -331,12 +341,7 @@ func ( b *Broker ) connect2( host string ) ( c *connection, err error ) {
 	}
 
 	if b.rsync_src != nil && b.rsync_dir != nil {		// no connection, rsynch if we need to
-		toks := strings.Split( host, ":" )				// must split off port for rsynch
-		err = b.synch_host( &toks[0] )
-		if err != nil {
-			err = fmt.Errorf( "unable to rsynch to %s: %s", host, err )
-			return
-		}
+		need_sync = true								// but wait until we auth the connection to prevent prompt
 	}
 
 	b.conns_lock.Lock( )								// get a write lock
@@ -353,6 +358,15 @@ func ( b *Broker ) connect2( host string ) ( c *connection, err error ) {
 	if err != nil {
 		c = nil
 		return
+	}
+
+	if need_sync {
+		toks := strings.Split( host, ":" )				// must split off port for rsynch
+		err = b.synch_host( &toks[0] )
+		if err != nil {
+			err = fmt.Errorf( "unable to rsynch to %s: %s", host, err )
+			return
+		}
 	}
 	
 	c.last_cmd = time.Now().Unix()
@@ -380,11 +394,12 @@ func ( b *Broker ) session2( host string ) ( s *ssh.Session, err error ) {
 
 		if c.last_cmd < time.Now().Unix() - 300	{ 		// if it's been a while, try resetting things
 			
-fmt.Fprintf( os.Stderr, ">>>session creation failed, and it has been a while: reconnecting to: %s\n", host )
+fmt.Fprintf( os.Stderr, ">>>session creation failed, and it has been a while, assuming timeout: reconnecting to: %s\n", host )
 			c.schan.Close()
 			b.conns[host] = nil
 			c, err = b.connect2( host )
 			if err != nil {
+fmt.Fprintf( os.Stderr, ">>>reconnect failed: %s\n", err )
 				return
 			}
 
@@ -473,7 +488,6 @@ func ( b *Broker ) initiator( id int ) {
 
 }
 
-
 // ----- public msg functions ------------------------------------------------------------------------------
 /*
 	Returns the standard out, standard error elapsed time (sec) and the overall error state contained in 
@@ -495,6 +509,8 @@ func (m *Broker_msg) Get_info( ) ( host string, sname string, id int ) {
 
 /*
 	Create a broker for the given user and with the given key files.
+	If keys are given, then the assumption is that there should _not_ be any prompt for 
+	password. If keys is nil, then prompting will be allowed.
 */
 func Mk_broker( user string, keys []string ) ( broker *Broker ) {
 	if len( keys ) <= 0 {
