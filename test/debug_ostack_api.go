@@ -48,6 +48,7 @@ func main( ) {
 	verbose := flag.Bool( "v", false, "verbose" )
 
 	run_all := flag.Bool( "A", false, "run all tests" )				// the various tests
+	run_crack := flag.Bool( "C", false, "crack a token" )
 	run_fip := flag.Bool( "F", false, "run fixed-ip test" )
 	run_gw_map := flag.Bool( "G", false, "run gw list test" )
 	run_mac := flag.Bool( "H", false, "run mac-ip map test" )
@@ -56,6 +57,7 @@ func main( ) {
 	run_user := flag.Bool( "R", false, "run user/role test" )
 	run_subnet := flag.Bool( "S", false, "run subnet map test" )
 	run_vfp := flag.Bool( "V", false, "run token valid for project test" )
+	run_exp := flag.Bool( "X", false, "run unknown/undefined experimental test" )
 	run_projects := flag.Bool( "T", false, "run projects test" )
 	flag.Parse()									// actually parse the commandline
 
@@ -116,7 +118,7 @@ func main( ) {
 	}
 	
 	if *project != "" {
-		fmt.Fprintf( os.Stderr, "[OK]   project used for remaining tests: %s\n", *project )
+		fmt.Fprintf( os.Stderr, "[OK]   getting project creds for remaining tests: %s\n", *project )
 		o2 = ostack.Mk_ostack( url, usr, pwd, project )			// project specific creds
 		if o2 == nil {
 			fmt.Fprintf( os.Stderr, "\n[FAIL] unable to alloc creds for specific project; %s\n", *project )
@@ -161,6 +163,21 @@ func main( ) {
 			}
 		}
 	} 
+
+	if *run_exp {								// experimental -- run only when -X given, not when all
+		//m, err := o2.Dig_test( nil, true, nil, false, false )		// bool order: inc-tenant, save-name, reverse		
+		m, err := o2.Agg2hosts( nil, nil )
+		if err == nil {
+			fmt.Fprintf( os.Stderr, "[OK]   Experimental executed successfully, map has %d items\n", len( m ) )
+			for k, v := range m {
+				fmt.Fprintf( os.Stderr, "\texp: %s = %s\n", k, *v );	
+			}
+		} else {
+			fmt.Fprintf( os.Stderr, "[FAIL] Experimental failed: %s\n", err )
+		}
+
+		fmt.Fprintf( os.Stderr, "\n" )
+	}
 
 	if *run_all || *run_user {
 		rm, err := o2.Map_roles() 				// map all roles
@@ -432,22 +449,31 @@ invoked.  bloody openstack.
 		ip2fip, fip2ip, err := o2.Mk_fip_maps( nil, nil, *inc_project )
 		if err != nil {
 			fmt.Fprintf( os.Stderr, "[FAIL] error getting fip-info: %s", err )
-			os.Exit( 1 )
-		}
-
-	
-		if *verbose {
-			fmt.Fprintf( os.Stderr, "\n[OK]   floating IP address info fetched\n" )
-			for ip, fip := range ip2fip {
-				fmt.Fprintf( os.Stderr, "\tip2fip: %-15s  --> %-15s\n", ip, *fip )
-			}
-			fmt.Fprintf( os.Stderr, "\n" )
-			for ip, fip := range fip2ip {
-				fmt.Fprintf( os.Stderr, "\tfip2ip: %-15s  --> %-15s\n", ip, *fip )
-			}
+			err_count++
 		} else {
-			fmt.Fprintf( os.Stderr, "\n[OK]   floating IP address info fetched: fip2ip contains %d entries\n", len( fip2ip ) )
+			if *verbose {
+				fmt.Fprintf( os.Stderr, "\n[OK]   floating IP address info fetched\n" )
+				for ip, fip := range ip2fip {
+					fmt.Fprintf( os.Stderr, "\tip2fip: %-15s  --> %-15s\n", ip, *fip )
+				}
+				fmt.Fprintf( os.Stderr, "\n" )
+				for ip, fip := range fip2ip {
+					fmt.Fprintf( os.Stderr, "\tfip2ip: %-15s  --> %-15s\n", ip, *fip )
+				}
+			} else {
+				fmt.Fprintf( os.Stderr, "\n[OK]   floating IP address info fetched: fip2ip contains %d entries\n", len( fip2ip ) )
+			}
 		}
+	}
+
+	if (*run_all || *run_crack)  && token != nil { 					// crack the given token
+		stuff, err := o.Crack_token( token )
+		if err != nil {
+			fmt.Fprintf( os.Stderr, "[FAIL] unable to crack the token: %s\n", err )
+			err_count++
+		} else {
+			fmt.Fprintf( os.Stderr, "[OK]   token was cracked: %s\n", stuff )
+		}	
 	}
 
 	if (*run_all || *run_vfp)  && token != nil { 					// see if token is valid for the given project
