@@ -58,4 +58,6 @@ func Tokenise_populated(  buf string, sepchrs string ) (int, []string) {
 			return idx, tokens[0:idx+1];
 		}
 	}	
+
+	return
 }

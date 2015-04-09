@@ -57,4 +57,6 @@ func Tokenise_drop(  buf string, sepchrs string ) ( ntokens int, tokens []string
 			return 
 		}
 	}	
+
+	return
 }
