@@ -59,5 +59,5 @@ func Tokenise_populated(  buf string, sepchrs string ) (int, []string) {
 		}
 	}	
 
-	return
+	return 0, nil
 }
