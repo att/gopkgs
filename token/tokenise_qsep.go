@@ -120,5 +120,7 @@ func tokenise_all( buf string, sepchrs string, keep_empty bool ) (int,  []string
 		}
 
 	}	
+
+	return 0, nil
 }
 
