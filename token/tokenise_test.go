@@ -53,6 +53,45 @@ func TestToken_count( t *testing.T ) {
 	return
 }
 
+/*
+	Test a case where we have more than 2k tokens in the buffer.
+*/
+func TestLarge_token_count( t *testing.T ) {
+
+	fmt.Fprintf( os.Stderr, "\n" )
+
+	str := ""
+	sep := "" 
+	for i := 0; i < 4360; i++ {								// build a long string of space separated tokens
+		str += fmt.Sprintf( "%s%d", sep, i % 100 )			// 100 unique tokens
+		sep = " "
+	}
+
+	cmap := token.Tokenise_count( str, " " )
+	if len( cmap ) != 100 {
+		fmt.Fprintf( os.Stderr, "FAIL: large_token_count: expected 100 unique tokens, found %d\n", len( cmap ) )
+		for k := range cmap {								// key is the token
+			fmt.Fprintf( os.Stderr, "%s\n", k )
+		}
+		t.Fail()
+	} else {
+		fmt.Fprintf( os.Stderr, "OK:   large_token_count: expected 100 unique tokens, found 100\n" )
+	}
+}
+
+/*
+	Test count with an empty string.
+*/
+func TestToken_count_empty( t *testing.T ) {
+	cmap := token.Tokenise_count( " ", " " )
+	fmt.Fprintf( os.Stderr, "count of empty string resulted in cmap of %d elements\n\n", len( cmap ) )
+
+	for k, v := range( cmap ) {
+		fmt.Fprintf( os.Stderr, "(%s) == %d\n", k, v )
+	}
+	fmt.Fprintf( os.Stderr, "\n" )
+}
+
 func TestToken_qsep_pop( t *testing.T ) {
 	str := `hello "world this is" a test where token 2 was quoted`
 	expect := "world this is"

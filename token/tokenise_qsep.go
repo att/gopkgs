@@ -7,7 +7,7 @@ import (
 
 
 /*
----------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------
 	Mnemonic:	tokenise_qsep
 
 	Returns:	number of tokens, tokens[]
@@ -17,7 +17,9 @@ import (
 	Mods:		14 Jan 2014 - correected bug that would allow quotes to remain on last token
 					if there was not a separator between the quotes.
 				30 Nov 2014 - Allows escaped quote.
----------------------------------------------------------------------------------------
+				09 Apr 2015 - Corrected problem where index was not being checked and range
+					was being busted causing a panic. Removed the 2k limit.
+---------------------------------------------------------------------------------------------
 */
 
 
@@ -43,7 +45,7 @@ func Tokenise_qsep(  buf string, sepchrs string ) (int, []string) {
 
 /*
 	This is the work horse for qsep and qpopulated. If keep_empty is true, then
-	empty fields (concurrent separators) are kept as empty strings.
+	empty fields (adjacent separators) are kept as empty strings.
 */
 func tokenise_all( buf string, sepchrs string, keep_empty bool ) (int,  []string) {
 	var tokens []string
@@ -58,6 +60,12 @@ func tokenise_all( buf string, sepchrs string, keep_empty bool ) (int,  []string
 	for {
 		i = strings.IndexAny( subbuf, sepchrs ) 		// index of the next sep character
 		q = strings.IndexAny( subbuf, "\"" ) 			// index of the next quote
+
+		if idx >= len( tokens ) {						// more than we had room for; alloc new
+			tnew := make( []string, len( tokens ) * 2 ) 
+			copy( tnew[:], tokens )
+			tokens = tnew
+		}
 
 		if q < 0 || (q >= i && i >= 0) {				// sep before quote, or no quotes
 			if i > 0 {
@@ -121,6 +129,6 @@ func tokenise_all( buf string, sepchrs string, keep_empty bool ) (int,  []string
 
 	}	
 
-	return 0, nil
+	return 0, nil				// unreacable and vet will complain, but without this older compilers refuse to compile!
 }
 
