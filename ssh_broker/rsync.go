@@ -8,7 +8,7 @@
 	Author:		E. Scott Daniels
 	Date: 		20 January 2015
 
-	Mods:		
+	Mods:		13 Apr 2015 - Added explicit ssh command for rsync to use.
 
 	CAUTION:	This package reqires go 1.3.3 or later.
 */
@@ -57,6 +57,10 @@ func ( b *Broker ) Rm_rsync( ) {
 	Actually run the rsync command.  If verbose is true, then output is written
 	to stderr, otherwise it is ignored. Error is returned and will be nil if 
 	the command successfully executed.
+
+	The -e option is used to force rsync to use ssh with a nokey checking option
+	so that we don't get caught by the reinstall of a machine which changes its
+	key and would possibly block our rsync attempt.
 */
 func ( b *Broker ) synch_host( host *string ) ( err error ) {
 
@@ -64,7 +68,7 @@ func ( b *Broker ) synch_host( host *string ) ( err error ) {
 		return
 	}
 
-	cmd := fmt.Sprintf( "rsync %s %s@%s:%s", *b.rsync_src, b.config.User, *host, *b.rsync_dir )
+	cmd := fmt.Sprintf( `rsync -e "ssh -o StrictHostKeyChecking=no" %s %s@%s:%s`, *b.rsync_src, b.config.User, *host, *b.rsync_dir )
 	
 	verbose := b.verbose
 	if verbose {
