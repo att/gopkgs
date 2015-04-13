@@ -9,6 +9,7 @@
 
 	Mods:
 				10 Nov 2014 : Added checks to ensure response data structs aren't nil
+				13 Apr 2015 - Converted to more generic error structure use.
 ------------------------------------------------------------------------------------------------
 */
 
@@ -65,7 +66,7 @@ func (o *Ostack) Map_roles( ) ( rmap map[string]*string, err error ) {
 	if role_data.Error != nil {
 		o.token = nil
 		o.small_tok = nil
-		err = fmt.Errorf( "map-role failed: code=%d msg=%s\n", role_data.Error.Code, role_data.Error.Message )
+		err = fmt.Errorf( "map-role failed: %s\n", role_data.Error )
 		return
 	}
 
@@ -129,7 +130,7 @@ func (o *Ostack) Map_user_roles( pid *string ) ( rmap map[string]*string, err er
 	if usr_data.Error != nil {
 		o.token = nil
 		o.small_tok = nil
-		err = fmt.Errorf( "map-usr-roles failed: code=%d msg=%s\n", usr_data.Error.Code, usr_data.Error.Message )
+		err = fmt.Errorf( "map-usr-roles failed: %s\n", usr_data.Error )
 		return
 	}
 
@@ -188,7 +189,7 @@ func (o *Ostack) Map_user_groles( ) ( rmap map[string]*string, err error ) {
 	if usr_data.Error != nil {
 		o.token = nil
 		o.small_tok = nil
-		err = fmt.Errorf( "map-usr-groles failed: code=%d msg=%s\n", usr_data.Error.Code, usr_data.Error.Message )
+		err = fmt.Errorf( "map-usr-groles failed: %s\n", usr_data.Error )
 		return
 	}
 

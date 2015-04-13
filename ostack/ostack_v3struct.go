@@ -45,12 +45,6 @@ type osv3_user struct {
 	Name		string
 }
 
-type osv3_error struct {
-	Code		int
-	Message		string
-	Title		string
-}
-
 /*
 	Returned by v3/auth/tokens. This is a union of all possible top layer things.
 */
@@ -70,6 +64,6 @@ type osv3_token struct {
 */
 type osv3_generic struct {
 	Token		*osv3_token
-	Error		*osv3_error	
+	Error		*error_obj				// we can use the generic error handling things here
 }
 

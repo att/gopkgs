@@ -21,6 +21,7 @@
 				10 Nov 2014 - Now using md5 hash of token when attempting to validate the token.
 				17 Nov 2014 - Added token to project function.
 				25 Nov 2014 - Added better error checking for nil admin url.
+				13 Apr 2015 - Converted to more generic error structure use.
 ------------------------------------------------------------------------------------------------
 */
 
@@ -207,7 +208,7 @@ func (o *Ostack) Token2project( token *string ) ( project *string, id *string, e
 		if response_data.Error == nil  {
 			if response_data.Access == nil || response_data.Access.Token == nil  {
 				if response_data.Error != nil {
-					err = fmt.Errorf( "tok2project: missing ostack response: (tok=%s): code=%d msg=%s\n", *token, response_data.Error.Code, response_data.Error.Message )
+					err = fmt.Errorf( "tok2project: missing ostack response: token=%s: %s\n", *token, response_data.Error )
 				} else {
 					err = fmt.Errorf( "tok2project: missing ostack response (tok=%s): code=unk msg=not-given\n", *token )
 				}
@@ -223,7 +224,7 @@ func (o *Ostack) Token2project( token *string ) ( project *string, id *string, e
 
 			err = fmt.Errorf( "project information not returned by openstack" )
 		} else {
-			err = fmt.Errorf( "unable to fetch project from token: code=%d msg=%s\n", response_data.Error.Code, response_data.Error.Message )
+			err = fmt.Errorf( "unable to fetch project from token: %s:  %s\n", *token, response_data.Error )
 		}
 	}
 

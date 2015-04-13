@@ -23,6 +23,8 @@
 				12 Mar 2015 - Changed Token_auth to compress a large token since openstack
 							cannot handle it's huge tokens on requests (or the proxy refuses
 							to forward them).
+				08 Apr 2015 - Added json dump if unmarshal fails
+				13 Apr 2015 - Converted to more generic error structure use.
 ------------------------------------------------------------------------------------------------
 */
 
@@ -96,14 +98,15 @@ func (o *Ostack) Authorise( ) ( err error ) {
 
 	err = json.Unmarshal( jdata, &auth_data )			// unpack the json into jif
 	if err != nil {
-		fmt.Fprintf( os.Stderr, "ostack: auth: unable to unpack json: %s\n", err )
+		fmt.Fprintf( os.Stderr, "ostack: auth: unable to unpack (auth) json: %s\n", err )
+		dump_json( "authorise", 20, jdata )				// dump the json the first few times this happens
 		return
 	}
 
 	if auth_data.Error != nil {
 		o.token = nil
 		o.small_tok = nil
-		err = fmt.Errorf( "auth failed: code=%d msg=%s\n", auth_data.Error.Code, auth_data.Error.Message )
+		err = fmt.Errorf( "auth failed: %s\n", auth_data.Error )
 		return
 	}
 
@@ -292,7 +295,8 @@ func (o *Ostack) Token_validation( token *string, usr_match *string ) ( expiry i
 
 	err = json.Unmarshal( jdata, &response_data )			// unpack the json into response data
 	if err != nil {
-		fmt.Fprintf( os.Stderr, "ostack: auth: unable to unpack json: %s\n", err )
+		fmt.Fprintf( os.Stderr, "ostack: auth: unable to unpack (validation) json: %s\n", err )
+		dump_json( "token-valid", 20, jdata )				// dump the json the first few times this happens
 		return
 	}
 
@@ -322,7 +326,7 @@ func (o *Ostack) Token_validation( token *string, usr_match *string ) ( expiry i
 			err = fmt.Errorf( "token is not valid: response from openstack did not contain valid data: missing access information" )
 		}
 	} else {
-		err = fmt.Errorf( "token is not valid: code=%d msg=%s", response_data.Error.Code, response_data.Error.Message )
+		err = fmt.Errorf( "token is not valid: %s\n", response_data.Error )
 	}
 
 	return

@@ -79,12 +79,28 @@ import (
 */
 
 
+/*
+	Both openstack and some proxy boxes return an error struct as a top level object
+	in the json with the _same_ name (error), but with a differing representation of
+	internal fields with duplicate names (code).  This is a more generic structure
+	and thus the functions in error.go must be used to extract values with minimal
+	effort (code() and String()). 
+*/
 type error_obj struct {			// generic error to snarf in http errors will be nil on success
 	Message	string
-	Code	int
+	Code	interface{}
 	Title	string
 }
 
+type proxy_error struct {		// allows us to attempt to unpack an error from the proxy
+	Message string
+	Code	string
+}
+
+/*
+	Openstack structs used to unpack json it returns. These are mostly v2 interfaces. V3
+	related structs all have an osv3_ prefix and are defined in a separate module
+*/
 
 // --- authorisation -----------
 

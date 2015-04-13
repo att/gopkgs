@@ -14,6 +14,7 @@
 	Authors:	E. Scott Daniels
 
 	Mods:
+				13 Apr 2015 - Converted to more generic error structure use.
 ------------------------------------------------------------------------------------------------
 */
 
@@ -92,7 +93,7 @@ func (o *Ostack) Crack_token( token *string ) ( stuff *Ostack_tstuff, err error 
 			err = fmt.Errorf( "token is not valid: response from openstack did not contain valid data: missing user information" )
 		}
 	} else {
-		err = fmt.Errorf( "token is not valid: code=%d msg=%s", response_data.Error.Code, response_data.Error.Message )
+		err = fmt.Errorf( "token is not valid: %s\n", response_data.Error )
 	}
 
 	return
