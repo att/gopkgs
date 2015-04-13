@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"forge.research.att.com/gopkgs/ipc"
+	"codecloud.web.att.com/gopkgs/ipc"
 )
 
 func TestIpc( t *testing.T ) {
