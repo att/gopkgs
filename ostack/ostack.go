@@ -438,6 +438,7 @@ type Ostack struct {
 	passwd	*string
 	user	*string
 	project	*string			// project (tenant) name
+	aregion	*string			// the authenticated region if a keystone is shared between sites
 	project_id	*string
 	user_id *string
 	//tok_cache	map[string]*int64	// cache of user tokens that we've validated; reference is to an expiration time.

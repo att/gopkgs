@@ -25,6 +25,7 @@
 							to forward them).
 				08 Apr 2015 - Added json dump if unmarshal fails
 				13 Apr 2015 - Converted to more generic error structure use.
+				16 Apr 2015 - Added support to suss out things based on region.
 ------------------------------------------------------------------------------------------------
 */
 
@@ -65,9 +66,12 @@ func str2md5_str( src string ) ( *string ) {
 /*
 	Sends an authorisation request to OpenStack and waits for it to return a
 	token that can be used on subsequent calls.  Err is set to non-nil if 
-	the credentials fail to authorise.  
+	the credentials fail to authorise.   Region points to a string used to 
+	identify the "region" of the keystone authorisation catalogue that should
+	be used to snarf URLs for things.  If it is nil, or points to "", then 
+	the first entry in the catalogue is used.
 */
-func (o *Ostack) Authorise( ) ( err error ) {
+func (o *Ostack) Authorise_region( region *string ) ( err error ) {
 	var (
 		auth_data	generic_response
 		rjson		string
@@ -80,6 +84,7 @@ func (o *Ostack) Authorise( ) ( err error ) {
 
 	o.token = nil			// must set this to nil to prevent it from being put into the header
 	o.small_tok = nil
+	o.aregion = region		// just in case we need it later
 	if o.project == nil {
 		rjson = fmt.Sprintf( `{ "auth": { "passwordCredentials": { "username": %q, "password": %q }}}`, *o.user, *o.passwd )				// just auth on uid and passwd to gen a token
 	} else {
@@ -146,19 +151,35 @@ func (o *Ostack) Authorise( ) ( err error ) {
 	for i := range auth_data.Access.Servicecatalog {	// find the compute service stuff and pull the url to reach it 
 		cat := auth_data.Access.Servicecatalog[i]
 
-		switch cat.Type {
-			case "compute":
-				o.chost = &cat.Endpoints[0].Internalurl		// we'll blindly use the first for now
+		r := 0
+		if region != nil && *region != ""  {
+			for _ = range cat.Endpoints {				// find the region that matches the name given
+				if cat.Endpoints[r].Region == *region {
+					break
+				} 
+				r++
+			}
+		}
 
-			case "network":
-				o.nhost = &cat.Endpoints[0].Internalurl
-
-			case "identity":
-				o.ihost = &cat.Endpoints[0].Internalurl		// keystone host to list projects
-				o.iahost = &cat.Endpoints[0].Adminurl		// admin url treats requests differently
-
-			// note - if we ever need to capture ec2, it has a different admin url as well
-		} 
+		if r < len( cat.Endpoints ) {
+			switch cat.Type {
+				case "compute":
+					o.chost = &cat.Endpoints[r].Internalurl
+	
+				case "network":
+					o.nhost = &cat.Endpoints[r].Internalurl
+	
+				case "identity":
+					o.ihost = &cat.Endpoints[r].Internalurl		// keystone host to list projects
+					o.iahost = &cat.Endpoints[r].Adminurl		// admin url treats requests differently
+	
+				// note - if we ever need to capture ec2, it has a different admin url as well
+			}
+		}  else {
+			if err == nil {
+				err = fmt.Errorf( "unable to find region in openstack list: %s", region )
+			}
+		}
 	}
 
 	if auth_data.Access.User != nil && auth_data.Access.User.Roles != nil  {		// don't fail if not present, but don't crash either
@@ -177,6 +198,13 @@ func (o *Ostack) Authorise( ) ( err error ) {
 	}
 
 	return
+}
+
+/*
+	Backward compatable -- authorises for what ever is first in the list from a region perspective.
+*/
+func (o *Ostack) Authorise( ) ( err error ) {
+	return o.Authorise_region( nil )
 }
 
 // version 3 authorisation such a lovely example of backwards compatibility -- NOT!

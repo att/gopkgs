@@ -30,7 +30,7 @@ func main( ) {
 		url *string
 	)
 
-	fmt.Fprintf( os.Stderr, "api debugger: v 1.6/1c094\n" )
+	fmt.Fprintf( os.Stderr, "api debugger: v 1.8/14165\n" )
 	err_count := 0
 
 
@@ -39,9 +39,10 @@ func main( ) {
 	{	p := os.Getenv( "OS_PASSWORD" ); pwd = &p }
 	
 	dump_stuff := flag.Bool( "d", false, "dump stuff" )
-	inc_project := flag.Bool( "i", false, "include project" )
+	inc_project := flag.Bool( "i", false, "include project in names" )
 	pwd = flag.String( "p", *pwd, "password" )
-	project := flag.String( "P", "", "project" )
+	project := flag.String( "P", "", "project for subsequent tests" )
+	region := flag.String( "r", "", "region" )
 	token := flag.String( "t", "", "token" )
 	usr = flag.String( "u", *usr, "user-name" )
 	url = flag.String( "U", *url, "auth-url" )
@@ -83,13 +84,20 @@ func main( ) {
 
 	fmt.Fprintf( os.Stderr, "[OK]   created openstack interface structure for: %s %s\n", *usr, *url )
 
-	err := o.Authorise( )
+	region_str := "default"
+	if *region  == "" {
+		region = nil
+	} else {
+		region_str = *region
+	}
+
+	err := o.Authorise(  ) 			// generic auth without region since we don't give a project on the default creds
 	if err != nil {
-		fmt.Fprintf( os.Stderr, "[FAIL] aborting: authorisation failed: %s\n", err )
+		fmt.Fprintf( os.Stderr, "[FAIL] aborting: authorisation failed: region=%s:  %s\n", region_str, err )
 		os.Exit( 1 )
 	}	
 
-	fmt.Fprintf( os.Stderr, "\n[OK]   authorisation for %s successful  admin flag: %v\n", *usr, o.Isadmin()  )
+	fmt.Fprintf( os.Stderr, "\n[OK]   authorisation for %s (default creds) successful admin flag: %v\n", *usr, o.Isadmin()  )
 
 	if *project == "" || *run_all || *run_projects {		// map projects that the user belongs to
 		m1, _, err := o.Map_tenants( )
@@ -124,7 +132,7 @@ func main( ) {
 			fmt.Fprintf( os.Stderr, "\n[FAIL] unable to alloc creds for specific project; %s\n", *project )
 			os.Exit( 1 )
 		}
-		err = o2.Authorise( ) 
+		err = o2.Authorise_region( region ) 
 		if err != nil {
 			fmt.Fprintf( os.Stderr, "\n[FAIL] unable to authorise creds for specific project; %s\n", *project )
 			os.Exit( 1 )
@@ -149,6 +157,7 @@ func main( ) {
 				fmt.Fprintf( os.Stderr, "\t\tproject: %s --> %s\n", k, *v )
 			}
 
+			fmt.Fprintf( os.Stderr, "[INFO]  sussing host list for each project....\n" )
 			for k, _ := range( all_projects ) {
 				o3 :=  ostack.Mk_ostack( url, usr, pwd, &k )
 				o3.Insert_token( o2.Get_token() )
@@ -156,10 +165,10 @@ func main( ) {
 				hlist, err := o3.List_hosts( ostack.COMPUTE )
 				endt := time.Now().Unix()
 				if err == nil {
-					fmt.Fprintf( os.Stderr, "[OK]    got hosts for %s: %s  (%d sec)\n", k, *hlist, endt - startt )
-				} //else {
-				//	fmt.Fprintf( os.Stderr, "[WARN] unable to get hosts for %s: %s", k, err )
-				//}
+					fmt.Fprintf( os.Stderr, "[OK]   got hosts for %s: %s  (%d sec)\n", k, *hlist, endt - startt )
+				} else {
+					fmt.Fprintf( os.Stderr, "[WARN] unable to get hosts for %s: %s", k, err )
+				}
 			}
 		}
 	} 
@@ -278,7 +287,7 @@ invoked.  bloody openstack.
 	}
 
 	if !(*run_all || *run_maps) && *run_gw_map {						// just gateway maps (dup below if all maps are generated)
-		// order back:  mac2ip, ip2mac, mac2id, id2mac, id2phost
+																		// order back:  mac2ip, ip2mac, mac2id, id2mac, id2phost
 		gm1, _, gm2, gm3, gm4, gm5, err := o2.Mk_gwmaps( nil, nil, nil, nil, nil, nil, true, *inc_project )
 		if err == nil {
 			gw_id := ""
