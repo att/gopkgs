@@ -454,8 +454,14 @@ var (								// counters used by ostack_debug functions -- these apply to all ob
 
 /*
 	Build the main object which is then used to drive each type of request. 
+
+	Region is the value used to suss out various endpoints. If nil is given, 
+	then the user may call Authorise_region() with a specific region, or 
+	use Authorise() to use the first in the list (default). If region is 
+	provided here, then it is used on a plain Authorise() call, or when 
+	the credentials are reauthenticated.
 */
-func Mk_ostack( host *string, user *string, passwd *string, project *string ) ( o *Ostack ) {
+func Mk_ostack_region( host *string, user *string, passwd *string, project *string, region *string ) ( o *Ostack ) {
 
 	if host == nil || user == nil || passwd == nil {
 		return
@@ -481,17 +487,19 @@ func Mk_ostack( host *string, user *string, passwd *string, project *string ) ( 
 		user:	user,
 		host:	host,
 		project: project,
+		aregion: region,
 	}
 
-	//o.tok_cache = make( map[string]*int64 )			// token cache and isadmin flags
 	o.tok_isadmin = make( map[string]bool )
 
-	/*
-	if project != nil {
-		fmt.Fprintf( os.Stderr, ">>>mk_ostack: %s %s %s\n", *host, *user, *project );
-	}
-	*/
 	return
+}
+
+/*
+	Back compat constructor to default to nil region if it's not important to the user. 
+*/
+func Mk_ostack( host *string, user *string, passwd *string, project *string ) ( o *Ostack ) {
+	return Mk_ostack_region( host, user, passwd, project, nil )
 }
 
 /*
@@ -500,7 +508,7 @@ func Mk_ostack( host *string, user *string, passwd *string, project *string ) ( 
 */
 func (o *Ostack) Dup(  project *string ) ( dup *Ostack, err error ) {
 
-	dup = Mk_ostack( o.host, o.user, o.passwd, project )
+	dup = Mk_ostack_region( o.host, o.user, o.passwd, project, o.aregion )
 
 	return
 }

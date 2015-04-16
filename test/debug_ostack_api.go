@@ -76,7 +76,7 @@ func main( ) {
 		os.Exit( 1 )
 	}
 
-	o := ostack.Mk_ostack( url, usr, pwd, nil )
+	o := ostack.Mk_ostack_region( url, usr, pwd, nil, region )
 	if o == nil {
 		fmt.Fprintf( os.Stderr, "[FAIL] aborting: unable to make ostack structure\n" ) 
 		os.Exit( 1 )
@@ -127,12 +127,12 @@ func main( ) {
 	
 	if *project != "" {
 		fmt.Fprintf( os.Stderr, "[OK]   getting project creds for remaining tests: %s\n", *project )
-		o2 = ostack.Mk_ostack( url, usr, pwd, project )			// project specific creds
+		o2 = ostack.Mk_ostack_region( url, usr, pwd, project, region )			// project specific creds
 		if o2 == nil {
 			fmt.Fprintf( os.Stderr, "\n[FAIL] unable to alloc creds for specific project; %s\n", *project )
 			os.Exit( 1 )
 		}
-		err = o2.Authorise_region( region ) 
+		err = o2.Authorise( )
 		if err != nil {
 			fmt.Fprintf( os.Stderr, "\n[FAIL] unable to authorise creds for specific project; %s\n", *project )
 			os.Exit( 1 )
@@ -159,7 +159,7 @@ func main( ) {
 
 			fmt.Fprintf( os.Stderr, "[INFO]  sussing host list for each project....\n" )
 			for k, _ := range( all_projects ) {
-				o3 :=  ostack.Mk_ostack( url, usr, pwd, &k )
+				o3 :=  ostack.Mk_ostack_region( url, usr, pwd, &k, region )
 				o3.Insert_token( o2.Get_token() )
 				startt := time.Now().Unix()
 				hlist, err := o3.List_hosts( ostack.COMPUTE )

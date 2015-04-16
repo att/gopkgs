@@ -84,7 +84,6 @@ func (o *Ostack) Authorise_region( region *string ) ( err error ) {
 
 	o.token = nil			// must set this to nil to prevent it from being put into the header
 	o.small_tok = nil
-	o.aregion = region		// just in case we need it later
 	if o.project == nil {
 		rjson = fmt.Sprintf( `{ "auth": { "passwordCredentials": { "username": %q, "password": %q }}}`, *o.user, *o.passwd )				// just auth on uid and passwd to gen a token
 	} else {
@@ -147,6 +146,10 @@ func (o *Ostack) Authorise_region( region *string ) ( err error ) {
 	}
 	o.user_id = &auth_data.Access.User.Id
 	o.chost = nil
+
+	if region == nil {
+		region = o.aregion								// use what was seeded on the Mk_ostack() call
+	}
 
 	for i := range auth_data.Access.Servicecatalog {	// find the compute service stuff and pull the url to reach it 
 		cat := auth_data.Access.Servicecatalog[i]
@@ -215,6 +218,9 @@ func (o *Ostack) Authorise( ) ( err error ) {
 	(This is probably not needed as an external interfac, but might be convenient if
 	an application wants to pre-authorise while doing other initialisation in parallel
 	in order to speed things up.)
+
+	This function will use the region that was set when the Ostack struct was created
+	(see Mk_ostack() and Mk_ostack_region()).
 */
 func (o *Ostack) Validate_auth( ) ( err error ) {
 	var (
