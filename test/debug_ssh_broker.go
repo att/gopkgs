@@ -75,7 +75,7 @@ func handle_responses( ch chan int, rch chan *ssh_broker.Broker_msg ) {
 			os.Exit( 1 )
 		}
 
-		stdout, stderr, err := msg.Get_results( )
+		stdout, stderr, _, err := msg.Get_results( )
 		host, script, id := msg.Get_info( )
 		fmt.Fprintf( os.Stderr, "received response host=%s script=%s id=%d\n", host, script, id )
 		if err != nil {
