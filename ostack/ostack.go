@@ -430,11 +430,12 @@ type Ostack struct {
 	token	*string			// authorisation token (could be very very large)
 	small_tok	*string		// small token if the token is absurdly huge (it's the md5 of the huge one)
 	expiry	int64			// timestamp when we assume the authorisation expires
-	host	*string			// the general host (probabl only for auth queries) (should NOT include v2.0 or v3)
+	host	*string			// the general host (probably only for auth queries) (should NOT include v2.0 or v3)
 	chost	*string			// the url used to make compute oriented queries (returned by auth)
+	cahost	*string			// the url used to make compute oriented queries as an admin (version stripped)
 	nhost	*string			// the url used to make netork oriented api queries (returned by auth)
-	ihost	*string			// url for the identity (keystone) service
-	iahost	*string			// url for the identity (keystone) admin service
+	ihost	*string			// url for the identity (keystone) service		(version stripped)
+	iahost	*string			// url for the identity (keystone) admin service	(version stripped)
 	passwd	*string
 	user	*string
 	project	*string			// project (tenant) name

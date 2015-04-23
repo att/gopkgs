@@ -84,7 +84,7 @@ func (o *Ostack) Map_all_tenants( ) ( name2id map[string]*string, id2name map[st
 
 	body := bytes.NewBufferString( "" )
 
-	url := *o.iahost + "/tenants"					// version is built into the ihost string (ugg); must use admin for all
+	url := *o.iahost + "v2.0/tenants"					// must use the admin url for all tenant list
     dump_url( "all-tenants", 10, url )
     jdata, _, err := o.Send_req( "GET",  &url, body );
 	dump_json( "tenants", 10, jdata )
@@ -193,7 +193,12 @@ func (o *Ostack) Token2project( token *string ) ( project *string, id *string, e
 
 	body := bytes.NewBufferString( "" )
 
-	url := fmt.Sprintf( "%sv2.0/tokens/%s", *o.host, *small_tok )								// this returns token information if token is valid
+	url := ""
+	if o.iahost != nil {
+		url = fmt.Sprintf( "%sv2.0/tokens/%s", *o.iahost, *small_tok )								// preference is to use the internal admin auth url, but might not always be there
+	} else {
+		url = fmt.Sprintf( "%sv2.0/tokens/%s", *o.host, *small_tok )								// this should always be there, but might not yield good results
+	}
 	dump_url( "valid4project", 10, url )
     jdata, _, err := o.Send_req( "GET",  &url, body );
 
@@ -216,7 +221,7 @@ func (o *Ostack) Token2project( token *string ) ( project *string, id *string, e
 				return nil, nil, err
 			}
 
-			if response_data.Access != nil && response_data.Access.Token.Tenant != nil { 		// verify that the project for the given token matches our project
+			if response_data.Access != nil && response_data.Access.Token.Tenant != nil {
 				dup_nm := response_data.Access.Token.Tenant.Name								// snag the project name
 				dup_id := response_data.Access.Token.Tenant.Id
 					return &dup_nm, &dup_id, nil

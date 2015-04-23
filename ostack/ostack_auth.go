@@ -42,6 +42,7 @@ import (
 	//"net/http"
 	//"net/url"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -59,6 +60,21 @@ func str2md5_str( src string ) ( *string ) {
 	hs := fmt.Sprintf( "%x", hash[:] )
 
 	return &hs
+}
+
+/*
+	Strip the version string (e.g. v2.0) from the url passed in and return a poitner to the 
+	stripped version.  If the url passed in doesn't have a trailing /v.* then we'll return a 
+	pointer to it as is.
+*/
+func strip_ver( url string ) ( *string ) {
+
+	li := strings.LastIndex( url, "/v" )
+	if li >= 0 {
+		 url = url[0:li]  + "/"					// we will add the version we want to use, so strip what comes back
+	}
+
+	return &url
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -155,7 +171,7 @@ func (o *Ostack) Authorise_region( region *string ) ( err error ) {
 		cat := auth_data.Access.Servicecatalog[i]
 
 		r := 0
-		if region != nil && *region != ""  {
+		if region != nil && *region != ""  {			// default to first region if none given, or empty string given
 			for _ = range cat.Endpoints {				// find the region that matches the name given
 				if cat.Endpoints[r].Region == *region {
 					break
@@ -168,13 +184,17 @@ func (o *Ostack) Authorise_region( region *string ) ( err error ) {
 			switch cat.Type {
 				case "compute":
 					o.chost = &cat.Endpoints[r].Internalurl
+					o.cahost = strip_ver( cat.Endpoints[r].Adminurl )
 	
 				case "network":
 					o.nhost = &cat.Endpoints[r].Internalurl
 	
 				case "identity":
-					o.ihost = &cat.Endpoints[r].Internalurl		// keystone host to list projects
-					o.iahost = &cat.Endpoints[r].Adminurl		// admin url treats requests differently
+					//o.ihost = &cat.Endpoints[r].Internalurl		// keystone host to list projects
+					//o.iahost = &cat.Endpoints[r].Adminurl		// admin url treats requests differently
+
+					o.ihost = strip_ver( cat.Endpoints[r].Internalurl )		// keystone host to list projects
+					o.iahost = strip_ver( cat.Endpoints[r].Adminurl )
 	
 				// note - if we ever need to capture ec2, it has a different admin url as well
 			}
