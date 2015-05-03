@@ -334,24 +334,36 @@ type ost_addr struct {
 	Addr	string
 }
 
+type ost_vm_flavour struct {
+	Id	string
+	//links ??
+}
+
+type ost_vm_image struct {
+	Id	string
+	//links ???
+}
+
 type ost_vm_server struct {			// we don't use all of the data; fields not included are commented out
 	Azone		string	`json:"OS-EXT-AZ:availability_zone"`
 	Accessipv4	string				// huh?
 	Accessipv6	string
 	Addresses	map[string][]ost_addr
 	Created		string
-	//flavour
+	Flavor		*ost_vm_flavour
 	Hostid		string
-	//image		<struct>
-	//links		<array>			// these appear to be URLs to who knows what, not network oriented links
-	//Metadata	ost_server_meta
+	Image		*ost_vm_image
 	Name		string
-	//properties <int>
 	Status		string
 	Tenant_id	string
-	//updated	<string>
-	//user_id	<string>
+	Updated		string
 	Id			string
+	Launched	string		`json:"OS-SRV-USG:launched_at"`
+    Terminated	string		`json:"OS-SRV-USG:terminated_at"`
+	//links		<array>			// these appear to be URLs to who knows what, not network oriented links
+	//Metadata	ost_server_meta
+	//user_id	<string>
+	//properties <int>
 
 	// these are NOT documented on the openstack site -- sheesh
 	Host_name	string	`json:"OS-EXT-SRV-ATTR:host"`		// who signed off on this field name?  hate openstack.
@@ -445,6 +457,27 @@ type Ostack struct {
 	//tok_cache	map[string]*int64	// cache of user tokens that we've validated; reference is to an expiration time.
 	tok_isadmin	map[string]bool		// maps token to whether or not it was identified as an admin
 	isadmin	bool				// true if the authorised user associated with the struct is an admin
+}
+
+/*
+	Certain info about a VM that we dug up. We could pass back the ost_* structure, but this provides
+	insulation between the user app and openstack changes and keeps data private to the struct. 
+*/
+type VM_info struct {
+	id			string
+	zone		string
+	addresses	map[string]string
+	created		string
+	flavour		string
+	hostid		string
+	image		string
+	name		string
+	status		string
+	tenant_id	string
+	updated		string
+	launched	string
+    terminated	string
+	host_name	string
 }
 
 // ---- necessary globals --------------------------------------------------------------------
