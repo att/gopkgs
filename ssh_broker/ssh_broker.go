@@ -4,33 +4,33 @@
 	Abstract: 	Provides an interface to the ssh package that allows a local script (shell or python)
 				to be read and sent to a remote host for execution.  The standard error and output are
 				returned. Ssh connections are established using one or more private key files that
-				are supplied when the broker object is created, and the connections persist until 
-				the object is closed allowing for subsequent commands to be executed without the 
-				overhead of the ssh setup.  
+				are supplied when the broker object is created, and the connections persist until
+				the object is closed allowing for subsequent commands to be executed without the
+				overhead of the ssh setup. 
 
 				Scripts must have a #! line which is used to execute the interpreter on the remote
-				host.  The script is then written on stdin to the interpreter.  If python is in the 
-				#! line, then leading whitespace isn't stripped as the script is sent to the remote host.  
+				host.  The script is then written on stdin to the interpreter.  If python is in the
+				#! line, then leading whitespace isn't stripped as the script is sent to the remote host. 
 				Commented lines (beginning with #), and blank lines are removed (might cause issues
 				for strings with embedded newlines, but for now I'm not worrying about those).
 
-				When the broker object is crated, a single script initiator is started, however it is 
+				When the broker object is crated, a single script initiator is started, however it is
 				possible for the user application to start additional initiators in order to execute
-				scripts in parallel.  The initiators read from the queue of scripts to run and 
-				create a session, send the script, and wait for the results which are returned to the 
-				caller directly, or as a message structure on a channel, depending on which function 
-				was used. 
+				scripts in parallel.  The initiators read from the queue of scripts to run and
+				create a session, send the script, and wait for the results which are returned to the
+				caller directly, or as a message structure on a channel, depending on which function
+				was used.
 
 				There also seems to be a limit on the max number of concurrent sessions that one SSH
 				connection will support.  This seems to be a host policy, rather than a blanket SSH
 				constant, so an initiator will retry the execution of a script when it appears that the
-				failrue is related to this limit.  All other errors are returned to the caller for 
-				evaluation and possbile retry. 
+				failrue is related to this limit.  All other errors are returned to the caller for
+				evaluation and possbile retry.
 
 				There are two functions that the user can invoke to run a script on a remote host:
-				Run_on_host() and NBRun_on_host().  The former will block until the command is run 
+				Run_on_host() and NBRun_on_host().  The former will block until the command is run
 				and the latter will queue the request with the caller's channel and the results message
-				will be written to the channel when the script execution has been completed. 
+				will be written to the channel when the script execution has been completed.
 
 				Basic usage:	(error checking omitted)
 						// supply the key filenames that are recognised on the remote side in authorised keys
@@ -42,8 +42,8 @@
 						stdout, stderr, err := broker.Run_on_host( host, script, parms )
 
 				The script may be Korn shell, bash, or python and is fed into the interpreter as standard
-				in put so $0 (arg[0]) will not be set.  The broker will attempt to set the variable 
-				ARGV0 to be the script name should the script need it. Other than this small difference, 
+				in put so $0 (arg[0]) will not be set.  The broker will attempt to set the variable
+				ARGV0 to be the script name should the script need it. Other than this small difference,
 				and there not being any standard input, the script should function as written.  It is possible
 				that other script types can be used, though it is known that #!/usr/bin/env awk will fail and
 				thus "pure awk" must be wrapped inside of a ksh or bash script.
@@ -57,19 +57,24 @@
 				to a host.  This is done using the Add_rsync() function which supplies a list of files
 				(space separated) and a directory to which they are to be placed on the remote hosts. The
 				directory name should have a trailing slant (/) to ensure that rsync properly creates
-				it.  Because it _might_ be acceptable to the caller that the directory does not need a 
-				slant, this code will not add one if it is missing. 
+				it.  Because it _might_ be acceptable to the caller that the directory does not need a
+				slant, this code will not add one if it is missing.
+
+				https://godoc.org/golang.org/x/crypto/ssh
 
 	Author:		E. Scott Daniels
 	Date: 		23 December 2014
 
 	Mods:		15 Jan 2015 - Added ability to send an environment file before the named script file.
 				01 Feb 2015 - Corrected bug, rsync happening on session2, not new connection.
-				12 Feb 2015 - Dropped the ability to ditch leading/trailing whitspace when sending to 
+				12 Feb 2015 - Dropped the ability to ditch leading/trailing whitspace when sending to
 					standard input.
 				02 Apr 2015 - Attempt to prevent core dump if ssh has connection issues. The rsync call
 					is now executed after the connection to the host is successful so that if the user isn't
 					knonw on the remote host there isn't a prompt for password which would block.
+				23 Apr 2015 - Added explicit session close calls after running a command.
+					Corrected timing issue that was preventing close of ssh session from happening before
+					an attempt to queue a retry request back onto the main channel.
 
 	CAUTION:	This package reqires go 1.3.3 or later.
 */
@@ -103,7 +108,7 @@ type connection struct {
 
 // ------ public structures -----------------------------------------------------------------------------
 /*
-	Manages connection by host name, and the configuration that is needed to 
+	Manages connection by host name, and the configuration that is needed to
 	create a new session.  Struct returned by Mk_broker
 */
 type Broker struct  {
@@ -122,7 +127,7 @@ type Broker struct  {
 
 /*
 	Used to pass information into an initator and then back to the requestor. External users
-	(non-package functions) can use the get functions related to this struct to extract 
+	(non-package functions) can use the get functions related to this struct to extract
 	information (none of the information is directly available).
 */
 type Broker_msg struct {
@@ -146,7 +151,7 @@ type Broker_msg struct {
 /*
 	Given a filename, test to see if it is fully or partially qualified (has a slant). If it is not
 	then the PATH is searched for a matching file and that fully qualified filename is returned or
-	error is set.  If the filename isn't qualified in any way, then the file name is returned. 
+	error is set.  If the filename isn't qualified in any way, then the file name is returned.
 	Error is set if path is searched and no match is found.
 */
 func find_file( fname string ) ( pname string, err error ) {
@@ -175,8 +180,8 @@ func send_file( src *bufio.Reader, dest io.WriteCloser ) {
 }
 
 /*
-	Expected to be invoked as a gorotine which runs in parallel to sending the ssh command to the 
-	far side. This function reads from the input buffer reader br and writes to the target stripping 
+	Expected to be invoked as a gorotine which runs in parallel to sending the ssh command to the
+	far side. This function reads from the input buffer reader br and writes to the target stripping
 	blank and comment lines as it goes.
 */
 func send_script( sess *ssh.Session, argv0 string, env_file string, br *bufio.Reader ) {
@@ -213,11 +218,11 @@ func send_script( sess *ssh.Session, argv0 string, env_file string, br *bufio.Re
 }
 
 /*
-	Run On A Remote.  Opens the named file and looks at the first line for #!. 
-	Allocates stdin on the session and then runs the #! named command. If sname 
-	is a relative or absolute path then it is opened directly. If it is not, then 
-	PATH is searched for the script.  This function assumes that the session has 
-	already been set up with stdout/err if needed. 
+	Run On A Remote.  Opens the named file and looks at the first line for #!.
+	Allocates stdin on the session and then runs the #! named command. If sname
+	is a relative or absolute path then it is opened directly. If it is not, then
+	PATH is searched for the script.  This function assumes that the session has
+	already been set up with stdout/err if needed.
 
 */
 func ( b *Broker ) roar( req *Broker_msg ) ( err error ) {
@@ -230,6 +235,7 @@ func ( b *Broker ) roar( req *Broker_msg ) ( err error ) {
 	if err != nil {
 		return
 	}
+	defer sess.Close()
 
 	sess.Stdout = &req.stdout
 	sess.Stderr = &req.stderr
@@ -278,6 +284,7 @@ func ( b *Broker ) rcmd( req *Broker_msg ) ( err error ) {
 	if err != nil {
 		return
 	}
+	defer sess.Close()
 
 	sess.Stdout = &req.stdout
 	sess.Stderr = &req.stderr
@@ -288,8 +295,8 @@ func ( b *Broker ) rcmd( req *Broker_msg ) ( err error ) {
 }
 
 /*
-	Given a key file, open, and read it, then convert its contents into a "signer" that 
-	is needed by ssh in the config auth list. 
+	Given a key file, open, and read it, then convert its contents into a "signer" that
+	is needed by ssh in the config auth list.
 */
 func read_key_file( kfname string ) ( s ssh.Signer, err error ) {
 	s = nil
@@ -301,7 +308,7 @@ func read_key_file( kfname string ) ( s ssh.Signer, err error ) {
 	defer kf.Close()
 
 	buf := make( []byte, 4096 )			// we could check file length and base on that
-	_, err = kf.Read( buf ) 
+	_, err = kf.Read( buf )
 	if err != nil {
 		return
 	}
@@ -365,6 +372,7 @@ func ( b *Broker ) connect2( host string ) ( c *connection, err error ) {
 		err = b.synch_host( &toks[0] )
 		if err != nil {
 			err = fmt.Errorf( "unable to rsynch to %s: %s", host, err )
+			c.schan.Close()								// if rsynch fails connection "fails"
 			return
 		}
 	}
@@ -376,30 +384,29 @@ func ( b *Broker ) connect2( host string ) ( c *connection, err error ) {
 
 /*
 	Create a new sesson to the named host establishing the connection if
-	we must. 
+	we must.
 */
 func ( b *Broker ) session2( host string ) ( s *ssh.Session, err error ) {
 
 	var c *connection
 
 	s = nil
-	c, err = b.connect2( host )			// ensure we have a connection first
+	c, err = b.connect2( host )			// ensure we have a connection first (rsync if defined if not connected)
 	if err != nil {
 		return
 	}
 
-	s, err = c.schan.NewSession( )		// create a new session
-	if err != nil {										// could fail because of too many open, or timeout
+	s, err = c.schan.NewSession( )						// create a new session
+	if err != nil  && !  strings.Contains(  fmt.Sprintf( "%s", err ), "administratively prohibited" ) {	
 		s = nil
 
 		if c.last_cmd < time.Now().Unix() - 300	{ 		// if it's been a while, try resetting things
-			
-fmt.Fprintf( os.Stderr, ">>>session creation failed, and it has been a while, assuming timeout: reconnecting to: %s\n", host )
-			c.schan.Close()
-			b.conns[host] = nil
+			b.conns_lock.Lock()								// get a write lock
+			b.conns[host] = nil								// force it off, allow new one to recreate
+			b.conns_lock.RUnlock()
+
 			c, err = b.connect2( host )
 			if err != nil {
-fmt.Fprintf( os.Stderr, ">>>reconnect failed: %s\n", err )
 				return
 			}
 
@@ -407,7 +414,6 @@ fmt.Fprintf( os.Stderr, ">>>reconnect failed: %s\n", err )
 			if err != nil {							// time to give up and return error
 				s = nil
 			} else {
-fmt.Fprintf( os.Stderr, ">>>session reconnected: %s\n", host )
 			}
 		}
 	}
@@ -416,18 +422,18 @@ fmt.Fprintf( os.Stderr, ">>>session reconnected: %s\n", host )
 }
 
 /*
-	An initiator runs as a goroutine and pulls requests from the initiator channel for 
-	processing. The result is folded back into the request and written to the user channel 
+	An initiator runs as a goroutine and pulls requests from the initiator channel for
+	processing. The result is folded back into the request and written to the user channel
 	contained in the request. If a request fails with an error that contains the phrase
 	"administraively prohibited", then it is retried as this is usually a bump against the
 	number of sessions permitted to any single host.   The rerty logic is this:
 
-		Queue the request on the specific host's (channel) retry queue. When the next 
+		Queue the request on the specific host's (channel) retry queue. When the next
 		iterator processing a script on that host completes, it will check the retry
-		queue for the host and move it to the main broker retry queue which will then 
-		be picked up by an initiator.  If we were to move the request straight to the 
+		queue for the host and move it to the main broker retry queue which will then
+		be picked up by an initiator.  If we were to move the request straight to the
 		broker's retry queue, it might be picked up before any of others had finished
-		creating a tight loop that accomplishes nothing. 
+		creating a tight loop that accomplishes nothing.
 */
 func ( b *Broker ) initiator( id int ) {
 	var (
@@ -436,22 +442,40 @@ func ( b *Broker ) initiator( id int ) {
 	)
 
 	for {
-		select { 							// read from main or retry channel and return if channel is closed
-			case req, is_open = <- b.retry_ch: 
-				if !is_open {
-					return
-				}
+		select {										// must give retry channel priority with a lone, non-blocking select
+			case req, is_open = <- b.retry_ch:			// get the retry request
+					if !is_open {
+						fmt.Fprintf( os.Stderr, "broker retry channel closed, initiator %d terminating\n", id )
+						return
+					}
 
-			case req, is_open = <- b.init_ch:
-				if !is_open {
-					return
-				}
+			default:								// prevent block if someone else got to it first
+					req = nil
+		}
 
+		if req == nil {
+			select { 							// blocking read from main or retry channel and return if channel is closed
+				case req, is_open = <- b.retry_ch:
+					if !is_open {
+						fmt.Fprintf( os.Stderr, "broker retry channel closed, initiator %d terminating\n", id )
+						return
+					}
+	
+				case req, is_open = <- b.init_ch:
+					if !is_open {
+						fmt.Fprintf( os.Stderr, "broker request channel closed, initiator %d terminating\n", id )
+						return
+					}
+			}
+		}
+
+		if req == nil {							// shouldn't happen, but prevent accidents
+			continue
 		}
 
 		if req.cmd != "" {								// remote command to execute rather than a local script
 			req.startt = time.Now().Unix()
-			req.err = b.rcmd( req )						// run it 
+			req.err = b.rcmd( req )						// run it
 			req.endt = time.Now().Unix()
 		} else {
 			req.startt = time.Now().Unix()
@@ -465,32 +489,34 @@ func ( b *Broker ) initiator( id int ) {
 				if err == nil { 							// no error finding it, then queue the request to be retried
 					req.ntries++
 					c.retry_ch <- req
-					req = nil								// no more processing here
+					req = nil								// don't send result and dont check retry queue below
 				}
-			} 
-		} 
-
-		if req != nil {
-			c, err := b.connect2( req.host )					// find the connection; look for retries that queued while we were running
-
-			if  req.resp_ch != nil {
-				req.resp_ch <- req								// return the request to the caller
 			}
+		}
 
-			if err == nil {
-				if len( c.retry_ch ) > 0 {					// must pop and queue it onto the master retry channel
-					r := <-c.retry_ch
-					b.retry_ch <- r
-				} 
+		if req != nil {											// if not requeued above
+			c, err := b.connect2( req.host )					// find the connection for the host (before giving up control of req)
+			if  req.resp_ch != nil {							// return result
+				req.resp_ch <- req
+			}
+			req = nil											// unsafe to use req after this
+
+			if err == nil {										// good connection
+				select {
+					case req = <- c.retry_ch:					// something queued on the retry channel
+						time.Sleep( 50 * time.Millisecond )		// force a context switch allowing ssh to actually close us out
+						b.retry_ch <- req
+
+					default:									// prevents blocking if channel is empty
+				}
 			}
 		}
 	}
-
 }
 
 // ----- public msg functions ------------------------------------------------------------------------------
 /*
-	Returns the standard out, standard error elapsed time (sec) and the overall error state contained in 
+	Returns the standard out, standard error elapsed time (sec) and the overall error state contained in
 	the message.
 */
 func (m *Broker_msg) Get_results( ) ( stdout bytes.Buffer, stderr bytes.Buffer, elapsed int64, err error ) {
@@ -498,7 +524,7 @@ func (m *Broker_msg) Get_results( ) ( stdout bytes.Buffer, stderr bytes.Buffer, 
 }
 
 /*
-	Returns the host, script name and ID contained in the 
+	Returns the host, script name and ID contained in the
 */
 func (m *Broker_msg) Get_info( ) ( host string, sname string, id int ) {
 	return m.host, m.sname, m.id
@@ -509,7 +535,7 @@ func (m *Broker_msg) Get_info( ) ( host string, sname string, id int ) {
 
 /*
 	Create a broker for the given user and with the given key files.
-	If keys are given, then the assumption is that there should _not_ be any prompt for 
+	If keys are given, then the assumption is that there should _not_ be any prompt for
 	password. If keys is nil, then prompting will be allowed.
 */
 func Mk_broker( user string, keys []string ) ( broker *Broker ) {
@@ -526,7 +552,7 @@ func Mk_broker( user string, keys []string ) ( broker *Broker ) {
 
 	j := 0
 	for i := range keys {
-		s, err := read_key_file( keys[i]  ) 
+		s, err := read_key_file( keys[i]  )
 		if err == nil {										// error isn't fatal to the process, but not having the key later might cause issues
 			auth_list[j] = ssh.PublicKeys( s )
 			j++
@@ -620,12 +646,12 @@ func ( b *Broker ) Close_session( name *string ) ( err error ) {
 
 
 /*
-	Execute the script (a local shell/python script) on the remote host. 
-	This is done by creating a request and putting it on the initiator queue and 
-	waiting for the response on the dedicated channel allocated here. 
+	Execute the script (a local shell/python script) on the remote host.
+	This is done by creating a request and putting it on the initiator queue and
+	waiting for the response on the dedicated channel allocated here.
 
-	A nil error indicates success, otherwise there was an error setting up for or 
-	executing the command.  If stderr is nil, the error was related to setup rather 
+	A nil error indicates success, otherwise there was an error setting up for or
+	executing the command.  If stderr is nil, the error was related to setup rather
 	than execution.
 
 */
@@ -660,7 +686,7 @@ func ( b *Broker ) Run_on_host( host string, script string, parms string, env_fi
 /*
 	Put the execution request onto the initiator queue, but do not block. The response
 	is put onto the channel provided by the user. If the channel is nil, the request
-	is still queued with the assumption that the caller does not want the results. 
+	is still queued with the assumption that the caller does not want the results.
 */
 func ( b *Broker ) NBRun_on_host( host string, script string, parms string,  uid int, uch chan *Broker_msg  ) ( err error ) {
 	if b == nil || b.was_closed {
@@ -668,6 +694,7 @@ func ( b *Broker ) NBRun_on_host( host string, script string, parms string,  uid
 		return
 	}
 
+fmt.Fprintf( os.Stderr, "creating request: %d\n", uid )
 	req := &Broker_msg {
 		host: 	host,
 		sname:	script,
@@ -682,7 +709,7 @@ func ( b *Broker ) NBRun_on_host( host string, script string, parms string,  uid
 }
 
 /*
-	Execute the command on the named host. The cmd string is expected to be the 
+	Execute the command on the named host. The cmd string is expected to be the
 	complete command line.
 */
 func ( b *Broker ) Run_cmd( host string, cmd string ) ( stdout *bytes.Buffer, stderr *bytes.Buffer, err error ) {
@@ -712,8 +739,8 @@ func ( b *Broker ) Run_cmd( host string, cmd string ) ( stdout *bytes.Buffer, st
 }
 
 /*
-	Run a command on the remote host, non-blocking. The cmd string is expected to 
-	be the complete command line. 
+	Run a command on the remote host, non-blocking. The cmd string is expected to
+	be the complete command line.
 */
 func ( b *Broker ) NBRun_cmd( host string, cmd string,  uid int, uch chan *Broker_msg  ) ( err error ) {
 	if b == nil || b.was_closed {
