@@ -36,6 +36,8 @@
 				10 Dec 2014 - Added support to look up a specific gateway (router) in order to 
 					suss out it's physical location.
 				10 Jan 2015 - Lots of updates to support wa interface.
+				21 May 2015 - Now looks for either neutron-l3-agent or neutron-openvswitch-agent
+					as an indication that the node is a network supporting node.
 ------------------------------------------------------------------------------------------------
 */
 
@@ -238,7 +240,9 @@ func (o *Ostack) List_net_hosts( udup_list map[string]bool, limit2neutron bool )
 	sep := ""
 	for i := range rdata.Agents {
 		if (limit2neutron == false ||
+			*rdata.Agents[i].Binary == "neutron-l3-agent"  ||
 			*rdata.Agents[i].Binary == "neutron-openvswitch-agent"  ||
+			*rdata.Agents[i].Binary == "quantum-l3-agent"  ||
 			*rdata.Agents[i].Binary == "quantum-openvswitch-agent") &&
 			rdata.Agents[i].Alive {									// list only if service is alive (assume host is also up)
 
