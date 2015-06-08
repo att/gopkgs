@@ -45,6 +45,7 @@ import (
 	"time"
 )
 
+
 type Bleater struct {
 	mtx		sync.Mutex
 	target	io.Writer;		// where stuff is written (e.g. os.Stderr)
@@ -55,6 +56,7 @@ type Bleater struct {
 	cidx	int
 	pfx		string
 	tsfmt	string
+	bleat_some	map[string]int	// counter for each bleat_some class
 }
 
 // --------------- private -------------------------------------------------------------------------------------
@@ -83,6 +85,7 @@ func Mk_bleater( level uint, target io.Writer ) ( b *Bleater ) {
 		tfile: nil,
 	}
 
+	b.bleat_some = make( map[string]int, 10 )
 	b.children = make( []*Bleater, 10 )
 	return
 }
@@ -105,6 +108,26 @@ func ( b *Bleater ) Baa( when uint, uformat string, va ...interface{} ) {
 		n := time.Now()
 		//fmt.Fprintf( b.target, "%d %s %10s [%d] %s\n", n.Unix(), n.Format( b.tsfmt ), b.pfx, when, fmt.Sprintf( uformat, va... ) )
 		fmt.Fprintf( b.target, "%d %s %10s [%d] %s\n", n.Unix(), n.UTC().Format( b.tsfmt ), b.pfx, when, fmt.Sprintf( uformat, va... ) )
+	}
+}
+
+/*
+	Allows a caller to bleat a message 'class' less often than every time called.
+	The Baa_some function accepts additional parameters (class name, and frequency)
+	bleating the message on the first call, and then every frequency of calls there
+	after.  
+*/
+func ( b *Bleater ) Baa_some( class string, freq int, when uint, uformat string, va ...interface{} ) {
+	if b == nil {
+		return
+	}
+
+	c, ok := b.bleat_some[class] 
+	if ! ok || c == freq {
+		b.bleat_some[class] = 1
+		b.Baa( when, uformat, va... )			// write if level is ok
+	} else {
+		b.bleat_some[class]++
 	}
 }
 
