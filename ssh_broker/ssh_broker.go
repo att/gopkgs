@@ -400,20 +400,24 @@ func ( b *Broker ) session2( host string ) ( s *ssh.Session, err error ) {
 	if err != nil  && !  strings.Contains(  fmt.Sprintf( "%s", err ), "administratively prohibited" ) {	
 		s = nil
 
-		if c.last_cmd < time.Now().Unix() - 300	{ 		// if it's been a while, try resetting things
+		if c.last_cmd < time.Now().Unix() - 120	{ 		// if it's been a while, try resetting things
+fmt.Fprintf( os.Stderr, ">>>> session2 resetting connection: %s\n", host )
 			b.conns_lock.Lock()								// get a write lock
+fmt.Fprintf( os.Stderr, ">>>> session2 have write lock: %s\n", host )
 			b.conns[host] = nil								// force it off, allow new one to recreate
 			b.conns_lock.RUnlock()
+fmt.Fprintf( os.Stderr, ">>>> session2 reset and unlocked: %s\n", host )
 
 			c, err = b.connect2( host )
 			if err != nil {
+fmt.Fprintf( os.Stderr, ">>>> session2 subsequent connection failed: %s: err\n", host, err )
 				return
 			}
 
 			s, err = c.schan.NewSession( )
 			if err != nil {							// time to give up and return error
+fmt.Fprintf( os.Stderr, ">>>> session2 giving up on: %s: %s\n", host, err )
 				s = nil
-			} else {
 			}
 		}
 	}
@@ -605,6 +609,9 @@ func ( b *Broker ) Close( ) {
 		return
 	}
 
+	b.conns_lock.Lock( )								// get a write lock
+	defer b.conns_lock.Unlock()							// hold until we return
+
 	for k, c := range b.conns {
 		if c != nil {
 			c.schan.Close()
@@ -617,6 +624,27 @@ func ( b *Broker ) Close( ) {
 
 	b.was_closed = true					// prevent using it unless more initiators are opened
 	b.ninitiators = 0
+}
+
+func ( b *Broker ) Reset( ) {
+	if b == nil {
+		return
+	}
+
+	b.conns_lock.Lock( )								// get a write lock
+	defer b.conns_lock.Unlock()							// hold until we return
+
+	for k, c := range b.conns {
+		if c != nil {
+			c.schan.Close()
+			c.schan = nil
+			b.conns[k] = nil
+		}
+	}
+
+	b.conns = make( map[string]*connection, 100 )		// make a whole new set
+	
+	b.was_closed = false					// if it was closed, mark it open again
 }
 
 /*
