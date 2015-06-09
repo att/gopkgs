@@ -44,6 +44,27 @@ func Tokenise_qsep(  buf string, sepchrs string ) (int, []string) {
 }
 
 /*
+	Tokenises a string, but returns only an array of unique tokens.
+	Empty tokens are discarded.
+*/
+func Tokenise_qsepu( buf string, sepchrs string ) ( int, []string ) {
+
+	seen := make( map [string]bool, 1024 )
+	n, toks := tokenise_all( buf, sepchrs, false )
+	rtoks := make( []string, n )
+	j := 0
+	for _, v := range toks {
+		if ! seen[v] 	{
+			seen[v] = true
+			rtoks[j] = v
+			j++
+		}
+	}
+
+	return j,  rtoks[0:j]
+}
+
+/*
 	This is the work horse for qsep and qpopulated. If keep_empty is true, then
 	empty fields (adjacent separators) are kept as empty strings.
 */
