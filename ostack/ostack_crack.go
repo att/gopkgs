@@ -27,6 +27,10 @@ import (
 	"os"
 )
 
+
+/*
+	Token stuff from a cracked token.
+*/
 type Ostack_tstuff struct  {
 	User	string
 	Id		string
@@ -110,6 +114,5 @@ func (s *Ostack_tstuff) String() ( string ) {
 		sep = " "
 	}
 
-	fmt.Fprintf( os.Stderr, "User: %s  Id: %s Expiry: %d Roles: %s\n", s.User, s.Id, s.Expiry, roles )
 	return fmt.Sprintf( "User: %s  Id: %s Expiry: %d Roles: %s", s.User, s.Id, s.Expiry, roles )
 }
