@@ -30,7 +30,7 @@ func main( ) {
 		url *string
 	)
 
-	fmt.Fprintf( os.Stderr, "api debugger: v 1.8/14165\n" )
+	fmt.Fprintf( os.Stderr, "api debugger: v 1.8/15215\n" )
 	err_count := 0
 
 
@@ -53,6 +53,7 @@ func main( ) {
 	run_fip := flag.Bool( "F", false, "run fixed-ip test" )
 	run_gw_map := flag.Bool( "G", false, "run gw list test" )
 	run_mac := flag.Bool( "H", false, "run mac-ip map test" )
+	run_info := flag.Bool( "I", false, "run vm info map test" )
 	run_hlist := flag.Bool( "L", false, "run list-host test" )
 	run_maps := flag.Bool( "M", false, "run maps test" )
 	run_user := flag.Bool( "R", false, "run user/role test" )
@@ -286,6 +287,21 @@ invoked.  bloody openstack.
 
 	}
 
+	if *run_all || *run_info {
+		m, err := o2.Map_vm_info( nil )
+		if err == nil {
+			fmt.Fprintf( os.Stderr, "[OK]   vm info map has %d entries\n", len( m ) )
+			if *verbose {
+				for _, v := range m {
+					fmt.Fprintf( os.Stderr, "\tvm_info: %s\n", v )
+				}
+				fmt.Fprintf( os.Stderr, "\n" )
+			}
+		} else {
+			fmt.Fprintf( os.Stderr, "[FAIL] error getting vm info map\n" )
+		}
+	}
+
 	if !(*run_all || *run_maps) && *run_gw_map {						// just gateway maps (dup below if all maps are generated)
 																		// order back:  mac2ip, ip2mac, mac2id, id2mac, id2phost
 		gm1, _, gm2, gm3, gm4, gm5, err := o2.Mk_gwmaps( nil, nil, nil, nil, nil, nil, true, *inc_project )
@@ -486,39 +502,43 @@ invoked.  bloody openstack.
 	}
 
 	if (*run_all || *run_vfp)  && token != nil { 					// see if token is valid for the given project
-		proj, id, err := o2.Token2project( token )
-		if proj != nil {
-			fmt.Fprintf( os.Stderr, "[OK]   token maps to project using o2 creds: %s == %s\n", *proj, *id )
-		} else {
-			fmt.Fprintf( os.Stderr, "\n[FAIL] unable to map token to a project using o2 creds: %s\n", err )
-		}
 
+/*
 		proj, id, err = o.Token2project( token )
 		if proj != nil {
 			fmt.Fprintf( os.Stderr, "[OK]   token maps to project using o1 creds: %s == %s\n", *proj, *id )
 		} else {
 			fmt.Fprintf( os.Stderr, "\n[FAIL] unable to map token to a project using o1 creds: %s\n", err )
 		}
-
-		result, err := o2.Valid_for_project( token, project )
-		if err != nil {
-			fmt.Fprintf( os.Stderr, "\n[FAIL] token NOT valid for project (%s): %s\n",  *project, err )
-			if *verbose {
-				fmt.Fprintf( os.Stderr, "\ttoken = %s\n", *token )
-			}
-			err_count++
+*/
+		proj, id, err := o2.Token2project( token )
+		if proj == nil {
+			fmt.Fprintf( os.Stderr, "\n[FAIL] unable to map token to a project using o2 creds: %s\n", err )
 		} else {
-			if result {
-				ptok := *token						// keep good messages to something smallish
-				if len( ptok ) > 50 {
-					ptok = ptok[0:50] + "...."
+			state := o2.Equals_id( id )
+			fmt.Fprintf( os.Stderr, "[OK]   token maps to a project using o2 creds: %s == %s pids are equal=%v\n", *proj, *id, state )
+
+			result, err := o2.Valid_for_project( token, project )
+			if err != nil {
+				fmt.Fprintf( os.Stderr, "\n[FAIL] token NOT valid for project (%s): %s\n",  *project, err )
+				if *verbose {
+					fmt.Fprintf( os.Stderr, "\ttoken = %s\n", *token )
 				}
-				fmt.Fprintf( os.Stderr, "[OK]   token (%s) valid for project (%s)\n", ptok, *project )
-			} else {
 				err_count++
-				fmt.Fprintf( os.Stderr, "\n[FAIL] token is NOT valid for project (%s) (no error message)\n", *project )
-					fmt.Fprintf( os.Stderr, "\ttoken = (%s)\n", *token )
+			} else {
+				if result {
+					ptok := *token						// keep good messages to something smallish
+					if len( ptok ) > 50 {
+						ptok = ptok[0:50] + "...."
+					}
+					fmt.Fprintf( os.Stderr, "[OK]   token (%s) valid for project (%s)\n", ptok, *project )
+				} else {
+					err_count++
+					fmt.Fprintf( os.Stderr, "\n[FAIL] token is NOT valid for project (%s) (no error message)\n", *project )
+						fmt.Fprintf( os.Stderr, "\ttoken = (%s)\n", *token )
+				}
 			}
+
 		}
 	} else {
 		if  *run_vfp  && token == nil {
