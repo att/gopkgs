@@ -4,6 +4,9 @@
 
 	Mnemonic:	jsoncache
 	Abstract:	Builds a cache of bytes returning an array of 'complete json' when available.
+				Caller can use to read packets from the wire until a complete structure is
+				discovered. If the first part of a second json struct is in the last packet
+				it remains in the cache after the first complete struct is returned.
 	Date:		16 December 2013
 	Author:		E. Scott Daniels
 */
@@ -11,13 +14,7 @@
 package jsontools
 
 import (
-	//"bufio"
-	//"bytes"
-	//"encoding/json"
-	//"flag"
 	"fmt"
-	//"io/ioutil"
-	//"net/http"
 	"os"
 )
 
@@ -32,7 +29,7 @@ type Jsoncache struct {
 }
 
 func Mk_jsoncache( ) ( jc *Jsoncache ) {
-	jc = &Jsoncache { 
+	jc = &Jsoncache {
 		open: 0,
 		nxt: 0,
 		insrt: 0,

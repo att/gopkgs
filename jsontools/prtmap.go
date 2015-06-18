@@ -19,13 +19,7 @@
 package jsontools
 
 import (
-	//"bufio"
-	//"bytes"
-	//"encoding/json"
-	//"flag"
 	"fmt"
-	//"io/ioutil"
-	//"net/http"
 	"os"
 )
 
@@ -39,10 +33,12 @@ const (
 
 var pp_need_blank bool;
 
-//  take an unmarshalled blob and print it as a hierarchy. If dotted output is desired
-//  the blob must be converted into a map (see jsontools.Unpack) and then printed by 
-//  the dotprint method here.
-//  ptag is the name of the item's parent
+/*
+	take an unmarshalled blob and print it as a hierarchy. If dotted output is desired
+	the blob must be converted into a map (see jsontools.Unpack) and then printed by 
+	the dotprint method here.
+	ptag is the name of the item's parent
+*/
 func prettyprint( ithing interface{}, depth int, ptag string ) {
 	var (
 		indention	string = "                                                                                                                                " 
@@ -117,8 +113,10 @@ func prettyprint( ithing interface{}, depth int, ptag string ) {
 	pp_need_blank = false;
 }
 
-//  Takes an unknown thing and prints it in a hiarchial form as a set of dot separated names.
-//  ptag is the name of the item's parent
+/*
+	Takes an unknown thing and prints it in a hiarchial form as a set of dot separated names.
+	ptag is the name of the item's parent
+*/
 func dotprint( ithing interface{}, depth int, ptag string ) {
 
 	switch ithing.( type )  {

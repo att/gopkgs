@@ -11,13 +11,8 @@
 package jsontools
 
 import (
-	//"bufio"
-	//"bytes"
 	"encoding/json"
-	//"flag"
 	"fmt"
-	//"io/ioutil"
-	//"net/http"
 	"os"
 )
 

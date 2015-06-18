@@ -3,7 +3,6 @@
 package jsontools_test
 
 import (
-	//"bytes"
 	"fmt"
 	"testing"
 	"os"
