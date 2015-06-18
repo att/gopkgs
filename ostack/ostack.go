@@ -683,9 +683,20 @@ func (o *Ostack) Get_project( ) ( name *string, id *string ) {
 
 /*
 	Returns a string with some of the information that is being used to communicate with OpenStack.
+	Deprecated, use String()
 */
 func (o *Ostack) To_str( ) ( s string ) {
+	return o.String()
+}
+
+/*
+	Returns a string with some of the information that is being used to communicate with OpenStack.
+*/
+func (o *Ostack) String( ) ( s string ) {
 	project := "none"
+	nhost := "missing"
+	host := "missing"
+	region := "missing"
 
 	if o == nil || o.host == nil || o.user == nil  {
 		s = "invalid or missing openstack credentials"
@@ -693,7 +704,13 @@ func (o *Ostack) To_str( ) ( s string ) {
 		if o.project != nil {
 			project = *o.project
 		}
-		s = fmt.Sprintf( "ostack=<%s %s %s>", *o.host, *o.user, project );
+		if o.nhost != nil {
+			nhost = *o.nhost
+		}
+		if o.aregion != nil {
+			region = *o.aregion
+		}
+		s = fmt.Sprintf( "ostack=<%s %s %s %s %s %d>", *o.user, host, nhost, project, region, o.expiry );
 	}
 	return;
 }
