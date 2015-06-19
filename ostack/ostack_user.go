@@ -9,7 +9,8 @@
 
 	Mods:
 				10 Nov 2014 : Added checks to ensure response data structs aren't nil
-				13 Apr 2015 - Converted to more generic error structure use.
+				13 Apr 2015 : Converted to more generic error structure use.
+				19 Jun 2015 : Corrected bug in URL for roll gathering.
 ------------------------------------------------------------------------------------------------
 */
 
@@ -48,7 +49,7 @@ func (o *Ostack) Map_roles( ) ( rmap map[string]*string, err error ) {
 
 	body := bytes.NewBufferString( rjson );
 
-	url := *o.iahost + "/OS-KSADM/roles";
+	url := *o.iahost + "v2.0/OS-KSADM/roles";
 	dump_url( "map-roles", 10, url )
 	jdata, _, err := o.Send_req( "GET",  &url, body ); 
 	dump_json( "map-roles", 10, jdata )
@@ -112,7 +113,7 @@ func (o *Ostack) Map_user_roles( pid *string ) ( rmap map[string]*string, err er
 		pid = o.project_id			// this project if not given by caller
 	} 
 
-	url := fmt.Sprintf( "%s/tenants/%s/users/%s/roles", *o.iahost, *pid, *o.user_id )
+	url := fmt.Sprintf( "%s/v2.0/tenants/%s/users/%s/roles", *o.iahost, *pid, *o.user_id )
 	dump_url( "map-uroles", 10, url )
 	jdata, _, err := o.Send_req( "GET",  &url, body ); 
 	dump_json( "map-uroles", 10, jdata )
