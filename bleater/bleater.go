@@ -20,9 +20,9 @@
 	the test module for an example.
 
 	When the Baa() function is called, the message is written only if the 
-		indicaed level is <= the current level in the bleater, or <= than the 
+	indicaed level is <= the current level in the bleater, or <= than the 
 	parent level.  When a parent's level is changed, it is "broadcast" to 
-	all children in an attemp to minimise the cycles needed to check for 
+	all children in an attempt to minimise the cycles needed to check for 
 	each bleat (the assumption is that the parent level seldomly changes
 	and pushing it is less expensive than constantly checking the parent 
 	object's value).
@@ -33,7 +33,8 @@
 	style on the Baa() call.  The default human readable timestamp is of
 	the form YYYY/MM/DD HH:MM:SSZ; use the Set_tsformat() function to supply
 	a 'mask' if a different layout is desired.  Masks are as described in 
-	the Golang time package. 
+	the Golang time package.  Bleat messages are automatically terminated
+	with a newline, so including one in the message is not needed.
 */
 package bleater
 
@@ -112,23 +113,43 @@ func ( b *Bleater ) Baa( when uint, uformat string, va ...interface{} ) {
 }
 
 /*
-	Allows a caller to bleat a message 'class' less often than every time called.
-	The Baa_some function accepts additional parameters (class name, and frequency)
-	bleating the message on the first call, and then every frequency of calls there
-	after.  
+	Allows a caller to bleat messages belonging to a 'class' less often than every time called.
+	The Baa_some function accepts additional parameters (class name, and frequency) and will 
+	bleat the message on the first call, and then every frequency of calls there after.  
+	Frequency is not saved with the class, so it is possible to change the frequency at any time.
+
+	The class counter is incremented only if the message would otherwise be written with respect
+	to the value of when.  Thus, a class poised to write a message on the next invocation 
+	will write that message as soon as the level is appropriate, and does not run the risk of
+	always skipping if levels fluxuate.
 */
 func ( b *Bleater ) Baa_some( class string, freq int, when uint, uformat string, va ...interface{} ) {
 	if b == nil {
 		return
 	}
+	if !( when <= b.level || when <= b.plevel) {		// wouldn't bleat, don't bump the counter
+		return
+	}
 
 	c, ok := b.bleat_some[class] 
-	if ! ok || c == freq {
+	if ! ok || c >= freq {						// c could be > if freq was lowered
 		b.bleat_some[class] = 1
 		b.Baa( when, uformat, va... )			// write if level is ok
 	} else {
 		b.bleat_some[class]++
 	}
+}
+
+/*
+	Allow a bleat_some class to be reset such that the next bleat_some() will
+	cause the message to be written and the counter cycled.
+*/
+func ( b *Bleater ) Baa_some_reset( class string ) {
+	if b == nil || b.bleat_some == nil {
+		return
+	}
+	
+	delete( b.bleat_some, class )
 }
 
 /*

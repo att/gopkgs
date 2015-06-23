@@ -72,7 +72,34 @@ func TestBleater( t *testing.T ) {
 	little_sheep.Baa( 0, "little sheep message should appear in log file" )
 	black_sheep.Baa( 0, "black sheep should still be writing to stderr" )
 
-//	f.Close()
+
+	black_sheep.Baa( 0, "Testing baa_some now" )
+	for i := 0; i < 50; i++ {
+		black_sheep.Baa_some( "foo", 15, 1, "foo baa_some message 1:15 %d", i  )
+		black_sheep.Baa_some( "bar", 5, 1, "bar baa_some message 1:5 %d", i  )
+	}
+
+	black_sheep.Baa_some_reset( "foo" )		// foo should write straight away, but not bar
+	for i := 0; i < 50; i++ {
+		black_sheep.Baa_some( "foo", 15, 1, "after reset: foo baa_some message 1:15 %d", i  )
+		black_sheep.Baa_some( "bar", 5, 1, "after reset: bar baa_some message 1:5 %d", i  )
+	}
+	
+	black_sheep.Baa( 0, "testing baa some reset" )
+	black_sheep.Baa_some_reset( "foo" )
+	black_sheep.Baa_some_reset( "bar" )
+	black_sheep.Set_level( 0 )
+	black_sheep.Baa( 1, "should not appear [FAIL]" )
+	for i := 0; i < 15; i++ {				// these should NOT be written
+		black_sheep.Baa_some( "foo", 15, 1, "after reset: foo baa_some message 1:15 %d should NOT apear!   [FAIL]", i  )
+		black_sheep.Baa_some( "bar", 5, 1, "after reset: bar baa_some message 1:5 %d  should NOT appear!   [FAIL]", i  )
+	}
+	black_sheep.Baa( 0, "end supression test (no lines should say 'fail' above." )
+	
+	black_sheep.Set_level( 1 )					// reset level, these should both appear!
+	black_sheep.Baa_some( "foo", 15, 1, "after reset: foo baa_some message 1:15  (after level reset)"  )
+	black_sheep.Baa_some( "bar", 5, 1, "after reset: bar baa_some message 1:5  (after level reset)"  )
+	black_sheep.Baa( 0, "two lines should have been written between the end supression message and this" )
 }
 
 
