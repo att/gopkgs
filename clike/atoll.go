@@ -1,7 +1,7 @@
 //	vi: sw=4 ts=4:
 
 /*
-        Mnemonic:       clike.go: atoll
+        Mnemonic:       atoll
         Absrtract:      a clike atoll that doesn't error when it encounters
 						a non-digit; returning 0 if there are no digits.  This supports
 						0x<hex> or 0<octal> values and should parse them stopping
@@ -16,11 +16,11 @@
 						the goal be to take a string 200grains and capture just the 
 						value; these functions will interpret the leading g incorrectly.
 
-						Input can be either a string or a byte array.
-
+						Input can be either a string, pointer to string, or a byte array.
 
 						If the string/array passed in does not begin with a valid digit
-						or sign, a value of 0 is returned rather than an error. 
+						or sign, or is a pointer that is nil,  a value of 0 is returned 
+						rather than an error. 
 */
 
 package clike
@@ -50,6 +50,12 @@ func Atoll( objx interface{} ) (v int64) {
 						buf = objx.([]byte)			
 			case string:	
 						buf = []byte( objx.(string) )
+			case *string:
+						bp := objx.( *string )
+						if bp == nil {
+							return 0
+						}
+						buf = []byte( *bp );
 			default:
 						return					// who knows, but it doesn't convert
 		}

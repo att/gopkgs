@@ -48,6 +48,16 @@ func TestAtoll ( t *testing.T ) {           // must use bloody camel case to be 
 	if v != 2 {
 		t.Errorf( "atoll( \"029\" )  did not return 2 as expected." );
 	}
+
+	s := "1234"
+	v = clike.Atoll( &s )
+	if v != 1234 {
+		t.Errorf( "atoll( &\"1234\" )  did not return 1234 as expected." );
+	}
+	v = clike.Atoll( nil )
+	if v != 0 {
+		t.Errorf( "atoll( nil )  did not return 0 as expected." );
+	}
 }
 
 func TestAtof( t *testing.T ) {
