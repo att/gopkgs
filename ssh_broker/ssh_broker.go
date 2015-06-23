@@ -75,6 +75,9 @@
 				23 Apr 2015 - Added explicit session close calls after running a command.
 					Corrected timing issue that was preventing close of ssh session from happening before
 					an attempt to queue a retry request back onto the main channel.
+				23 Jun 2015 - Prevent panic when writing to a closed channel.  Only senders (initiator) 
+					should close response channels and the response channel was being closed by a command 
+					execution function.
 
 	CAUTION:	This package reqires go 1.3.3 or later.
 */
@@ -620,9 +623,9 @@ func ( b *Broker ) Close( ) {
 	}
 
 	close( b.init_ch )					// close the initiator channel which should cause iniators to stop
-	close( b.retry_ch )
+										// do NOT close retry channel as it could lead to a panic
 
-	b.was_closed = true					// prevent using it unless more initiators are opened
+	b.was_closed = true					// prevent using it unless more initiators are re-opened
 	b.ninitiators = 0
 }
 
@@ -696,8 +699,7 @@ func ( b *Broker ) Run_on_host( host string, script string, parms string, env_fi
 		parms:	parms,	
 	}
 	req.resp_ch = make( chan *Broker_msg )			// we'll listen on this channel for response
-	defer close( req.resp_ch )
-
+													// do NOT close the channel as we aren't sending on it
 	stdout = nil
 	stderr = nil
 
@@ -751,8 +753,7 @@ func ( b *Broker ) Run_cmd( host string, cmd string ) ( stdout *bytes.Buffer, st
 		cmd:	cmd,
 	}
 	req.resp_ch = make( chan *Broker_msg )			// we'll listen on this channel for response
-	defer close( req.resp_ch )
-
+													// do NOT close the channel as we aren't sending
 	stdout = nil
 	stderr = nil
 
