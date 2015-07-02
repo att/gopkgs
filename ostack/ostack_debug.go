@@ -35,6 +35,17 @@ func dump_json( id string, max int, json []byte ) {
 }
 
 /*
+	Dump a raw array if the counter max has not yet been reached.
+*/
+func dump_array( id string, max int, stuff []byte ) {
+	if  dbug_json_count < max {
+		dbug_json_count++
+
+		fmt.Fprintf( os.Stderr, "%s >>> raw= %s\n", id, stuff )
+	}
+}
+
+/*
 	Allow debugging to be reset or switched off. Set high (20) to 
 	turn off, 0 to reset. 
 */

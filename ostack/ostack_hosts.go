@@ -263,8 +263,17 @@ func (o *Ostack) List_enabled_hosts( htype int ) ( hlist *string, err error ) {
 		return
 	}
 
-	for k := range resp_data.Services {
+	if resp_data.Error != nil {
+		err = fmt.Errorf( "%s", resp_data.Error );
+		return
+	}
 
+	if resp_data.Forbidden != nil {
+		err = fmt.Errorf( "%s", resp_data.Forbidden );
+		return
+	}
+
+	for k := range resp_data.Services {
 		bin := strings.ToLower( resp_data.Services[k].Binary )
 		if  match_type[bin] & htype != 0 {								// this type requested on call
 			if !seen[resp_data.Services[k].Host] &&

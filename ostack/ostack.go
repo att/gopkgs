@@ -422,6 +422,7 @@ type generic_response struct {
 	Access		*ost_access
 	Aggregates	[]ost_aggregate
 	Error		*error_obj
+	Forbidden	*error_obj					// why rest sucks; error would convey the same thing
 	Hosts		[]ost_os_host
     Interfaceattachments	 []ost_ifattach
 	Networks 	[]ost_network
@@ -710,7 +711,17 @@ func (o *Ostack) String( ) ( s string ) {
 		if o.aregion != nil {
 			region = *o.aregion
 		}
-		s = fmt.Sprintf( "ostack=<%s %s %s %s %s %d>", *o.user, host, nhost, project, region, o.expiry );
+
+		ch := "NIL"
+		if o.chost != nil {
+			ch = *o.chost
+		}
+		cah := "NIL"
+		if o.cahost != nil {
+			ch = *o.cahost
+		}
+			
+		s = fmt.Sprintf( "ostack=<%s %s %s %s %s %d ch=%s cah=%s>", *o.user, host, nhost, project, region, o.expiry, ch, cah );
 	}
 	return;
 }
