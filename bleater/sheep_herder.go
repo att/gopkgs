@@ -2,7 +2,7 @@
 
 /*
 
-	Mnemonic:	sheep_hearder
+	Mnemonic:	sheep_herder
 	Abstract:	A simple go routine to cause the log file that sheep are writing to to be 
 				rolled now and again. 
 
@@ -11,6 +11,7 @@
 
 	Mods:		16 Jul 2014 - Corrected bug that was causing log file name to be gnerated
 					based on local time and not zulu time.
+				02 Jul 2014 - Corrected typos in Baa message.
 */
 
 package bleater
@@ -57,7 +58,7 @@ func (b *Bleater) Mk_logfile_nm( ldir *string, period int64 ) ( *string ) {
 	the log to be rolled on 5 minute boundaries, 3600 hour boundaries, and 86400 at midnight).
 */
 func (b *Bleater) Sheep_herder(  ldir *string, period int64 ) {
-	b.Baa( 1, "sheep hearder started with a period of %ds, first log roll in %d seconds", period, period - (time.Now().Unix() % period ) )
+	b.Baa( 1, "sheep herder started with a period of %ds, first log roll in %d seconds", period, period - (time.Now().Unix() % period ) )
 
 	if period < 60 {			// dictate some sanity
 		period = 60
