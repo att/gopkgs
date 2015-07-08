@@ -3,7 +3,7 @@
 /*
 ------------------------------------------------------------------------------------------------
 	Mnemonic:	ostack_hosts
-	Abstract:	Functions to support getting some kind of list of hosts:
+	Abstract:	Functions to support getting physcial host and hypervisor maps and information.
 					
 	Date:		16 December 2013
 	Author:		E. Scott Daniels
@@ -13,6 +13,8 @@
 				04 Nov 2014 - Changes to better support gizzley.
 				04 Dec 2014 - Now supports getting a list of physical hosts that are "enabled"
 					and up (which we assume might not be down for maintenance).
+				24 Jun 2014 - Combined List_hosts and List_enabled_hosts into a single function
+					with small public facing wrappers.
 ------------------------------------------------------------------------------------------------
 */
 
@@ -20,13 +22,12 @@ package ostack
 
 import (
 	"bytes"
-	"encoding/json"
+	//"encoding/json"
 	"fmt"
 	"strings"
-	//"os"
 )
 
-// ------------- structs that are used to unbundle the json auth response data -------------------
+// ------------- structs that are used to unbundle the json response data -------------------
 
 // this is based on data snarfed from doc: http://api.openstack.org/api-ref-compute.html
 //
@@ -70,6 +71,7 @@ type ost_hyp_details struct {
 type ost_hyp_details_resp struct {
 	Hypervisors []ost_hyp_details
 }
+
 // -- internal helper stuff -----------------------------------------------------
 
 /*
@@ -99,22 +101,13 @@ func gen_svc_match_map( ) ( match_type map[string]int ) {
 	return
 }
 
-// ------------------------------------------------------------------------------
-
 /*
-	Generates a pointer to a string containing a space separated list of physical host names
-	that are associated with the type(s) passed in. Htype is one or more of the following
-	types OR'd together if desired:
-		NETWORK, COMPUTE, SCHEDULE, AUTH, CONDUCTOR, CELLS, and CERT
-
-	Duplicates host names, hosts that might have different functions, are removed from the
-	list. The credentials associated with the object must have admin privlidges or odd results
-	(an empty list or nil pointer) will result.
+	deprecated
 */
-func (o *Ostack) List_hosts( htype int ) ( hlist *string, err error ) {
+func (o *Ostack) xx_list_hosts( htype int ) ( hlist *string, err error ) {
 	var (
 		host_data	generic_response	// "root" of the response goo after pulling out of json format
-		jdata	[]byte					// raw json response data
+		//jdata	[]byte					// raw json response data
 		seen	map[string]bool			// used to weed duplicates
 	)
 
@@ -157,10 +150,11 @@ func (o *Ostack) List_hosts( htype int ) ( hlist *string, err error ) {
 		}
 	}
 
-	jdata = nil
+	//jdata = nil
 	body := bytes.NewBufferString( "" )
 
 	url := fmt.Sprintf( "%s/os-hosts", *o.chost )		// tennant id is built into chost
+/*
     dump_url( "xhosts", 10, url )
 	jdata, _, err = o.Send_req( "GET",  &url, body );
 
@@ -174,6 +168,12 @@ func (o *Ostack) List_hosts( htype int ) ( hlist *string, err error ) {
 		dump_json(  fmt.Sprintf( "list_hosts: unpack err: %s\n", err ), 30, jdata )
 		return
 	}
+*/
+	err = o.get_unpacked( url, body, &host_data, "list_hosts:" )
+	if err != nil {
+		return
+	}
+
 
 	for k := range host_data.Hosts {
 		if  match_type[host_data.Hosts[k].Service] & htype != 0 {				// this type requested on call
@@ -190,19 +190,22 @@ func (o *Ostack) List_hosts( htype int ) ( hlist *string, err error ) {
 }
 
 /*
+	This is the real list_hosts/list_enabled_hosts work horse.
+	Returns a list of hosts matching the htype which is an OR'd set of values.
+	If all is true then all hosts encountered are listed, otherwise only the 
+	enabled/up hosts are listed.
+
 	Lists only hosts associated with services which _might_ just differ from the hosts
 	listed by os-hosts.  Certainly the information returned by  os-hosts has less
 	information (running or not seems unimportant etc.), so this list might be more
 	useful as it will return only those hosts that we _think_ are actually alive and
 	well (which might not be true since the state seems based on the openstack software
 	running on the phyiscal host and not the state of the host itself). 
-
-	Returns a space separated list of host names as a string.
 */
-func (o *Ostack) List_enabled_hosts( htype int ) ( hlist *string, err error ) {
+func (o *Ostack) list_hosts( htype int, all bool ) ( hlist *string, err error ) {
 	var (
 		resp_data	generic_response	// "root" of the response goo after pulling out of json format
-		jdata	[]byte					// raw json response data
+		//jdata	[]byte					// raw json response data
 		seen	map[string]bool			// used to weed duplicates
 	)
 
@@ -245,11 +248,12 @@ func (o *Ostack) List_enabled_hosts( htype int ) ( hlist *string, err error ) {
 		}
 	}
 
-	jdata = nil
+	//jdata = nil
 	body := bytes.NewBufferString( "" )
 
 	url := fmt.Sprintf( "%s/os-services", *o.chost )		// tennant id is built into chost
-    dump_url( "xhosts", 10, url )
+/*
+    dump_url( "hosts", 10, url )
 	jdata, _, err = o.Send_req( "GET",  &url, body );
 
 	if err != nil {
@@ -260,6 +264,11 @@ func (o *Ostack) List_enabled_hosts( htype int ) ( hlist *string, err error ) {
 	err = json.Unmarshal( jdata, &resp_data )			// unpack the json into response struct
 	if err != nil {
 		dump_json(  fmt.Sprintf( "list_hosts: unpack err: %s\n", err ), 30, jdata )
+		return
+	}
+*/
+	err = o.get_unpacked( url, body, &resp_data, "list_hosts:" )
+	if err != nil {
 		return
 	}
 
@@ -277,8 +286,9 @@ func (o *Ostack) List_enabled_hosts( htype int ) ( hlist *string, err error ) {
 		bin := strings.ToLower( resp_data.Services[k].Binary )
 		if  match_type[bin] & htype != 0 {								// this type requested on call
 			if !seen[resp_data.Services[k].Host] &&
-				strings.ToLower( resp_data.Services[k].State ) == "up" &&
-				strings.ToLower( resp_data.Services[k].Status ) == "enabled" {
+				(all || 
+				 (strings.ToLower( resp_data.Services[k].State ) == "up" &&
+				  strings.ToLower( resp_data.Services[k].Status ) == "enabled")) {
 
 				seen[resp_data.Services[k].Host] = true
 				s += sep + resp_data.Services[k].Host
@@ -291,12 +301,36 @@ func (o *Ostack) List_enabled_hosts( htype int ) ( hlist *string, err error ) {
 	return
 }
 
+// ---------------- public -------------------------------------------------------------------------------
+
+/*
+	Generates a pointer to a string containing a space separated list of physical host names
+	that are associated with the type(s) passed in. Htype is one or more of the following
+	types OR'd together if desired:
+		NETWORK, COMPUTE, SCHEDULE, AUTH, CONDUCTOR, CELLS, and CERT
+
+	Duplicates host names, hosts that might have different functions, are removed from the
+	list. The credentials associated with the object must have admin privlidges or odd results
+	(an empty list or nil pointer) will result.
+*/
+func (o *Ostack) List_hosts( htype int ) ( hlist *string, err error ) {
+	return o.list_hosts( htype, false )
+}
+
+/*
+	Returns a space separated list of host names as a string. See List_Hosts for a description
+	of values for htype.
+*/
+func (o *Ostack) List_enabled_hosts( htype int ) ( hlist *string, err error ) {
+	return o.list_hosts( htype, true )
+}
+
 /*
 	Creates a map of hypervisor IDs to host names
 */
 func (o *Ostack) Mk_hyp2host(  ) ( hmap map[int]*string, err error ) {
 	var (
-		jdata	[]byte				// raw json response data
+		//jdata	[]byte				// raw json response data
 		hyp_data	ost_hypervisor_resp
 	)
 
@@ -308,10 +342,11 @@ func (o *Ostack) Mk_hyp2host(  ) ( hmap map[int]*string, err error ) {
 		return
 	}
 
-	jdata = nil
+	//jdata = nil
 	body := bytes.NewBufferString( "" )
 
 	url := fmt.Sprintf( "%s/os-hypervisors", *o.chost )		// tennant id is built into chost
+/*
 	jdata, _, err = o.Send_req( "GET",  &url, body );
 
 	if err != nil {
@@ -320,11 +355,15 @@ func (o *Ostack) Mk_hyp2host(  ) ( hmap map[int]*string, err error ) {
 
 	err = json.Unmarshal( jdata, &hyp_data )			// unpack the json into response struct
 	if err != nil {
-		//fmt.Fprintf( os.Stderr, "ostack/Mk_hyp2host: unable to unpack json: %s\n", err )		//TESTING
-		//fmt.Fprintf( os.Stderr, "offending_json=%s\n", jdata )
 		dump_json(  fmt.Sprintf( "Mk_hyp2host: unpack err: %s\n", err ), 30, jdata )
 		return
 	}
+*/
+	err = o.get_unpacked( url, body, &hyp_data, "list_hosts:" )
+	if err != nil {
+		return
+	}
+
 
 	hmap = make( map[int]*string )
 	for k := range hyp_data.Hypervisors {

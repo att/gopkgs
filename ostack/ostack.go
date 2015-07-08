@@ -20,6 +20,7 @@
 				04 Dec 2014 - To support generating a list of hosts that are 'active'.
 				06 Jan 2015 - Additional nil pointer checks.
 				03 Feb 2015 - Correct bad tag in structure def.
+				24 Jun 2015 - Some cleanup.
 ------------------------------------------------------------------------------------------------
 */
 
@@ -29,13 +30,11 @@
 package ostack
 
 import (
-	//"bufio"
 	"bytes"
-	//"encoding/json"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	//"net/url"
 	"os"
 	"regexp"
 	"strings"
@@ -617,6 +616,29 @@ func (o *Ostack) Send_req( method string, url *string, data *bytes.Buffer ) (jda
 	}
 
 	return;
+}
+
+/*
+	Performs a GET using the url and body (optional) unpacking the resulting json into the 
+	structure passed in. Tag is used for error reporting and debugging info written to stderr.
+*/
+func (o *Ostack) get_unpacked( url string, body *bytes.Buffer, resp interface{}, tag string ) ( err error ) {
+
+	dump_url( tag, 10, url )
+	jdata, _, e := o.Send_req( "GET",  &url, body )
+	dump_json( "mk_snlist", 10, jdata )
+
+	if e != nil {
+		return e
+	}
+
+	err = json.Unmarshal( jdata, resp )			// unpack the json into response struct
+	if err != nil {
+		dump_json( tag, 90, jdata )				// dump the offending json up to 90 times
+		return 
+	}
+
+	return
 }
 
 /*

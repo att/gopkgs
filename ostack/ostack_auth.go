@@ -26,6 +26,7 @@
 				08 Apr 2015 - Added json dump if unmarshal fails
 				13 Apr 2015 - Converted to more generic error structure use.
 				16 Apr 2015 - Added support to suss out things based on region.
+				02 Jul 2015 - Corrected nil pointer potential in insert token.
 ------------------------------------------------------------------------------------------------
 */
 
@@ -287,7 +288,7 @@ func (o *Ostack) Expire( ) {
 	Accept a token and put it in.
 */
 func (o *Ostack) Insert_token( tok *string ) {
-	if o != nil {
+	if o != nil  && tok != nil {
 		o.token = tok
 		if len( *tok ) > 100 {
 			o.small_tok = str2md5_str( *o.token )		// ostack can't handle huge tokens it issues; assume >100 can be md5sum'd for use

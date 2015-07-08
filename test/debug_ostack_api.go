@@ -24,6 +24,7 @@ func main( ) {
 	var (
 		o2 *ostack.Ostack = nil
 		all_projects map[string]*string		// list of all projects from keystone needed by several tests
+		project_map map[string]*string		// list of projects we belong to
 
 		pwd *string
 		usr *string
@@ -56,6 +57,7 @@ func main( ) {
 	run_info := flag.Bool( "I", false, "run vm info map test" )
 	run_hlist := flag.Bool( "L", false, "run list-host test" )
 	run_maps := flag.Bool( "M", false, "run maps test" )
+	run_netinfo := flag.Bool( "N", false, "run netinfo maps" )
 	run_user := flag.Bool( "R", false, "run user/role test" )
 	run_subnet := flag.Bool( "S", false, "run subnet map test" )
 	run_vfp := flag.Bool( "V", false, "run token valid for project test" )
@@ -107,6 +109,7 @@ func main( ) {
 			fmt.Fprintf( os.Stderr, "Is %s an admin?\n", *usr )
 			os.Exit( 1 )
 		} 
+		project_map = m1
 	
 		if * run_projects {
 			if *verbose {
@@ -139,8 +142,24 @@ func main( ) {
 			os.Exit( 1 )
 		}
 	} else {
-		fmt.Fprintf( os.Stderr, "[FAIL] did not capture a project name and -P not supplied on commenc line; cannot attempt any other tests\n" )
+		fmt.Fprintf( os.Stderr, "[FAIL] did not capture a project name and -P not supplied on command line; cannot attempt any other tests\n" )
 		os.Exit( 1 )
+	}
+
+	if *run_all || *run_projects {
+		fmt.Fprintf( os.Stderr, "[INFO]  sussing host list for each project....\n" )
+		for k, _ := range( project_map ) {
+			o3 :=  ostack.Mk_ostack_region( url, usr, pwd, &k, region )
+			o3.Insert_token( o2.Get_token() )
+			startt := time.Now().Unix()
+			hlist, err := o3.List_hosts( ostack.COMPUTE )
+			endt := time.Now().Unix()
+			if err == nil {
+				fmt.Fprintf( os.Stderr, "[OK]   got hosts for %s: %s  (%d sec)\n", k, *hlist, endt - startt )
+			} else {
+				fmt.Fprintf( os.Stderr, "[WARN] unable to get hosts for %s: %s", k, err )
+			}
+		}
 	}
 
 	if *run_projects || *run_all || *run_user {				// needed later for both projects and user so get here first
@@ -170,9 +189,9 @@ func main( ) {
 				} else {
 					fmt.Fprintf( os.Stderr, "[WARN] unable to get compute hosts for %s: %s", k, err )
 				}
-				startt := time.Now().Unix()
-				hlist, err := o3.List_hosts( ostack.NETWORK )
-				endt := time.Now().Unix()
+				startt = time.Now().Unix()
+				hlist, err = o3.List_hosts( ostack.NETWORK )
+				endt = time.Now().Unix()
 				if err == nil {
 					fmt.Fprintf( os.Stderr, "[OK]   got network hosts for %s: %s  (%d sec)\n", k, *hlist, endt - startt )
 				} else {
@@ -366,11 +385,39 @@ invoked.  bloody openstack.
 			fmt.Fprintf( os.Stderr, "[FAIL]  error generating gateway map: %s\n", err )
 			err_count++
 		}
+
+		gl1, err := o2.Mk_gwlist() 
+		if err == nil {
+			fmt.Fprintf( os.Stderr, "[OK]    generated gateway list %d entries\n", len( gl1 ) )
+			if *verbose {
+				for i, v := range gl1 {
+					fmt.Fprintf( os.Stderr, "\t gwlist: [%d] %s\n", i, v )
+				}
+			}
+		} else {
+			fmt.Fprintf( os.Stderr, "[FAIL]  error generating gateway list: %s\n", err )
+			err_count++
+		}
+
+	}
+
+	if  *run_all || *run_netinfo {
+		m, err := o2.Mk_netinfo_map( )
+		if err == nil {
+			fmt.Fprintf( os.Stderr, "\n[OK]  network info map contains %d entries\n", len( m ) )
+			if *verbose {
+				for k,v := range m {
+					fmt.Fprintf( os.Stderr, "\t net_info: %s --> %s\n", k, *v )	
+				}
+			}
+		} else {
+			fmt.Fprintf( os.Stderr, "[FAIL]  error generating net info map: %s\n", err )
+			err_count++
+		}
 	}
 
 	if  *run_all || *run_maps {
 		m1, m2, m3, m4, m5, err := o2.Mk_vm_maps( nil, nil, nil, nil, nil, *inc_project )
-
 	
 		if err != nil {
 			fmt.Fprintf( os.Stderr, "[FAIL] error generating maps: %s\n", err )
@@ -500,15 +547,19 @@ invoked.  bloody openstack.
 		}
 	}
 
-	if (*run_all || *run_crack)  && token != nil { 					// crack the given token
-		stuff, err := o.Crack_token( token )
-		if err != nil {
-			fmt.Fprintf( os.Stderr, "[FAIL] unable to crack the token: %s\n", err )
-			err_count++
+	if (*run_all || *run_crack)  {
+		if  token != nil { 					// crack the given token
+			stuff, err := o.Crack_token( token )
+			if err != nil {
+				fmt.Fprintf( os.Stderr, "[FAIL] unable to crack the token: %s\n", err )
+				err_count++
+			} else {
+				fmt.Fprintf( os.Stderr, "[OK]   token was cracked: %s\n", stuff )
+			}	
 		} else {
-			fmt.Fprintf( os.Stderr, "[OK]   token was cracked: %s\n", stuff )
-		}	
-	}
+			fmt.Fprintf( os.Stderr, "[SKIP] did not run crack test, no token provided\n" )
+		}
+	} 
 
 	if (*run_all || *run_vfp)  && token != nil { 					// see if token is valid for the given project
 

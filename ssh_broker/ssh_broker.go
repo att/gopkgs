@@ -404,22 +404,17 @@ func ( b *Broker ) session2( host string ) ( s *ssh.Session, err error ) {
 		s = nil
 
 		if c.last_cmd < time.Now().Unix() - 120	{ 		// if it's been a while, try resetting things
-fmt.Fprintf( os.Stderr, ">>>> session2 resetting connection: %s\n", host )
 			b.conns_lock.Lock()								// get a write lock
-fmt.Fprintf( os.Stderr, ">>>> session2 have write lock: %s\n", host )
 			b.conns[host] = nil								// force it off, allow new one to recreate
 			b.conns_lock.RUnlock()
-fmt.Fprintf( os.Stderr, ">>>> session2 reset and unlocked: %s\n", host )
 
 			c, err = b.connect2( host )
 			if err != nil {
-fmt.Fprintf( os.Stderr, ">>>> session2 subsequent connection failed: %s: err\n", host, err )
 				return
 			}
 
 			s, err = c.schan.NewSession( )
 			if err != nil {							// time to give up and return error
-fmt.Fprintf( os.Stderr, ">>>> session2 giving up on: %s: %s\n", host, err )
 				s = nil
 			}
 		}

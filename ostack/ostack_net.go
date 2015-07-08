@@ -38,25 +38,42 @@
 				10 Jan 2015 - Lots of updates to support wa interface.
 				21 May 2015 - Now looks for either neutron-l3-agent or neutron-openvswitch-agent
 					as an indication that the node is a network supporting node.
+				28 Jun 2015 - General cleanup and some disection of duplicated code.
 ------------------------------------------------------------------------------------------------
 */
 
 package ostack
 
 import (
-	//"bufio"
 	"bytes"
-	"encoding/json"
+	//"encoding/json"
 	"fmt"
-	//"io/ioutil"
-	//"net/http"
-	//"net/url"
-	"os"
+	//"os"
 	"strings"
-	//"time"
-
-	//"forge.research.att.com/gopkgs/jsontools"
 )
+
+// ----- internal support -------------------------------------------------------------------
+/*
+	Fetch information for gwmac2xip to use and return a generic_response struct with 
+	the json expansion already done. We need to fetch in several different spots and 
+	this keeps the url conststruction in one place.
+*/
+func (o *Ostack) fetch_gwmac_data( ) ( response *generic_response, err error ) {
+	response = &generic_response{}
+
+	err = o.Validate_auth()						// reauthorise if needed
+	if err != nil {
+		return
+	}
+
+	url := fmt.Sprintf( "%s/v2.0/ports?device_owner=network:router_interface&tenant_id=%s", *o.nhost, *o.project_id )				// lists just the gateways
+	body := bytes.NewBufferString( "" )
+	err = o.get_unpacked( url, body, response, "fetch_gwmac:" )
+
+	return
+}
+
+// ------------------- public ----------------------------------------------------------------
 
 /*
 	Given a gateway ID, make the call to dig out the external network id.
@@ -64,7 +81,6 @@ import (
 func (o *Ostack) Gw2extid( id *string ) ( extid *string, err error ) {
 	var (
 		resp generic_response		// top level data mapped from ostack json
-		jdata	[]byte				// raw json response data
 	)
 
 	extid = nil
@@ -87,26 +103,15 @@ func (o *Ostack) Gw2extid( id *string ) ( extid *string, err error ) {
 		return
 	}
 
-	jdata = nil
 	body := bytes.NewBufferString( "" )
 
 	//url := fmt.Sprintf( "%s/v2.0/routers/%s/l3-agents.json", *o.nhost, *id )
 	//url := fmt.Sprintf( "%s/v2.0/routers/%s/l3-agents", *o.nhost, *id )
-	url := fmt.Sprintf( "%s/v2.0/routers/%s", *o.nhost, *id )
 	//url := fmt.Sprintf( "%s/v2.0/routers", *o.nhost )
-	dump_url( "gw2extid", 10, url )
-	jdata, _, err = o.Send_req( "GET",  &url, body )
-	dump_json( "gw2extid", 10, jdata )
 
+	url := fmt.Sprintf( "%s/v2.0/routers/%s", *o.nhost, *id )
+	err = o.get_unpacked( url, body, &resp, "gw2extid:" )
 	if err != nil {
-		return
-	}
-
-	err = json.Unmarshal( jdata, &resp )			// unpack the json into response struct
-	if err != nil {
-		fmt.Fprintf( os.Stderr, "ostack/gw2extid: unable to unpack json: %s\n", err )		//TESTING
-		dump_url( "gw2extid", 90, url )
-		dump_json( "gw2extid", 90, jdata )
 		return
 	}
 
@@ -123,11 +128,11 @@ func (o *Ostack) Gw2extid( id *string ) ( extid *string, err error ) {
 
 /*
 	Given a gateway ID, make the call to dig out the physical host that the gatway lives on.
+	(Gateway is Openstack's term for L3 router.)
 */
 func (o *Ostack) Gw2phost( id *string ) ( host *string, err error ) {
 	var (
 		resp generic_response		// top level data mapped from ostack json
-		jdata	[]byte				// raw json response data
 	)
 
 	host = nil
@@ -150,25 +155,13 @@ func (o *Ostack) Gw2phost( id *string ) ( host *string, err error ) {
 		return
 	}
 
-	jdata = nil
 	body := bytes.NewBufferString( "" )
-
 	url := fmt.Sprintf( "%s/v2.0/routers/%s/l3-agents", *o.nhost, *id )
-	dump_url( "gw2phost", 10, url )
-	jdata, _, err = o.Send_req( "GET",  &url, body )
-	dump_json( "gw2phost", 10, jdata )
-
+	err = o.get_unpacked( url, body, &resp, "gw2phost:" )
 	if err != nil {
 		return
 	}
 
-	err = json.Unmarshal( jdata, &resp )			// unpack the json into response struct
-	if err != nil {
-		fmt.Fprintf( os.Stderr, "ostack/gw2phost: unable to unpack json: %s\n", err )		//TESTING
-		dump_url( "gw2phost", 90, url )
-		dump_json( "gw2phost", 90, jdata )
-		return
-	}
 
 	host = nil
 	if resp.Agents != nil  && len ( resp.Agents ) > 0 {
@@ -186,12 +179,10 @@ func (o *Ostack) Gw2phost( id *string ) ( host *string, err error ) {
 
 	Udup_list is a map of host names that have already been encountered (dups) and should be 
 	ignored; it can be nil.  The dup map generated is returned. 
-
 */
 func (o *Ostack) List_net_hosts( udup_list map[string]bool, limit2neutron bool ) ( hlist *string, dup_map map[string]bool, err error ) {
 	var (
 		rdata generic_response		// stuff back from openstack
-		jdata	[]byte				// raw json response data
 	)
 
 	empty_str := ""
@@ -217,23 +208,11 @@ func (o *Ostack) List_net_hosts( udup_list map[string]bool, limit2neutron bool )
 		dup_map = make( map[string]bool, 24 )
 	} 
 
-	jdata = nil
 	body := bytes.NewBufferString( "" )
-
 	url := fmt.Sprintf( "%s/v2.0/agents", *o.nhost )				// nhost is the host where the network service is running
-	dump_url( "Mk_net_phost", 10, url )
-	jdata, _, err = o.Send_req( "GET",  &url, body )
-
+	err = o.get_unpacked( url, body, &rdata, "mk_net_phost:" )
 	if err != nil {
 		return
-	}
-
-	err = json.Unmarshal( jdata, &rdata )			// unpack the json into jif(net_data)
-	if err != nil {
-		dump_json( "mk_net_phost", 30, jdata )
-		return
-	} else {
-		dump_json( "mk_net_phost", 10, jdata )
 	}
 
 	wstr := ""
@@ -268,7 +247,6 @@ func (o *Ostack) List_net_hosts( udup_list map[string]bool, limit2neutron bool )
 func (o *Ostack) Mk_netinfo_map( ) ( nmap map[string]*string, err error ) {
 	var (
 		net_list generic_response	// top level data mapped from ostack json
-		jdata	[]byte				// raw json response data
 	)
 
 	nmap = nil
@@ -287,21 +265,10 @@ func (o *Ostack) Mk_netinfo_map( ) ( nmap map[string]*string, err error ) {
 		return
 	}
 
-	jdata = nil
 	body := bytes.NewBufferString( "" )
-
 	url := fmt.Sprintf( "%s/v2.0/networks", *o.nhost )				// nhost is the host where the network service is running
-	dump_url( "Mk_netinfo_map", 10, url )
-	jdata, _, err = o.Send_req( "GET",  &url, body )
-
+	err = o.get_unpacked( url, body, &net_list, "mk_netinfo:" )
 	if err != nil {
-		return
-	}
-
-	err = json.Unmarshal( jdata, &net_list )			// unpack the json into jif(net_data)
-	if err != nil {
-		fmt.Fprintf( os.Stderr, "ostack/net_netinfo: unable to unpack json: %s\n", err )		//TESTING
-		fmt.Fprintf( os.Stderr, "offending_json=%s\n", jdata )
 		return
 	}
 
@@ -327,16 +294,15 @@ func (o *Ostack) Mk_netinfo_map( ) ( nmap map[string]*string, err error ) {
 		3) gateway-id -> physical host	(umap_phost)
 
 */
-func (o *Ostack) gwmac2xip(  umap_ad map[string]*string, umap_id map[string]*string, umap_phost map[string]*string, usr_jdata []byte, inc_tenant bool, reverse bool ) ( 
+func (o *Ostack) gwmac2xip(  umap_ad map[string]*string, umap_id map[string]*string, umap_phost map[string]*string, usr_resp *generic_response, inc_tenant bool, reverse bool ) ( 
 	m_ad map[string]*string, 
 	m_id map[string]*string, 
 	m_phost map[string]*string,
 	err error ) {
 
 	var (
-		ports 	generic_response	// unpacked json from response
+		ports 	*generic_response	// unpacked json from response
 		addr	string				// ip address
-		jdata	[]byte				// raw json response data
 	)
 
 	m_ad = umap_ad					// ensure that if we bail the original map goes back on return
@@ -352,31 +318,13 @@ func (o *Ostack) gwmac2xip(  umap_ad map[string]*string, umap_id map[string]*str
 		return
 	}
 
-
-	if usr_jdata == nil {
-		err = o.Validate_auth()						// reauthorise if needed
-		if err != nil {
-			return
-		}
-
-		jdata = nil
-		body := bytes.NewBufferString( "" )
-
-		url := fmt.Sprintf( "%s/v2.0/ports?device_owner=network:router_interface&tenant_id=%s", *o.nhost, *o.project_id )				// lists just the gateways
-		jdata, _, err = o.Send_req( "GET",  &url, body )
-
-		if err != nil {
-			return
-		}
+	if usr_resp != nil {							// user supplied already fetched and unpacked data
+		ports = usr_resp							// just use it
 	} else {
-		jdata = usr_jdata
-	}
-
-	err = json.Unmarshal( jdata, &ports )			// unpack the json into jif
-	if err != nil {
-		fmt.Fprintf( os.Stderr, "ostack/gwmac2xip: unable to unpack json: %s\n", err )		//TESTING
-		fmt.Fprintf( os.Stderr, "offending_json=%s\n", jdata )
-		return
+		ports, err =  o.fetch_gwmac_data( )			// no user supplied stuff, fetch it
+		if err != nil {
+			return
+		}
 	}
 
 	if m_ad == nil {								// create maps if user didn't supply one/both
@@ -402,7 +350,6 @@ func (o *Ostack) gwmac2xip(  umap_ad map[string]*string, umap_id map[string]*str
 		dup_id := ports.Ports[j].Device_id				// id of the device that this port is on (the router
 		dup_mac := ports.Ports[j].Mac_address
 		dup_phost := ports.Ports[j].Bind_host_id
-//fmt.Fprintf( os.Stderr, ">>>> len=%d mac=%s  id=%s  net=%s\n", len(  ports.Ports[j].Fixed_ips ), dup_mac, dup_id,  ports.Ports[j].Device_id )
 
 		if reverse {
 			m_ad[dup_addr] = &dup_mac
@@ -425,6 +372,8 @@ func (o *Ostack) gwmac2xip(  umap_ad map[string]*string, umap_id map[string]*str
 	translating uuid to phost, is also generated.
 
 	The u* maps are updated if supplied. If nil is passed, a new map is created.
+	Use_project is deprecated and supported only for backwards compatability. 
+
 	If use_project is true, then the request is made using the project_id, otherwise the 
 	project_id is not submitted. In versions before icehouse, submitting without the project
 	ID,  with an admin user ID, resulted in a complete list of gateways. With icehouse, it 
@@ -446,8 +395,7 @@ func (o *Ostack) Mk_gwmaps( umac2ip map[string]*string,
 			ip2phost map[string]*string,
 			err error ) {
 	var (
-		jdata []byte
-		url	string
+		response *generic_response
 	)
 
 	ip2mac = uip2mac							// ensure we return the user maps on error
@@ -466,28 +414,16 @@ func (o *Ostack) Mk_gwmaps( umac2ip map[string]*string,
 		return
 	}
 
-	jdata = nil
-	body := bytes.NewBufferString( "" )
-
-	//url := fmt.Sprintf( "%s/v2.0/ports?device_owner=network:router_interface", *o.nhost )				// lists just the gateways
-	if use_project {
-		url = fmt.Sprintf( "%s/v2.0/ports?device_owner=network:router_interface&tenant_id=%s", *o.nhost, *o.project_id )				// bloody icehouse
-	} else {
-		url = fmt.Sprintf( "%s/v2.0/ports?device_owner=network:router_interface", *o.nhost )		// before icehouse all are returned on single generic call
-	}
-	dump_url( "Mk_gwmaps", 10, url )
-	jdata, _, err = o.Send_req( "GET",  &url, body )
-	dump_json( "Mk_gwmaps", 10, jdata )
-
+	response, err = o.fetch_gwmac_data( )			// suss out the data from ostack so we can use it multiple times
 	if err != nil {
 		return
 	}
 
-	ip2mac, id2mac, ip2phost, err = o.gwmac2xip( ip2mac, id2mac, id2phost, jdata, inc_tenant, true )
+	ip2mac, id2mac, ip2phost, err = o.gwmac2xip( ip2mac, id2mac, id2phost, response, inc_tenant, true )
 	if err != nil {
 		return
 	}
-	mac2ip, mac2id, id2phost, err = o.gwmac2xip( mac2ip, mac2id, nil, jdata, inc_tenant, false )
+	mac2ip, mac2id, id2phost, err = o.gwmac2xip( mac2ip, mac2id, nil, response, inc_tenant, false )
 
 	return
 }
@@ -498,7 +434,6 @@ func (o *Ostack) Mk_gwmaps( umac2ip map[string]*string,
 func (o *Ostack) Mk_gwlist( ) ( gwlist []string, err error ) {
 	var (
 		ports 	generic_response			// unpacked json from response
-		jdata	[]byte				// raw json response data
 		url		string
 	)
 
@@ -514,30 +449,21 @@ func (o *Ostack) Mk_gwlist( ) ( gwlist []string, err error ) {
 		return
 	}
 
-	jdata = nil
-	body := bytes.NewBufferString( "" )
 
 	if o.nhost == nil || *o.nhost == "" {
 		err = fmt.Errorf( "no network host url to query %s", o.To_str() )
 		return
 	}
 
-	//url := fmt.Sprintf( "%s/v2.0/subnets", *o.nhost )				// nhost is the host where the network service is running
+	body := bytes.NewBufferString( "" )
 	if o.project != nil {
 		url = fmt.Sprintf( "%s/v2.0/ports?device_owner=network:router_interface&tenant_id=%s", *o.nhost, *o.project_id )				// lists just the gateways
 	} else {
 		url = fmt.Sprintf( "%s/v2.0/ports?device_owner=network:router_interface", *o.nhost )		// before icehouse all are returned on single generic call, so nil project is acceptable
 	}
-	jdata, _, err = o.Send_req( "GET",  &url, body )
 
+	err = o.get_unpacked( url, body, &ports, "mk_gwlist:" )
 	if err != nil {
-		return
-	}
-
-	err = json.Unmarshal( jdata, &ports )			// unpack the json into jif
-	if err != nil {
-		fmt.Fprintf( os.Stderr, "ostack/net_subnet: unable to unpack json: %s\n", err )		//TESTING
-		fmt.Fprintf( os.Stderr, "offending_json=%s\n", jdata )
 		return
 	}
 
@@ -561,7 +487,6 @@ func (o *Ostack) Mk_gwlist( ) ( gwlist []string, err error ) {
 func (o *Ostack) Mk_snlists( ) ( snlist map[string]*string, gw2cidr map[string]*string, err error ) {
 	var (
 		resp 	generic_response		// unpacked json from response
-		jdata	[]byte					// raw json response data
 	)
 
 	snlist = nil
@@ -577,26 +502,17 @@ func (o *Ostack) Mk_snlists( ) ( snlist map[string]*string, gw2cidr map[string]*
 		return
 	}
 
-	jdata = nil
-	body := bytes.NewBufferString( "" )
+	//jdata = nil
 
 	if o.nhost == nil || *o.nhost == "" {
 		err = fmt.Errorf( "no network host url to query %s", o.To_str() )
 		return
 	}
 
+	body := bytes.NewBufferString( "" )
 	url := fmt.Sprintf( "%s/v2.0/subnets", *o.nhost )				// nhost is the host where the network service is running
-	dump_url( "mk_snlist", 10, url )
-	jdata, _, err = o.Send_req( "GET",  &url, body )
-	dump_json( "mk_snlist", 10, jdata )
-
+	err = o.get_unpacked( url, body, &resp, "mk_snlists:" )
 	if err != nil {
-		return
-	}
-
-	err = json.Unmarshal( jdata, &resp )			// unpack the json into response struct
-	if err != nil {
-		dump_json( "mk_snlist", 90, jdata )
 		return
 	}
 
@@ -613,42 +529,4 @@ func (o *Ostack) Mk_snlists( ) ( snlist map[string]*string, gw2cidr map[string]*
 	return
 }
 
-
-func (o *Ostack) Dump_json( uurl string ) ( err error ) {
-	var (
-		jdata	[]byte				// raw json response data
-	)
-
-	if o == nil {
-		err = fmt.Errorf( "net_subnets: openstack creds were nil" )
-		return
-	}
-
-	err = o.Validate_auth()						// reauthorise if needed
-	if err != nil {
-		return
-	}
-
-	if o.nhost == nil || *o.nhost == "" {
-		err = fmt.Errorf( "no network host url to query %s", o.To_str() )
-		return
-	}
-
-	jdata = nil
-	body := bytes.NewBufferString( "" )
-
-	//url := fmt.Sprintf( "%s/v2.0/subnets", *o.nhost )				// nhost is the host where the network service is running
-	//url := fmt.Sprintf( "%s/%s", *o.nhost, uurl )				// nhost is the host where the network service is running
-	url := fmt.Sprintf( "%s/%s", *o.chost, uurl )				// nhost is the host where the network service is running
-	jdata, _, err = o.Send_req( "GET",  &url, body )
-
-	if err != nil {
-		fmt.Fprintf( os.Stderr, "error: %s\n", err )
-		return
-	}
-
-	fmt.Fprintf( os.Stderr, "json= %s\n", jdata )
-
-	return
-}
 

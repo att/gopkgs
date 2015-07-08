@@ -167,7 +167,7 @@ func main( ) {
 					go test_cmd( broker, ch, &host[j], cmd )
 				}
 			} else {
-				fmt.Fprintf( os.Stderr, "running asynch commnand parms=%s\n", *parms )
+				fmt.Fprintf( os.Stderr, "running asynch commnand on %s parallel=%d parms=%s\n", host[j], i, *parms )
 				if *cmd == "" {					// -c not supplied
 					err = broker.NBRun_on_host( host[j], *script, *parms, (i*100)+j, rch )
 				} else {

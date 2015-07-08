@@ -62,6 +62,7 @@ func (o *Ostack) Crack_token( token *string ) ( stuff *Ostack_tstuff, err error 
 	body := bytes.NewBufferString( rjson )
 
 	url := *o.host + "v3/auth/tokens"
+	dump_url( "token-crack", 10, url + " " +  body.String() )
 	jdata, _, err := o.Send_req( "POST",  &url, body ); 
 	dump_json( "token-crack", 10, jdata )
 
