@@ -166,10 +166,19 @@ func main( ) {
 				hlist, err := o3.List_hosts( ostack.COMPUTE )
 				endt := time.Now().Unix()
 				if err == nil {
-					fmt.Fprintf( os.Stderr, "[OK]   got hosts for %s: %s  (%d sec)\n", k, *hlist, endt - startt )
+					fmt.Fprintf( os.Stderr, "[OK]   got compute hosts for %s: %s  (%d sec)\n", k, *hlist, endt - startt )
 				} else {
-					fmt.Fprintf( os.Stderr, "[WARN] unable to get hosts for %s: %s", k, err )
+					fmt.Fprintf( os.Stderr, "[WARN] unable to get compute hosts for %s: %s", k, err )
 				}
+				startt := time.Now().Unix()
+				hlist, err := o3.List_hosts( ostack.NETWORK )
+				endt := time.Now().Unix()
+				if err == nil {
+					fmt.Fprintf( os.Stderr, "[OK]   got network hosts for %s: %s  (%d sec)\n", k, *hlist, endt - startt )
+				} else {
+					fmt.Fprintf( os.Stderr, "[WARN] unable to get network hosts for %s: %s", k, err )
+				}
+
 			}
 		}
 	} 
