@@ -253,13 +253,13 @@ func (o *Ostack) list_hosts( htype int, all bool ) ( hlist *string, err error ) 
 
 	url := fmt.Sprintf( "%s/os-services", *o.chost )		// tennant id is built into chost
 /*
-    dump_url( "hosts", 10, url )
+    dump_url( "os-svcs", 10, url )
 	jdata, _, err = o.Send_req( "GET",  &url, body );
 
 	if err != nil {
 		return
 	}
-	dump_json( "hosts", 10, jdata )
+	dump_json( "os-svcs", 10, jdata )
 
 	err = json.Unmarshal( jdata, &resp_data )			// unpack the json into response struct
 	if err != nil {

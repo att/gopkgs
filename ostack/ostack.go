@@ -136,6 +136,7 @@ type ost_tenant struct {
 
 type ost_meta struct {
 	Is_admin int
+	Roles []ost_role
 }
 
 type ost_token struct {
@@ -162,7 +163,6 @@ type ost_user struct {
 type ost_access struct {
 	Token		*ost_token
 	User		*ost_user
-	Metadata	*ost_meta
 	Servicecatalog	[]ost_auth_svccat;
 }
 
@@ -482,8 +482,8 @@ type VM_info struct {
 
 // ---- necessary globals --------------------------------------------------------------------
 var (								// counters used by ostack_debug functions -- these apply to all objects!
-	dbug_json_count int = 50		// set >= 10 to prevent json dumping of first 10 calls
-	dbug_url_count int = 50			// set to 10 to prevent url dumping of first 10 calls
+	dbug_json_count int = 15		// set >= 10 to prevent json dumping of first 10 calls
+	dbug_url_count int = 15			// set to 10 to prevent url dumping of first 10 calls
 )
 
 /*

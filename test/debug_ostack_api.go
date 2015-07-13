@@ -6,6 +6,8 @@
 				can take url/usr/password from the commandline.
 	Author:		E. Scott Daniels
 	Date:		7 August 2014
+
+	Mod:		11 Jul 2015 : Changess to support new crack function for v2.
 */
 
 package main
@@ -31,7 +33,7 @@ func main( ) {
 		url *string
 	)
 
-	fmt.Fprintf( os.Stderr, "api debugger: v 1.8/15215\n" )
+	fmt.Fprintf( os.Stderr, "api debugger: v 1.9/17125\n" )
 	err_count := 0
 
 
@@ -549,13 +551,22 @@ invoked.  bloody openstack.
 
 	if (*run_all || *run_crack)  {
 		if  token != nil { 					// crack the given token
-			stuff, err := o.Crack_token( token )
+			stuff, err := o.Crack_ptoken( token, project, true  )
 			if err != nil {
-				fmt.Fprintf( os.Stderr, "[FAIL] unable to crack the token: %s\n", err )
+				fmt.Fprintf( os.Stderr, "[FAIL] unable to crack the token using V3: %s\n", err )
 				err_count++
 			} else {
-				fmt.Fprintf( os.Stderr, "[OK]   token was cracked: %s\n", stuff )
+				fmt.Fprintf( os.Stderr, "[OK]   token was cracked with V3: %s\n", stuff )
 			}	
+
+			stuff, err = o.Crack_ptoken( token, project, false  )
+			if err != nil {
+				fmt.Fprintf( os.Stderr, "[FAIL] unable to crack the token using V2: %s\n", err )
+				err_count++
+			} else {
+				fmt.Fprintf( os.Stderr, "[OK]   token was cracked with V2: %s\n", stuff )
+			}	
+
 		} else {
 			fmt.Fprintf( os.Stderr, "[SKIP] did not run crack test, no token provided\n" )
 		}
