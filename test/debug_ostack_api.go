@@ -18,9 +18,20 @@ import (
 	"os"
 	//"sync"
 	"time"
+	"strings"
 
 	"codecloud.web.att.com/gopkgs/ostack"
 )
+
+func find_in_list( list *string, target *string ) {
+	if target != nil || *target != "" {
+		if strings.Contains( *list, *target ) {
+			fmt.Fprintf( os.Stderr, "[INFO] found in the list: %s\n", *target )
+		} else {
+			fmt.Fprintf( os.Stderr, "[INFO] NOT found in the list: %s\n", *target )
+		}
+	}
+}
 
 func main( ) {
 	var (
@@ -33,7 +44,7 @@ func main( ) {
 		url *string
 	)
 
-	fmt.Fprintf( os.Stderr, "api debugger: v 1.9/17125\n" )
+	fmt.Fprintf( os.Stderr, "api debugger: v1.9/17155a\n" )
 	err_count := 0
 
 
@@ -41,7 +52,9 @@ func main( ) {
 	{	p := os.Getenv( "OS_AUTH_URL" ); url = &p }
 	{	p := os.Getenv( "OS_PASSWORD" ); pwd = &p }
 	
+															// tests are -<capital> except -P
 	dump_stuff := flag.Bool( "d", false, "dump stuff" )
+	host2find := flag.String( "h", "", "host search (if -L)" )
 	inc_project := flag.Bool( "i", false, "include project in names" )
 	pwd = flag.String( "p", *pwd, "password" )
 	project := flag.String( "P", "", "project for subsequent tests" )
@@ -283,6 +296,7 @@ invoked.  bloody openstack.
 			err_count++
 		} else {
 			fmt.Fprintf( os.Stderr, "[OK]   enabled compute host list: %s  (%d sec)\n", *hlist, endt - startt )
+			find_in_list( hlist, host2find )
 		}
 
 		startt = time.Now().Unix()
@@ -293,6 +307,7 @@ invoked.  bloody openstack.
 			err_count++
 		} else {
 			fmt.Fprintf( os.Stderr, "[OK]   compute host list: %s  (%d sec)\n", *hlist, endt - startt )
+			find_in_list( hlist, host2find )
 		}
 	
 		startt = time.Now().Unix()
@@ -303,6 +318,7 @@ invoked.  bloody openstack.
 			err_count++
 		} else {
 			fmt.Fprintf( os.Stderr, "[OK]   network host list: %s  (%d sec)\n", *hlist, endt - startt )
+			find_in_list( hlist, host2find )
 		}
 	
 		startt = time.Now().Unix()
@@ -313,6 +329,18 @@ invoked.  bloody openstack.
 			err_count++
 		} else {
 			fmt.Fprintf( os.Stderr, "[OK]   comp & net host list: %s (%d sec)\n", *hlist, endt - startt )
+			find_in_list( hlist, host2find )
+		}
+	
+		startt = time.Now().Unix()
+		hlist, err = o2.List_enabled_hosts( ostack.COMPUTE | ostack.NETWORK )
+		endt = time.Now().Unix()
+		if err != nil {
+			fmt.Fprintf( os.Stderr, "[FAIL] error generating enabled combined compute and network host list: %s\n", err )
+			err_count++
+		} else {
+			fmt.Fprintf( os.Stderr, "[OK]   enabled comp & net host list: %s (%d sec)\n", *hlist, endt - startt )
+			find_in_list( hlist, host2find )
 		}
 
 	}
@@ -550,13 +578,21 @@ invoked.  bloody openstack.
 	}
 
 	if (*run_all || *run_crack)  {
-		if  token != nil { 					// crack the given token
-			stuff, err := o.Crack_ptoken( token, project, true  )
+		if  token != nil { 										// crack the given token
+			stuff, err := o.Crack_token( token )						// generic tegu style call (project is not known)
 			if err != nil {
-				fmt.Fprintf( os.Stderr, "[FAIL] unable to crack the token using V3: %s\n", err )
+				fmt.Fprintf( os.Stderr, "[FAIL] unable to crack the token using unknown project: %s\n", err )
 				err_count++
 			} else {
-				fmt.Fprintf( os.Stderr, "[OK]   token was cracked with V3: %s\n", stuff )
+				fmt.Fprintf( os.Stderr, "[OK]   token was cracked with unknown project: %s\n", stuff )
+			}	
+
+			stuff, err = o.Crack_ptoken( token, project, true  )
+			if err != nil {
+				fmt.Fprintf( os.Stderr, "[FAIL] unable to crack the token using V2: %s\n", err )
+				err_count++
+			} else {
+				fmt.Fprintf( os.Stderr, "[OK]   token was cracked with V2: %s\n", stuff )
 			}	
 
 			stuff, err = o.Crack_ptoken( token, project, false  )

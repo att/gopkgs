@@ -11,6 +11,9 @@
 
 	Related:	Doc for agent api request is (of course) not with all of the other openstack
 				networking doc, it's here:
+					http://specs.openstack.org/openstack/neutron-specs/specs/api/agent_management.html
+
+				used to be here, but this seems broken:
 					http://docs.openstack.org/api/openstack-network/2.0/content/List_Agents.html
 
 				Other api doc:
@@ -48,7 +51,6 @@ import (
 	"bytes"
 	//"encoding/json"
 	"fmt"
-	//"os"
 	"strings"
 )
 

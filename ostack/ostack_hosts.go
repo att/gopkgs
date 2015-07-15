@@ -15,6 +15,8 @@
 					and up (which we assume might not be down for maintenance).
 				24 Jun 2014 - Combined List_hosts and List_enabled_hosts into a single function
 					with small public facing wrappers.
+				15 Jul 2015 - Corrected the reverse setting of the 'all' boolean in the list
+					enabled hosts function call to list_hosts.
 ------------------------------------------------------------------------------------------------
 */
 
@@ -314,15 +316,16 @@ func (o *Ostack) list_hosts( htype int, all bool ) ( hlist *string, err error ) 
 	(an empty list or nil pointer) will result.
 */
 func (o *Ostack) List_hosts( htype int ) ( hlist *string, err error ) {
-	return o.list_hosts( htype, false )
+	return o.list_hosts( htype, true )
 }
 
 /*
 	Returns a space separated list of host names as a string. See List_Hosts for a description
-	of values for htype.
+	of values for htype. Only hosts which are indicated as both "up" and "enabled" 
+	are included in the list.
 */
 func (o *Ostack) List_enabled_hosts( htype int ) ( hlist *string, err error ) {
-	return o.list_hosts( htype, true )
+	return o.list_hosts( htype, false )
 }
 
 /*
