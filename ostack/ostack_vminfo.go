@@ -77,7 +77,7 @@ func (o *Ostack) Map_vm_info( umap map[string]*VM_info ) ( info map[string]*VM_i
 			flavour:	vm.Flavor.Id,
 			hostid:		vm.Hostid,
 			host_name:	vm.Host_name,
-			image:		vm.Image.Id,
+			//image:		vm.Image.Id,						// due to openstack inconsitency we don't grab the image info
 			name:		vm.Name,
 			status:		vm.Status,
 			tenant_id:	vm.Tenant_id,

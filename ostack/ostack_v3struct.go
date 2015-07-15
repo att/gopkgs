@@ -51,7 +51,7 @@ type osv3_user struct {
 type osv3_token struct {
 	Methods		[]string
 	Roles		[]*osv3_role
-	Projects	*osv3_proj
+	Project		*osv3_proj
 	Expires_at	string					// human readable expiry
 	//Extras	unknown
 	User		*osv3_user
@@ -64,6 +64,7 @@ type osv3_token struct {
 */
 type osv3_generic struct {
 	Token		*osv3_token
+	Project		*osv3_proj
 	Error		*error_obj				// we can use the generic error handling things here
 }
 

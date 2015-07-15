@@ -21,6 +21,7 @@
 				06 Jan 2015 - Additional nil pointer checks.
 				03 Feb 2015 - Correct bad tag in structure def.
 				24 Jun 2015 - Some cleanup.
+				15 Jul 2105 - Emit correct tag in the unpack debugging.
 ------------------------------------------------------------------------------------------------
 */
 
@@ -160,9 +161,17 @@ type ost_user struct {
 	Name	string;	
 }
 
+type ost_project struct {
+	Description	string
+	Enabled		bool
+	Id			string
+	Name		string
+}
+
 type ost_access struct {
 	Token		*ost_token
 	User		*ost_user
+	Tenant		*ost_project
 	Servicecatalog	[]ost_auth_svccat;
 }
 
@@ -351,7 +360,7 @@ type ost_vm_server struct {			// we don't use all of the data; fields not includ
 	Created		string
 	Flavor		*ost_vm_flavour
 	Hostid		string
-	Image		*ost_vm_image
+	//Image		*ost_vm_image		// this is unreliable with respect to expected type so we ignore it until we neede it.
 	Name		string
 	Status		string
 	Tenant_id	string
@@ -435,7 +444,6 @@ type generic_response struct {
 	Tenants		[]ost_tenant
 	Agents		[]ost_net_agent
 }
-
 
 // -- our structs ----------------------------------------------------------------------------
 type Ostack struct {
@@ -626,7 +634,7 @@ func (o *Ostack) get_unpacked( url string, body *bytes.Buffer, resp interface{},
 
 	dump_url( tag, 10, url )
 	jdata, _, e := o.Send_req( "GET",  &url, body )
-	dump_json( "mk_snlist", 10, jdata )
+	dump_json( tag, 10, jdata )
 
 	if e != nil {
 		return e
