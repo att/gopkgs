@@ -78,6 +78,8 @@
 				23 Jun 2015 - Prevent panic when writing to a closed channel.  Only senders (initiator) 
 					should close response channels and the response channel was being closed by a command 
 					execution function.
+				16 Jul 2015 - Ensure that the authorisation key list does not contain nil entries as this
+					causes ssh library code to panic (nil pointer exception).
 
 	CAUTION:	This package reqires go 1.3.3 or later.
 */
@@ -569,7 +571,7 @@ func Mk_broker( user string, keys []string ) ( broker *Broker ) {
 
 	broker.config = &ssh.ClientConfig {						// set up the config info that ssh needs to open a connection
 		User: user,
-		Auth: auth_list,
+		Auth: auth_list[0:j],								// drop nil entries (ssh crashes if they are there)
 		ClientVersion: "",
 	}
 
