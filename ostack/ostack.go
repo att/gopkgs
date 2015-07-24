@@ -1,21 +1,39 @@
-// vi: sw=4 ts=4:
+//vi: sw=4 ts=4:
+/*
+ ---------------------------------------------------------------------------
+   Copyright (c) 2013-2015 AT&T Intellectual Property
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at:
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+ ---------------------------------------------------------------------------
+*/
+
 
 /*
 ------------------------------------------------------------------------------------------------
 	Mnemonic:	ostack.go
 	Abstract: 	This module contains the generic functions used by the rest of the package.
 				The other modules provide one request type
-				and are broken out only to keep the number of structures (used to hack the 
-				json into) defined in each file to a minumum.
+				and are broken out only to keep the number of structures (used to hack the
+				json into) defined in each file to a minimum.
 
 	Date:		16 December 2013
 	Authors:	E. Scott Daniels
 
 	Mods:		23 Apr 2014 - Added tenant id support
 				06 Jun 2014 - Removed cvt_dashes from Send_req as tagging can be used instead.
-				28 Jul 2014 - Changed tenant_id to project ID. 
-				11 Aug 2014 - Added stripping of v2.0 or v3 from end of host url. 
-				19 Aug 2014 - Added scan of json for non-jsonish things. 
+				28 Jul 2014 - Changed tenant_id to project ID.
+				11 Aug 2014 - Added stripping of v2.0 or v3 from end of host url.
+				19 Aug 2014 - Added scan of json for non-jsonish things.
 				28 Oct 2014 - Added support for identity requests as admin.
 				04 Dec 2014 - To support generating a list of hosts that are 'active'.
 				06 Jan 2015 - Additional nil pointer checks.
@@ -46,36 +64,30 @@ import (
 // ------------- structs that the json returned by openstack maps to ----------------------
 
 /*
-	Unfortunately the easiest way, from a coding perspective, to snarf and make use of the 
-	json returned by OpenStacks's api is to define structs that match certain parts of the 
-	json.  We only have to define fields/objects that we are insterested in, so additions
+	Unfortunately the easiest way, from a coding perspective, to snarf and make use of the
+	json returned by OpenStacks's api is to define structs that match certain parts of the
+	json.  We only have to define fields/objects that we are interested in, so additions
 	to the json will likely not break things here, but if a field name that we are interested
-	in changes we'll fall over. (I see this as a problem regardless of the language that 
-	is used to implement this code and not a downfall of Go.) 
+	in changes we'll fall over. (I see this as a problem regardless of the language that
+	is used to implement this code and not a downfall of Go.)
 	
-	The json parser will insert data only for fields that are externally visiable in these
-	structs (capitalised first character).  The remainder of the field names match those 
-	in the json data.  We can also insert non-exported fields which are unaffected by 
-	the parser. 
+	The json parser will insert data only for fields that are externally visible in these
+	structs (capitalised first character).  The remainder of the field names match those
+	in the json data.  We can also insert non-exported fields which are unaffected by
+	the parser.
 	
-	We hope this isn't true of openstack....
-	Names that cannot be legally mapped to Go variable names (e.g.
-	dst-port).  We can (blindly for now) convert all '-' characters followed by a lowercase
-	alpha character to _. This will have the side effect of changing the actual data in 
-	addition to the names, which will probably break things. 
+	Openstack unfortunately uses field names which cannot be converted into legitimate
+	variable names (e.g. dst-port, or foo:bar).  We are forced to handle these special
+	cases by adding a tag to the struct's field which the marshalling process uses to 
+	convert what is found in the json, into a legitimate field name in the struture. 
 
-	A side effect of using the in-built json functions of go is that all of the elements 
-	of the structs must be externally accessable. 
+	It is quite possible that each module in this package could have it's own set of 
+	structure definitions, however an effort has been made to collect and manage all of
+	the structs in one place (here) with the hopes that they can be generic enough to 
+	be used by all modules.
 
-	So.... each module in this package will end up needing (possibly) its own set of structs that
-	are used to unpack json into and then have as a direct reference to the resulting output
-	from openstack.  They are fragile in the sense that if ostack changes a field name
-	we break. If fields are added, the result is that we ignore them which shouldn't break
-	our function unless for some reason it is necessary to all of a sudden have that new
-	field's data.
-
-	These are pulled from doc at:
-		http://developer.openstack.org/api-ref.html
+	The doc at http://developer.openstack.org/api-ref.html is the starting point for
+	the structures coded here. 
 */
 
 
@@ -84,7 +96,7 @@ import (
 	in the json with the _same_ name (error), but with a differing representation of
 	internal fields with duplicate names (code).  This is a more generic structure
 	and thus the functions in error.go must be used to extract values with minimal
-	effort (code() and String()). 
+	effort (code() and String()).
 */
 type error_obj struct {			// generic error to snarf in http errors will be nil on success
 	Message	string
@@ -191,7 +203,7 @@ type ost_os_host struct {
 type ost_net_config struct {
 		Public 					*string 			// something like br-ex, so not sure what it is
 		Devices 				int
-		Vmprivate 				*string 
+		Vmprivate 				*string
 		Use_namespaces 			bool
 		Gateway_external_network_id *string
 		Handle_internal_only_routers bool
@@ -209,18 +221,18 @@ type ost_net_config struct {
 
 // returned by v2.0/agents
 type ost_net_agent struct {
-       Started_at 		*string 
-       Heartbeat_timestamp *string 
-       Topic 			*string 
-       Binary 			*string 
-       Created_at		*string 
-       Host				*string 
-       Description		*string 
-       Id 				*string 
+       Started_at 		*string
+       Heartbeat_timestamp *string
+       Topic 			*string
+       Binary 			*string
+       Created_at		*string
+       Host				*string
+       Description		*string
+       Id 				*string
        Configurations 	ost_net_config
-       Agent_type 		*string 
-       Alive 			bool 
-       Admin_state_up 	bool 
+       Agent_type 		*string
+       Alive 			bool
+       Admin_state_up 	bool
 }
 
 
@@ -302,7 +314,7 @@ type ost_os_port struct {
 // -- ostack_vms.go ---------
 
 /*
-	Openstack has a bug IMHO:  
+	Openstack has a bug IMHO:
 		"addresses": {
 				"xxxx": [ { addr/ip-pairs } ]
 		}
@@ -312,7 +324,7 @@ type ost_os_port struct {
 
 		"addresses": {
 			"network" : [
-				{ 
+				{
 					"id": "<network-name(xxxx)>",
 					"addr":	"<ipaddress>",
 					"version": <addr-version>
@@ -320,16 +332,17 @@ type ost_os_port struct {
 			]
 		}
 
-	In order to dig out the IP address we have to jump through some hoops since we cannot change the 
-	field name in a struct on the fly. Thus, we must declare the Address field as an interface and 
-	parse out the data ignoring the variable name.  We blindly use the first network information that 
-	is presented. 
+	In order to dig out the IP address we have to jump through some hoops since we cannot change the
+	field name in a struct on the fly. Thus, we must declare the Address field as an interface and
+	parse out the data ignoring the variable name.  We blindly use the first network information that
+	is presented.
 */
 
 type ost_vm_addr_pair struct {
 	Addr	string
 	Version int
 }
+
 type ost_vm_addr struct {
 	Network	[]ost_vm_addr_pair
 }
@@ -360,7 +373,7 @@ type ost_vm_server struct {			// we don't use all of the data; fields not includ
 	Created		string
 	Flavor		*ost_vm_flavour
 	Hostid		string
-	//Image		*ost_vm_image		// this is unreliable with respect to expected type so we ignore it until we neede it.
+	//Image		*ost_vm_image		// this is unreliable with respect to expected type so we ignore it until we needed it.
 	Name		string
 	Status		string
 	Tenant_id	string
@@ -374,12 +387,12 @@ type ost_vm_server struct {			// we don't use all of the data; fields not includ
 	//properties <int>
 
 	// these are NOT documented on the openstack site -- sheesh
-	Host_name	string	`json:"OS-EXT-SRV-ATTR:host"`		// who signed off on this field name?  hate openstack.
+	Host_name	string	`json:"OS-EXT-SRV-ATTR:host"`		// who signed off on this field name?
 }
 
 
 /*
-	Service type retured by os-services api call. Meaning of fields is in the doc is in true
+	Service type returned by os-services api call. Meaning of fields is in the doc is in true
 	openstack form: lacking. Most of our interpretations are guesses.
 */
 type ost_service struct {
@@ -413,7 +426,7 @@ type ost_router struct {
 type ost_aggregate struct {
 	Availability_zone 	string
 	Created_at 	string
-	Deleted 	bool 
+	Deleted 	bool
 	Deleted_at 	string
 	Hosts 		[]string
 	Id 			int
@@ -430,7 +443,7 @@ type generic_response struct {
 	Access		*ost_access
 	Aggregates	[]ost_aggregate
 	Error		*error_obj
-	Forbidden	*error_obj					// why rest sucks; error would convey the same thing
+	Forbidden	*error_obj					// couldn't this have been bundled in error?
 	Hosts		[]ost_os_host
     Interfaceattachments	 []ost_ifattach
 	Networks 	[]ost_network
@@ -446,6 +459,12 @@ type generic_response struct {
 }
 
 // -- our structs ----------------------------------------------------------------------------
+
+/*
+	Returned by a call to Authorise() and is used to manage interactions with openstack based
+	on the set of credentials that was passed to Authorise. This struct is the primary target
+	of the majority of the calls in this package.
+*/
 type Ostack struct {
 	token	*string			// authorisation token (could be very very large)
 	small_tok	*string		// small token if the token is absurdly huge (it's the md5 of the huge one)
@@ -462,14 +481,13 @@ type Ostack struct {
 	aregion	*string			// the authenticated region if a keystone is shared between sites
 	project_id	*string
 	user_id *string
-	//tok_cache	map[string]*int64	// cache of user tokens that we've validated; reference is to an expiration time.
-	tok_isadmin	map[string]bool		// maps token to whether or not it was identified as an admin
+	tok_isadmin	map[string]bool	// maps token to whether or not it was identified as an admin
 	isadmin	bool				// true if the authorised user associated with the struct is an admin
 }
 
 /*
 	Certain info about a VM that we dug up. We could pass back the ost_* structure, but this provides
-	insulation between the user app and openstack changes and keeps data private to the struct. 
+	insulation between the user app and openstack changes and keeps data private to the struct.
 */
 type VM_info struct {
 	id			string
@@ -489,18 +507,19 @@ type VM_info struct {
 }
 
 // ---- necessary globals --------------------------------------------------------------------
+
 var (								// counters used by ostack_debug functions -- these apply to all objects!
 	dbug_json_count int = 15		// set >= 10 to prevent json dumping of first 10 calls
 	dbug_url_count int = 15			// set to 10 to prevent url dumping of first 10 calls
 )
 
 /*
-	Build the main object which is then used to drive each type of request. 
+	Build the main object which is then used to drive each type of request.
 
-	Region is the value used to suss out various endpoints. If nil is given, 
-	then the user may call Authorise_region() with a specific region, or 
-	use Authorise() to use the first in the list (default). If region is 
-	provided here, then it is used on a plain Authorise() call, or when 
+	Region is the value used to suss out various endpoints. If nil is given,
+	then the user may call Authorise_region() with a specific region, or
+	use Authorise() to use the first in the list (default). If region is
+	provided here, then it is used on a plain Authorise() call, or when
 	the credentials are reauthenticated.
 */
 func Mk_ostack_region( host *string, user *string, passwd *string, project *string, region *string ) ( o *Ostack ) {
@@ -538,7 +557,7 @@ func Mk_ostack_region( host *string, user *string, passwd *string, project *stri
 }
 
 /*
-	Back compat constructor to default to nil region if it's not important to the user. 
+	Backwardly compatable constructor to default to nil region if it's not important to the user.
 */
 func Mk_ostack( host *string, user *string, passwd *string, project *string ) ( o *Ostack ) {
 	return Mk_ostack_region( host, user, passwd, project, nil )
@@ -583,7 +602,7 @@ const (								// reset iota
 /*
 	Sends a get request to openstack using the host in 'o' with the uri,  then extracts the resulting value if successful.
 	The token, if not nil, is passed in the header. If the token appears to be one of the absurdly huge tokens (> 100 bytes)
-	then we will use the md5 token that was computed during authorisation.  If openstack is returning short tokens, that 
+	then we will use the md5 token that was computed during authorisation.  If openstack is returning short tokens, that
 	cannot be md5'd.
 */
 func (o *Ostack) Send_req( method string, url *string, data *bytes.Buffer ) (jdata []byte, headers map[string][]string, err error) {
@@ -627,7 +646,7 @@ func (o *Ostack) Send_req( method string, url *string, data *bytes.Buffer ) (jda
 }
 
 /*
-	Performs a GET using the url and body (optional) unpacking the resulting json into the 
+	Performs a GET using the url and body (optional) unpacking the resulting json into the
 	structure passed in. Tag is used for error reporting and debugging info written to stderr.
 */
 func (o *Ostack) get_unpacked( url string, body *bytes.Buffer, resp interface{}, tag string ) ( err error ) {
@@ -643,14 +662,14 @@ func (o *Ostack) get_unpacked( url string, body *bytes.Buffer, resp interface{},
 	err = json.Unmarshal( jdata, resp )			// unpack the json into response struct
 	if err != nil {
 		dump_json( tag, 90, jdata )				// dump the offending json up to 90 times
-		return 
+		return
 	}
 
 	return
 }
 
 /*
-	Returns true if this object matches the passed in ID string. 
+	Returns true if this object matches the passed in ID string.
 */
 func (o *Ostack) Equals_id( id *string ) ( bool ) {
 	if o == nil || o.project_id == nil {
@@ -661,7 +680,7 @@ func (o *Ostack) Equals_id( id *string ) ( bool ) {
 }
 
 /*
-	Returns true if this object matches the passed in name string. 
+	Returns true if this object matches the passed in name string.
 */
 func (o *Ostack) Equals_name( name *string ) ( bool ) {
 	if o == nil || o.project == nil {
@@ -691,7 +710,7 @@ func (o *Ostack) Is_expired() ( bool ) {
 }
 
 /*
-	Returns the user name associated with the credntial block.
+	Returns the user name associated with the credential block.
 */
 func (o *Ostack)  Get_user() ( *string ) {
 	if o == nil || o.user == nil {
@@ -701,7 +720,7 @@ func (o *Ostack)  Get_user() ( *string ) {
 	return o.user
 }
 
-/* 
+/*
 	Returns the project name and id
 */
 func (o *Ostack) Get_project( ) ( name *string, id *string ) {
@@ -721,6 +740,7 @@ func (o *Ostack) To_str( ) ( s string ) {
 }
 
 /*
+	Stringer interface.
 	Returns a string with some of the information that is being used to communicate with OpenStack.
 */
 func (o *Ostack) String( ) ( s string ) {

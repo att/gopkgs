@@ -1,9 +1,27 @@
-// vi: sw=4 ts=4:
+//vi: sw=4 ts=4:
+/*
+ ---------------------------------------------------------------------------
+   Copyright (c) 2013-2015 AT&T Intellectual Property
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at:
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+ ---------------------------------------------------------------------------
+*/
+
 
 /*
 ------------------------------------------------------------------------------------------------
 	Mnemonic:	ostack_dump
-	Abstract:	Some generic debugging functions to execute some ostack api call and 
+	Abstract:	Some generic debugging functions to execute some ostack api call and
 				dump the resulting json to standard error.
 					
 
@@ -31,7 +49,7 @@ func (o *Ostack) Dump_cmd_response( cmd string ) ( error ) {
 
 	err := o.Validate_auth()				// reauthorise if needed
 	if err != nil {
-    	fmt.Fprintf( os.Stderr, "unable to validate creds: %s\n", err );               
+    	fmt.Fprintf( os.Stderr, "unable to validate creds: %s\n", err );
 		return err
 	}
 
@@ -44,7 +62,7 @@ func (o *Ostack) Dump_cmd_response( cmd string ) ( error ) {
 	if err != nil {
 		return err
 	}
-    fmt.Fprintf( os.Stderr, "json= %s\n", jdata );               
+    fmt.Fprintf( os.Stderr, "json= %s\n", jdata );
 	return nil
 }
 

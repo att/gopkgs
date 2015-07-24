@@ -1,4 +1,22 @@
-// vi: sw=4 ts=4:
+//vi: sw=4 ts=4:
+/*
+ ---------------------------------------------------------------------------
+   Copyright (c) 2013-2015 AT&T Intellectual Property
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at:
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+ ---------------------------------------------------------------------------
+*/
+
 
 /*
 ------------------------------------------------------------------------------------------------
@@ -10,7 +28,7 @@
 	Mods:		13 Aug 2014 - Changes to List_hosts() to allow multiple types to be supplied,
 					and to work with the network centric list host function now that nova
 					seems decoupled from the network information.
-				04 Nov 2014 - Changes to better support gizzley.
+				04 Nov 2014 - Changes to better support grizzly.
 				04 Dec 2014 - Now supports getting a list of physical hosts that are "enabled"
 					and up (which we assume might not be down for maintenance).
 				24 Jun 2014 - Combined List_hosts and List_enabled_hosts into a single function
@@ -24,7 +42,6 @@ package ostack
 
 import (
 	"bytes"
-	//"encoding/json"
 	"fmt"
 	"strings"
 )
@@ -194,7 +211,7 @@ func (o *Ostack) xx_list_hosts( htype int ) ( hlist *string, err error ) {
 /*
 	This is the real list_hosts/list_enabled_hosts work horse.
 	Returns a list of hosts matching the htype which is an OR'd set of values.
-	If all is true then all hosts encountered are listed, otherwise only the 
+	If all is true then all hosts encountered are listed, otherwise only the
 	enabled/up hosts are listed.
 
 	Lists only hosts associated with services which _might_ just differ from the hosts
@@ -202,7 +219,7 @@ func (o *Ostack) xx_list_hosts( htype int ) ( hlist *string, err error ) {
 	information (running or not seems unimportant etc.), so this list might be more
 	useful as it will return only those hosts that we _think_ are actually alive and
 	well (which might not be true since the state seems based on the openstack software
-	running on the phyiscal host and not the state of the host itself). 
+	running on the physical host and not the state of the host itself).
 */
 func (o *Ostack) list_hosts( htype int, all bool ) ( hlist *string, err error ) {
 	var (
@@ -288,7 +305,7 @@ func (o *Ostack) list_hosts( htype int, all bool ) ( hlist *string, err error ) 
 		bin := strings.ToLower( resp_data.Services[k].Binary )
 		if  match_type[bin] & htype != 0 {								// this type requested on call
 			if !seen[resp_data.Services[k].Host] &&
-				(all || 
+				(all ||
 				 (strings.ToLower( resp_data.Services[k].State ) == "up" &&
 				  strings.ToLower( resp_data.Services[k].Status ) == "enabled")) {
 
@@ -321,7 +338,7 @@ func (o *Ostack) List_hosts( htype int ) ( hlist *string, err error ) {
 
 /*
 	Returns a space separated list of host names as a string. See List_Hosts for a description
-	of values for htype. Only hosts which are indicated as both "up" and "enabled" 
+	of values for htype. Only hosts which are indicated as both "up" and "enabled"
 	are included in the list.
 */
 func (o *Ostack) List_enabled_hosts( htype int ) ( hlist *string, err error ) {

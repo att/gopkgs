@@ -1,4 +1,22 @@
-// vi: sw=4 ts=4:
+//vi: sw=4 ts=4:
+/*
+ ---------------------------------------------------------------------------
+   Copyright (c) 2013-2015 AT&T Intellectual Property
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at:
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+ ---------------------------------------------------------------------------
+*/
+
 
 /*
 ------------------------------------------------------------------------------------------------
@@ -51,7 +69,7 @@ func (o *Ostack) Map_roles( ) ( rmap map[string]*string, err error ) {
 
 	url := *o.iahost + "v2.0/OS-KSADM/roles";
 	dump_url( "map-roles", 10, url )
-	jdata, _, err := o.Send_req( "GET",  &url, body ); 
+	jdata, _, err := o.Send_req( "GET",  &url, body );
 	dump_json( "map-roles", 10, jdata )
 
 	if err != nil {
@@ -88,7 +106,7 @@ func (o *Ostack) Map_roles( ) ( rmap map[string]*string, err error ) {
 
 /*
 	Map the roles assigned to the user and given project (must be id). If pid is nil then
-	the project ID associated with the struct (returned on auth) will be used. 
+	the project ID associated with the struct (returned on auth) will be used.
 */
 func (o *Ostack) Map_user_roles( pid *string ) ( rmap map[string]*string, err error ) {
 	var (
@@ -111,11 +129,11 @@ func (o *Ostack) Map_user_roles( pid *string ) ( rmap map[string]*string, err er
 
 	if pid == nil {
 		pid = o.project_id			// this project if not given by caller
-	} 
+	}
 
 	url := fmt.Sprintf( "%s/v2.0/tenants/%s/users/%s/roles", *o.iahost, *pid, *o.user_id )
 	dump_url( "map-uroles", 10, url )
-	jdata, _, err := o.Send_req( "GET",  &url, body ); 
+	jdata, _, err := o.Send_req( "GET",  &url, body );
 	dump_json( "map-uroles", 10, jdata )
 
 	if err != nil {
@@ -174,7 +192,7 @@ func (o *Ostack) Map_user_groles( ) ( rmap map[string]*string, err error ) {
 
 	url := fmt.Sprintf( "%s/users/%s/roles", *o.iahost, *o.user_id )
 	dump_url( "map-groles", 100, url )
-	jdata, _, err := o.Send_req( "GET",  &url, body ); 
+	jdata, _, err := o.Send_req( "GET",  &url, body );
 	dump_json( "map-groles", 10, jdata )
 
 	if err != nil {

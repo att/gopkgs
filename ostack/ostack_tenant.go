@@ -1,4 +1,22 @@
-// vi: sw=4 ts=4:
+//vi: sw=4 ts=4:
+/*
+ ---------------------------------------------------------------------------
+   Copyright (c) 2013-2015 AT&T Intellectual Property
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at:
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+ ---------------------------------------------------------------------------
+*/
+
 
 /*
 ------------------------------------------------------------------------------------------------
@@ -10,7 +28,7 @@
 
 	Date:		06 June 2014
 	Author:		E. Scott Daniels
-	Mod:		07 Jun 2014 - Added cache to prevent trashing openstack on validation requests. 
+	Mod:		07 Jun 2014 - Added cache to prevent trashing openstack on validation requests.
 				16 Jun 2014 - Added support for verifying admin privs on the token
 				19 Jun 2014 - Corrected bug in the token validation that wasn't checking that the
 					project name on the token matches the project in the struct.
@@ -31,7 +49,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	//"os"
 )
 
 // ------------- structs that are used to unbundle the json auth response data -------------------
@@ -40,9 +57,9 @@ import (
 // ------------------------------------------------------------------------------
 
 /*
-	Run a list of roles and return true if the named role is in the list. 
-	Caution: this seems to be dodgy as openstack never seems to flip the admin 
-			flag on even when the ID is an admin. 
+	Run a list of roles and return true if the named role is in the list.
+	Caution: this seems to be dodgy as openstack never seems to flip the admin
+			flag on even when the ID is an admin.
 */
 func find_role( list []*ost_role, r string ) ( bool ) {
 	for i := range list {
@@ -60,7 +77,7 @@ func find_role( list []*ost_role, r string ) ( bool ) {
 	Uses keystone to map all of the known tenants, not just the one that the token
 	has been assigned to.  If the identity admin host (iahost) isn't specificed when
 	the ostack struct was created and authorised, then this function is just a passthrough
-	to the map tenants function and will return just a list of tenants that the 
+	to the map tenants function and will return just a list of tenants that the
 	user has the ability to see rather than a list of all tenants.
 */
 func (o *Ostack) Map_all_tenants( ) ( name2id map[string]*string, id2name map[string]*string, err error ) {
@@ -133,7 +150,7 @@ func (o *Ostack) Map_tenants( ) ( name2id map[string]*string, id2name map[string
 
 	body := bytes.NewBufferString( "" )
 
-	url := *o.host + "v2.0/tenants"					// be warned: the openstack doc is not consistant or clear and suggests another url for this
+	url := *o.host + "v2.0/tenants"					// be warned: the openstack doc is not consistent or clear and suggests another url for this
     dump_url( "map-tenants", 10, url )
     jdata, _, err := o.Send_req( "GET",  &url, body );
 	dump_json( "tenants", 10, jdata )
@@ -166,9 +183,9 @@ func (o *Ostack) Map_tenants( ) ( name2id map[string]*string, id2name map[string
 
 
 /*
-	Given a token, return the name of the project that is associated with it, or 
-	nil if the toekn isn't valid.  Returns error if there are issues getting 
-	info from openstack. 
+	Given a token, return the name of the project that is associated with it, or
+	nil if the toekn isn't valid.  Returns error if there are issues getting
+	info from openstack.
 */
 func (o *Ostack) Token2project( token *string ) ( project *string, id *string, err error ) {
 	var (
@@ -180,7 +197,7 @@ func (o *Ostack) Token2project( token *string ) ( project *string, id *string, e
 		return nil, nil, fmt.Errorf( "no openstack creds (nil)" )
 	}
 
-	if len( *token ) > 100 {					// probalby one of those absurdly huge tokens; take the md5
+	if len( *token ) > 100 {					// probably one of those absurdly huge tokens; take the md5
 		small_tok = str2md5_str( *token )
 	} else {
 		small_tok = token

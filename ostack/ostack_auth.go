@@ -1,18 +1,36 @@
-// vi: sw=4 ts=4:
+//vi: sw=4 ts=4:
+/*
+ ---------------------------------------------------------------------------
+   Copyright (c) 2013-2015 AT&T Intellectual Property
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at:
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+ ---------------------------------------------------------------------------
+*/
+
 
 /*
 ------------------------------------------------------------------------------------------------
 	Mnemonic:	ostack_auth
-	Abstract:	Interface to ostack to do authorisation and authroisation (endpoint) related
+	Abstract:	Interface to ostack to do authorisation and authorisation (endpoint) related
 				things.
-	Date:		24 Octoberr 2013
+	Date:		24 October 2013
 	Authors:	E. Scott Daniels, Matti Hiltnuen, Kaustubh Joshi
 
 	Mods:		23 Apr 2014 - Added support for tenant id.
 				18 Jun 2014 - Added generic token validation.
-				28 Jul 2014 - Changed tenant_id to project ID. 
-				16 Aug 2014 - Now pick up exact token expiry time. 
-				30 Sep 2014 - Added check to determin if 'admin' privs exist for the user.
+				28 Jul 2014 - Changed tenant_id to project ID.
+				16 Aug 2014 - Now pick up exact token expiry time.
+				30 Sep 2014 - Added check to determine if 'admin' privs exist for the user.
 				23 Oct 2014 - Added expire function call.
 				28 Oct 2014 - Added support for identity requests as admin.
 							Added endpoint function.
@@ -33,15 +51,10 @@
 package ostack
 
 import (
-	//"bufio"
 	"bytes"
 	"crypto/md5"
-	//"encoding/hex"
 	"encoding/json"
 	"fmt"
-	//"io/ioutil"
-	//"net/http"
-	//"net/url"
 	"os"
 	"strings"
 	"time"
@@ -64,8 +77,8 @@ func str2md5_str( src string ) ( *string ) {
 }
 
 /*
-	Strip the version string (e.g. v2.0) from the url passed in and return a poitner to the 
-	stripped version.  If the url passed in doesn't have a trailing /v.* then we'll return a 
+	Strip the version string (e.g. v2.0) from the url passed in and return a pointer to the
+	stripped version.  If the url passed in doesn't have a trailing /v.* then we'll return a
 	pointer to it as is.
 */
 func strip_ver( url string ) ( *string ) {
@@ -82,10 +95,10 @@ func strip_ver( url string ) ( *string ) {
 
 /*
 	Sends an authorisation request to OpenStack and waits for it to return a
-	token that can be used on subsequent calls.  Err is set to non-nil if 
-	the credentials fail to authorise.   Region points to a string used to 
+	token that can be used on subsequent calls.  Err is set to non-nil if
+	the credentials fail to authorise.   Region points to a string used to
 	identify the "region" of the keystone authorisation catalogue that should
-	be used to snarf URLs for things.  If it is nil, or points to "", then 
+	be used to snarf URLs for things.  If it is nil, or points to "", then
 	the first entry in the catalogue is used.
 */
 func (o *Ostack) Authorise_region( region *string ) ( err error ) {
@@ -110,7 +123,7 @@ func (o *Ostack) Authorise_region( region *string ) ( err error ) {
 
 	url := *o.host + "v2.0/tokens"
 	dump_url( "authorise", 10, url )
-	jdata, _, err := o.Send_req( "POST",  &url, body ); 
+	jdata, _, err := o.Send_req( "POST",  &url, body );
 	dump_json( "authorise", 10, jdata )
 
 	if err != nil {
@@ -149,7 +162,7 @@ func (o *Ostack) Authorise_region( region *string ) ( err error ) {
 	}
 
 	o.token = &auth_data.Access.Token.Id
-	if len( *o.token ) > 100 { 					// take the md5 only if it's huge, othewise we'll use the original here too
+	if len( *o.token ) > 100 { 					// take the md5 only if it's huge, otherwise we'll use the original here too
 		o.small_tok = str2md5_str( *o.token )
 	} else {
 		o.small_tok = o.token
@@ -168,7 +181,7 @@ func (o *Ostack) Authorise_region( region *string ) ( err error ) {
 		region = o.aregion								// use what was seeded on the Mk_ostack() call
 	}
 
-	for i := range auth_data.Access.Servicecatalog {	// find the compute service stuff and pull the url to reach it 
+	for i := range auth_data.Access.Servicecatalog {	// find the compute service stuff and pull the url to reach it
 		cat := auth_data.Access.Servicecatalog[i]
 
 		r := 0
@@ -176,7 +189,7 @@ func (o *Ostack) Authorise_region( region *string ) ( err error ) {
 			for _ = range cat.Endpoints {				// find the region that matches the name given
 				if cat.Endpoints[r].Region == *region {
 					break
-				} 
+				}
 				r++
 			}
 		}
@@ -225,17 +238,17 @@ func (o *Ostack) Authorise_region( region *string ) ( err error ) {
 }
 
 /*
-	Backward compatable -- authorises for what ever is first in the list from a region perspective.
+	Backward compatible -- authorises for what ever is first in the list from a region perspective.
 */
 func (o *Ostack) Authorise( ) ( err error ) {
 	return o.Authorise_region( nil )
 }
 
 // version 3 authorisation such a lovely example of backwards compatibility -- NOT!
-//`{ "auth": { "identity": { "methods": [ "password" ], "password": { "user": { "id": %q, "password": %q, } } } } }`, 
+//`{ "auth": { "identity": { "methods": [ "password" ], "password": { "user": { "id": %q, "password": %q, } } } } }`,
 
 /*
-	Check to see if we think we are expired and if so, reexecute the authorisation. 
+	Check to see if we think we are expired and if so, reexecute the authorisation.
 	(This is probably not needed as an external interfac, but might be convenient if
 	an application wants to pre-authorise while doing other initialisation in parallel
 	in order to speed things up.)
@@ -306,14 +319,14 @@ func ( o *Ostack ) Isadmin( ) ( bool ) {
 }
 
 /*
-	Validate a token that is NOT associated with the credential block and optionally 
-	checks  to see if it was issued for a specific user. Returns an error struct if 
-	it is not valid, otherwise it will return nil. 
+	Validate a token that is NOT associated with the credential block and optionally
+	checks  to see if it was issued for a specific user. Returns an error struct if
+	it is not valid, otherwise it will return nil.
 
 	Usr_match is a pointer to either the user name or the Openstack ID and if supplied
 	will be matched against the data returned for the token.  If either the user name
-	or ID returned matches, then the result is valid and the error return will be nil. 
-	If usr_match is not given (nil), then the reult is good if there is no error 
+	or ID returned matches, then the result is valid and the error return will be nil.
+	If usr_match is not given (nil), then the reult is good if there is no error
 	generated by openstack.
 
 	This does NOT validate against a specific project.
@@ -340,7 +353,7 @@ func (o *Ostack) Token_validation( token *string, usr_match *string ) ( expiry i
 	body := bytes.NewBufferString( rjson )
 
 	url := *o.host + "v2.0/tokens"
-	jdata, _, err := o.Send_req( "POST",  &url, body ); 
+	jdata, _, err := o.Send_req( "POST",  &url, body );
 	//fmt.Fprintf( os.Stderr, ">>>token-valid json= %s\n", jdata );				// TESTING/verification
 	dump_json( "token-valid", 10, jdata )
 
@@ -360,7 +373,7 @@ func (o *Ostack) Token_validation( token *string, usr_match *string ) ( expiry i
 			if usr_match != nil {
 				if response_data.Access.User != nil {
 					if response_data.Access.User.Username != *usr_match && response_data.Access.User.Id != *usr_match {
-						err = fmt.Errorf( "token is not valid: token was generated for %s/%s which is not the indiated user: %s", response_data.Access.User.Username, response_data.Access.User.Id, *usr_match )
+						err = fmt.Errorf( "token is not valid: token was generated for %s/%s which is not the indicated user: %s", response_data.Access.User.Username, response_data.Access.User.Id, *usr_match )
 					} else {
 						expiry, err = Unix_time( &response_data.Access.Token.Expires )			// convert openstack human time string to timestamp
 						if err != nil {

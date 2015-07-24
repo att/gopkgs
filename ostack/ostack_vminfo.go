@@ -1,4 +1,22 @@
-// vi: sw=4 ts=4:
+//vi: sw=4 ts=4:
+/*
+ ---------------------------------------------------------------------------
+   Copyright (c) 2013-2015 AT&T Intellectual Property
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at:
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+ ---------------------------------------------------------------------------
+*/
+
 
 /*
 ------------------------------------------------------------------------------------------------
@@ -23,7 +41,7 @@ import (
 /*
 	Returns a map of VM information keyed by VM id.
 	If umap is passed in (not nil), then the information is added to that map, otherwise
-	a new map is created. 
+	a new map is created.
 */
 func (o *Ostack) Map_vm_info( umap map[string]*VM_info ) ( info map[string]*VM_info, err error ) {
 	var (
@@ -52,7 +70,7 @@ func (o *Ostack) Map_vm_info( umap map[string]*VM_info ) ( info map[string]*VM_i
 
 	url := *o.chost + "/servers/detail"
 	dump_url( "get_vm_info", 10, url )
-	jdata, _, err = o.Send_req( "GET",  &url, body ) 
+	jdata, _, err = o.Send_req( "GET",  &url, body )
 	dump_json( "get_vm_info", 10, jdata )
 
 	if err != nil {
@@ -66,7 +84,7 @@ func (o *Ostack) Map_vm_info( umap map[string]*VM_info ) ( info map[string]*VM_i
 	}
 
 
-	// TODO -- add address information 
+	// TODO -- add address information
 	for i := range vm_data.Servers {							// for each vm
 		vm := vm_data.Servers[i]
 		id := vm.Id
@@ -77,7 +95,7 @@ func (o *Ostack) Map_vm_info( umap map[string]*VM_info ) ( info map[string]*VM_i
 			flavour:	vm.Flavor.Id,
 			hostid:		vm.Hostid,
 			host_name:	vm.Host_name,
-			//image:		vm.Image.Id,						// due to openstack inconsitency we don't grab the image info
+			//image:		vm.Image.Id,						// due to openstack inconsistency we don't grab the image info
 			name:		vm.Name,
 			status:		vm.Status,
 			tenant_id:	vm.Tenant_id,
@@ -186,7 +204,7 @@ func (vi *VM_info) Get_terminated() ( string ) {
 
 
 /*
-	Implements the string interface. 
+	Implements the string interface.
 */
 func (vi *VM_info) String() ( string ) {
 	s := ""
@@ -194,7 +212,7 @@ func (vi *VM_info) String() ( string ) {
 		return s
 	}	
 
-	return fmt.Sprintf( "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s", 
+	return fmt.Sprintf( "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s",
 			vi.id, vi.name, vi.hostid, vi.host_name, vi.status,
 			vi.tenant_id, vi.flavour, vi.image, vi.zone, vi.created,
 			vi.launched, vi.updated, vi.terminated )
@@ -209,7 +227,7 @@ func (vi *VM_info) To_json() ( string ) {
 		return "{ }"
 	}	
 
-	return fmt.Sprintf( `{ "id": %q, "name": %q, "hostid": %q, "host_name": %q, "status": %q, "tenant_id": %q, "flavour": %q, "image": %q, "zone": %q, "created": %q, "launched": %q, "updated": %q, "terminated": %q }`, 
+	return fmt.Sprintf( `{ "id": %q, "name": %q, "hostid": %q, "host_name": %q, "status": %q, "tenant_id": %q, "flavour": %q, "image": %q, "zone": %q, "created": %q, "launched": %q, "updated": %q, "terminated": %q }`,
 			vi.id, vi.name, vi.hostid, vi.host_name, vi.status, vi.tenant_id, vi.flavour, vi.image, vi.zone, vi.created,
 			vi.launched, vi.updated, vi.terminated )
 }

@@ -1,22 +1,40 @@
-// vi: sw=4 ts=4:
+//vi: sw=4 ts=4:
+/*
+ ---------------------------------------------------------------------------
+   Copyright (c) 2013-2015 AT&T Intellectual Property
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at:
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+ ---------------------------------------------------------------------------
+*/
+
 
 /*
 ------------------------------------------------------------------------------------------------
 	Mnemonic:	ostack_crack
 	Abstract:	Functions that involve cracking open a token and returning an Ostack_tstuff
-				structure to the user.   There aren't any specific functions to maniuplate 
+				structure to the user.   There aren't any specific functions to manipulate
 				the tstuff stuct, but there might be so it's off in its own module.
 
 				CAUTION: 	this uses the v3 interface since the same call in v2 returned
 							useless information. Also, the V3 doesn't return any useful
 							information in some environments either.
 
-	Date:		03 April 2015 
+	Date:		03 April 2015
 	Authors:	E. Scott Daniels
 
 	Mods:
 				13 Apr 2015 - Converted to more generic error structure use.
-				10 Jul 2015 - Added specific v3/v2 calls since the v3 call doesn't seem to 
+				10 Jul 2015 - Added specific v3/v2 calls since the v3 call doesn't seem to
 						provide useful role information in all cases.
 ------------------------------------------------------------------------------------------------
 */
@@ -41,15 +59,15 @@ type Ostack_tstuff struct  {
 	Expiry	int64
 }
 
-// ----- externally visiable wrappers to the generic crack function -----------------------------------
+// ----- externally visible wrappers to the generic crack function -----------------------------------
 
 /*
 	Accepts a token and sends a query to openstack to crack it open. Returns a structure with exposed
 	fields for the caller to digest. (There are no functions associated with the cracked info structure.)
 
-	This is the generic crack funtion and as such the following defaults apply:
+	This is the generic crack function and as such the following defaults apply:
 		- openstack indentity version 2 interface is used
-		- the project associated with the ostack struct used on the call is provided to 
+		- the project associated with the ostack struct used on the call is provided to
 		  scope the request.
 
 	See Crack_ptoken for ways to change the defaults.
@@ -62,7 +80,7 @@ func (o *Ostack) Crack_token( token *string ) ( stuff *Ostack_tstuff, err error 
 	Accepts a token and sends a query to openstack to crack it open. Returns a structure with exposed
 	fields for the caller to digest. (There are no functions associated with the cracked info structure.)
 
-	The use_v3 parameter causes the openstack indentity version 3 interface to be used in place of the 
+	The use_v3 parameter causes the openstack indentity version 3 interface to be used in place of the
 	version 2 interface.
 	
 */
@@ -72,12 +90,12 @@ func (o *Ostack) Crack_ptoken( token *string, project *string, use_v3 bool ) ( s
 
 /*
 	Accepts a token and project and has a go at cracking open the token. If successful, a struct is
-	returned containing useful information from the token.  The struct's fields are all visible to 
+	returned containing useful information from the token.  The struct's fields are all visible to
 	the user; there are no other functions associated with a stuff structure.
 */
 func (o *Ostack) crack_token( token *string, project *string, use_v3 bool ) ( stuff *Ostack_tstuff, err error ) {
 	var (
-		rjson string						// request body to send 
+		rjson string						// request body to send
 	)
 
 	if o == nil ||  o.user == nil || o.passwd == nil {
@@ -106,7 +124,7 @@ func (o *Ostack) crack_token( token *string, project *string, use_v3 bool ) ( st
 	}
 
 	dump_url( "token-crack", 10, url + " " +  body.String() )
-	jdata, _, err := o.Send_req( "POST",  &url, body ); 
+	jdata, _, err := o.Send_req( "POST",  &url, body );
 	dump_json( "token-crack", 10, jdata )
 
 	if err != nil {	
@@ -114,7 +132,7 @@ func (o *Ostack) crack_token( token *string, project *string, use_v3 bool ) ( st
 	}
 
 	if use_v3 {
-		var response_data	osv3_generic					// version 3 format not compatable with v2
+		var response_data	osv3_generic					// version 3 format not compatible with v2
 
 		err = json.Unmarshal( jdata, &response_data )			// unpack the json into response data
 		if err != nil {
@@ -139,7 +157,7 @@ func (o *Ostack) crack_token( token *string, project *string, use_v3 bool ) ( st
 					for i := range  response_data.Token.Roles {
 						stuff.Roles[response_data.Token.Roles[i].Name] = true
 					}
-				} 
+				}
 	
 			} else {
 				err = fmt.Errorf( "token is not valid: response from openstack did not contain valid data: missing user information" )
@@ -148,7 +166,7 @@ func (o *Ostack) crack_token( token *string, project *string, use_v3 bool ) ( st
 			err = fmt.Errorf( "token is not valid: %s\n", response_data.Error )
 		}
 	} else {
-		var response_data	generic_response			// version 2 format not compatable with v3
+		var response_data	generic_response			// version 2 format not compatible with v3
 
 		err = json.Unmarshal( jdata, &response_data )			// unpack the json into response data
 		if err != nil {
@@ -173,7 +191,7 @@ func (o *Ostack) crack_token( token *string, project *string, use_v3 bool ) ( st
 					for i := range  response_data.Access.User.Roles {
 						stuff.Roles[response_data.Access.User.Roles[i].Name] = true
 					}
-				} 
+				}
 	
 			} else {
 				err = fmt.Errorf( "token is not valid: v2 response from openstack did not contain valid data: missing user information" )
