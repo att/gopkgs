@@ -25,7 +25,7 @@ import (
 	"os"
 	"fmt"
 
-	"codecloud.web.att.com/gopkgs/bleater"
+	"github.com/gopkgs/bleater"
 )
 
 /*

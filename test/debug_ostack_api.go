@@ -38,7 +38,7 @@ import (
 	"time"
 	"strings"
 
-	"codecloud.web.att.com/gopkgs/ostack"
+	"github.com/gopkgs/ostack"
 )
 
 func find_in_list( list *string, target *string ) {
