@@ -26,7 +26,7 @@ import (
 	"strings"
 	"testing"
 
-	"codecloud.web.att.com/gopkgs/token"
+	"github.com/gopkgs/token"
 )
 
 func TestToken_count( t *testing.T ) {

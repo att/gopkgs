@@ -35,7 +35,7 @@ import (
 	"encoding/json"
 	"os/exec"
 
-	"codecloud.web.att.com/gopkgs/token"
+	"github.com/gopkgs/token"
 )
 
 

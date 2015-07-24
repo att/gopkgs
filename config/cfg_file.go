@@ -39,8 +39,8 @@ import (
 	"os"
 	"strings"
 
-	"codecloud.web.att.com/gopkgs/clike"
-	"codecloud.web.att.com/gopkgs/token"
+	"github.com/gopkgs/clike"
+	"github.com/gopkgs/token"
 )
 
 

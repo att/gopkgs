@@ -25,7 +25,7 @@ import (
 	"fmt"
 	"os"
 
-	"codecloud.web.att.com/gopkgs/config"
+	"github.com/gopkgs/config"
 )
 
 func TestConfig( t *testing.T ) {

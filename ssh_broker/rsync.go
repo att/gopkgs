@@ -37,7 +37,7 @@ import (
     "fmt"
 	"os"
 
-	"codecloud.web.att.com/gopkgs/extcmd"
+	"github.com/gopkgs/extcmd"
 )
 
 /*

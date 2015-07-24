@@ -25,7 +25,7 @@ import (
 	"testing"
 	"os"
 
-	"codecloud.web.att.com/gopkgs/jsontools"
+	"github.com/gopkgs/jsontools"
 )
 
 func TestJsonblob( t *testing.T ) {

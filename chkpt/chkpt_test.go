@@ -25,7 +25,7 @@ import (
 	"time"
 	"testing"
 
-	"codecloud.web.att.com/gopkgs/chkpt"
+	"github.com/gopkgs/chkpt"
 )
 
 func TestChkpt( t *testing.T ) {

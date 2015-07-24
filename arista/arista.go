@@ -42,7 +42,7 @@ import (
 	"net/http"
 	"os"
 
-	"codecloud.web.att.com/gopkgs/jsontools"
+	"github.com/gopkgs/jsontools"
 )
 
 

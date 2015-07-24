@@ -31,7 +31,7 @@ import (
 	"os"
 	"testing"
 
-	"codecloud.web.att.com/gopkgs/extcmd"
+	"github.com/gopkgs/extcmd"
 )
 
 func TestExec( t *testing.T ) {

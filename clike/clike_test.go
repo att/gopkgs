@@ -25,7 +25,7 @@ package clike_test
 
 import (
 	"testing"
-	"codecloud.web.att.com/gopkgs/clike"
+	"github.com/gopkgs/clike"
 )
 
 func TestAtoll ( t *testing.T ) {           // must use bloody camel case to be recognised by go testing

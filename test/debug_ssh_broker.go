@@ -34,7 +34,7 @@ import (
 	"os"
 	"strings"
 
-	"codecloud.web.att.com/gopkgs/ssh_broker"		// CAUTION: ssh_broker requires a fairly recent version of go
+	"github.com/gopkgs/ssh_broker"		// CAUTION: ssh_broker requires a fairly recent version of go
 )
 
 

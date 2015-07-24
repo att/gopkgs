@@ -26,7 +26,7 @@ import (
 	"os"
 	"strings"
 
-	"codecloud.web.att.com/gopkgs/jsontools"
+	"github.com/gopkgs/jsontools"
 )
 
 func TestJsontools( t *testing.T ) {
@@ -36,97 +36,6 @@ func TestJsontools( t *testing.T ) {
 		blob []byte
 	)
 
-	//json = `{"00:00:00:00:00:00:00:02":{"FM1382646257_18326":{"version":1,"type":"FLOW_MOD","length":88,"xid":0,"match":{"dataLayerDestination":"00:00:00:00:00:00","dataLayerSource":"00:00:00:00:00:00","dataLayerType":"0x0800","dataLayerVirtualLan":-1,"dataLayerVirtualLanPriorityCodePoint":0,"inputPort":0,"networkDestination":"0.0.0.0","networkDestinationMaskLen":0,"networkProtocol":0,"networkSource":"10.0.0.2","networkSourceMaskLen":32,"networkTypeOfService":0,"transportDestination":0,"transportSource":0,"wildcards":4178159},"cookie":45035996273704960,"command":0,"idleTimeout":0,"hardTimeout":0,"priority":32767,"bufferId":-1,"outPort":-1,"flags":0,"actions":[{"type":"SET_TP_DST","length":8,"transportPort":1,"lengthU":8},{"type":"OUTPUT","length":8,"port":-6,"maxLength":32767,"lengthU":8}],"lengthU":88}},"00:00:00:00:00:00:00:01":{"FM1382536816_1011":{"version":1,"type":"FLOW_MOD","length":88,"xid":0,"match":{"dataLayerDestination":"00:00:00:00:00:00","dataLayerSource":"00:00:00:00:00:00","dataLayerType":"0x0800","dataLayerVirtualLan":-1,"dataLayerVirtualLanPriorityCodePoint":0,"inputPort":0,"networkDestination":"0.0.0.0","networkDestinationMaskLen":0,"networkProtocol":0,"networkSource":"10.0.0.2","networkSourceMaskLen":32,"networkTypeOfService":0,"transportDestination":0,"transportSource":0,"wildcards":4178159},"cookie":45035996273704960,"command":0,"idleTimeout":0,"hardTimeout":0,"priority":32767,"bufferId":-1,"outPort":-1,"flags":0,"actions":[{"type":"SET_TP_DST","length":8,"transportPort":1,"lengthU":8},{"type":"OUTPUT","length":8,"port":-6,"maxLength":32767,"lengthU":8}],"lengthU":88}}}`;
-
-/*
-json = `{
-    "access":{
-        "token":{
-            "id":"ab48a9efdfedb23ty3494",
-            "expires":"2010-11-01T03:32:15-05:00",
-            "tenant":{
-                "id": "t1000",
-                "name": "My Project"
-            }
-        },
-        "user":{
-            "id":"u123",
-            "name":"jqsmith",
-            "roles":[{
-                    "id":"100",
-                    "name":"compute:admin"
-                },
-				{
-                    "id":"101",
-                    "name":"object-store:admin",
-                    "tenantId":"t1000"
-                }
-            ],
-            "roles_links":[]
-        },
-        "serviceCatalog":[{
-                "name":"Cloud Servers",
-                "type":"compute",
-                "endpoints":[{
-                        "tenantId":"t1000",
-                        "publicURL":"https://compute.north.host.com/v1/t1000",
-                        "internalURL":"https://compute.north.internal/v1/t1000",
-                        "region":"North",
-                        "versionId":"1",
-                        "versionInfo":"https://compute.north.host.com/v1/",
-                        "versionList":"https://compute.north.host.com/"
-                    },
-                    {
-                        "tenantId":"t1000",
-                        "publicURL":"https://compute.north.host.com/v1.1/t1000",
-                        "internalURL":"https://compute.north.internal/v1.1/t1000",
-                        "region":"North",
-                        "versionId":"1.1",
-                        "versionInfo":"https://compute.north.host.com/v1.1/",
-                        "versionList":"https://compute.north.host.com/"
-                    }
-                ],
-                "endpoints_links":[]
-            },
-            {
-                "name":"Cloud Files",
-                "type":"object-store",
-                "endpoints":[{
-                        "tenantId":"t1000",
-                        "publicURL":"https://storage.north.host.com/v1/t1000",
-                        "internalURL":"https://storage.north.internal/v1/t1000",
-                        "region":"North",
-                        "versionId":"1",
-                        "versionInfo":"https://storage.north.host.com/v1/",
-                        "versionList":"https://storage.north.host.com/"
-                    },
-                    {
-                        "tenantId":"t1000",
-                        "publicURL":"https://storage.south.host.com/v1/t1000",
-                        "internalURL":"https://storage.south.internal/v1/t1000",
-                        "region":"South",
-                        "versionId":"1",
-                        "versionInfo":"https://storage.south.host.com/v1/",
-                        "versionList":"https://storage.south.host.com/"
-                    }
-                ]
-            },
-            {
-                "name":"DNS-as-a-Service",
-                "type":"dnsextension:dns",
-                "endpoints":[{
-                        "tenantId":"t1000",
-                        "publicURL":"https://dns.host.com/v2.0/t1000",
-                        "versionId":"2.0",
-                        "versionInfo":"https://dns.host.com/v2.0/",
-                        "versionList":"https://dns.host.com/"
-                    }
-                ]
-            }
-        ]
-    }
-}`
-*/
 
 json = `{
     "servers": [

@@ -26,7 +26,7 @@ import (
 	"testing"
 	"time"
 
-	"codecloud.web.att.com/gopkgs/ipc"
+	"github.com/gopkgs/ipc"
 )
 
 func TestIpc( t *testing.T ) {
