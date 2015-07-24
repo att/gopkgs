@@ -1,4 +1,22 @@
-// vi: sw=4 ts=4:
+//vi: sw=4 ts=4:
+/*
+ ---------------------------------------------------------------------------
+   Copyright (c) 2013-2015 AT&T Intellectual Property
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at:
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+ ---------------------------------------------------------------------------
+*/
+
 
 package config_test
 
@@ -35,12 +53,12 @@ func TestConfig( t *testing.T ) {
 				default:
 			}
 		}
-	} 
+	}
 
 	smap := sects["default"]
-	fmt.Fprintf( os.Stderr, "qfoo=== (%s)\n", *(smap["qfoo"].(*string)) ); 
-	fmt.Fprintf( os.Stderr, "ffoo=== %8.2f\n", smap["ffoo"].(float64) ); 
-	fmt.Fprintf( os.Stderr, "jfoo=== (%s)\n", *(smap["jfoo"].(*string)) ); 
+	fmt.Fprintf( os.Stderr, "qfoo=== (%s)\n", *(smap["qfoo"].(*string)) );
+	fmt.Fprintf( os.Stderr, "ffoo=== %8.2f\n", smap["ffoo"].(float64) );
+	fmt.Fprintf( os.Stderr, "jfoo=== (%s)\n", *(smap["jfoo"].(*string)) );
 }
 
 /*
@@ -54,7 +72,7 @@ func TestStrings( t *testing.T ) {
 
 	my_map = make( map[string]map[string]*string );
 	my_map["default"] = make( map[string]*string );
-	dup = "should be ovelaid by config file info";				// should be overridden
+	dup = "should be overlaid by config file info";				// should be overridden
 	my_map["default"]["ffoo"] = &dup;
 	dup = "initial value, should exist after read";
 	my_map["default"]["init-val"] = &dup;
@@ -73,11 +91,11 @@ fmt.Fprintf( os.Stderr, ">>>>> parsing\n" )
 		for key, value := range smap {
 			fmt.Fprintf( os.Stderr, "\t%s = (%s)\n", key, *value );
 		}
-	} 
+	}
 
 	smap := sects["default"]									// can be referenced two different ways
-	fmt.Fprintf( os.Stderr, "qfoo=== (%s)\n", *smap["qfoo"] ); 
-	fmt.Fprintf( os.Stderr, "ffoo=== (%s)\n", *smap["ffoo"] ); 
-	fmt.Fprintf( os.Stderr, "ffoo=== (%s)\n", *sects["default"]["ffoo"] ); 
+	fmt.Fprintf( os.Stderr, "qfoo=== (%s)\n", *smap["qfoo"] );
+	fmt.Fprintf( os.Stderr, "ffoo=== (%s)\n", *smap["ffoo"] );
+	fmt.Fprintf( os.Stderr, "ffoo=== (%s)\n", *sects["default"]["ffoo"] );
 }
 

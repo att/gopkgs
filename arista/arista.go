@@ -1,4 +1,23 @@
-/* 
+//vi: sw=4 ts=4:
+/*
+ ---------------------------------------------------------------------------
+   Copyright (c) 2013-2015 AT&T Intellectual Property
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at:
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+ ---------------------------------------------------------------------------
+*/
+
+/*
 	Mnemonic:	arista
 	Abstract: 	Support for interfacing with the arista eAPI.
 
@@ -10,7 +29,7 @@
 */
 
 /*
-The arista package contains several methods which allow an application to easily 
+The arista package contains several methods which allow an application to easily
 send requests to an Arista switch which is configured with its HTTPs API enabled.
 */
 package arista
@@ -32,9 +51,9 @@ type Arista_api struct {
 }
 
 /*
-	Single switch interface data.  This struct contains a very liminted amount of 
+	Single switch interface data.  This struct contains a very limited amount of
 	information that is returned by the switch for a single interface (port). All
-	fields are available directly to the user. 
+	fields are available directly to the user.
 */
 type Swif struct {						// a subset of stuff from a single interface section of output from switch
 	Name		string					// all fields are exposed since caller will likely be using them directly
@@ -49,7 +68,7 @@ type Swif struct {						// a subset of stuff from a single interface section of 
 
 // -- a small bit of (private) specialised http support ----------------------------------------------------
 /*
-	Build a client struct that is set to discard the certificate that is received when 
+	Build a client struct that is set to discard the certificate that is received when
 	accessing https sites.  The arista switch doesn't have a valid cert, and this keeps
 	us from having to load and manage the cert on any machine where we may need to access
 	the switch.
@@ -132,7 +151,7 @@ func getresult( jif interface{}, idx int, rname string ) (map[string]interface{}
 
 /*
 	Mk_aristaif creates a small object which is then used for all requests to a specific
-	switch.  
+	switch.
 */
 func Mk_aristaif( usr *string, pw *string, host *string, port *string ) (aif * Arista_api) {
 
@@ -151,16 +170,16 @@ func Mk_aristaif( usr *string, pw *string, host *string, port *string ) (aif * A
 	If text request is true, we change the format to text in the request. (There are some
 	Arista commands that do not support returning json output and thus the text_req
 	paramter must be set to true in order for the command to work.  Err will be non-nil
-	if any error was detected. 
+	if any error was detected.
 
-	The cmds paramter is a chain of commands to be executed by the switch API.  Each command
-	must be supplied as a quoted substring, and if multiple substrings are contained in the 
-	string they must be comma separated.  For example, the following command string makes 
+	The cmds parameter is a chain of commands to be executed by the switch API.  Each command
+	must be supplied as a quoted substring, and if multiple substrings are contained in the
+	string they must be comma separated.  For example, the following command string makes
 	a query to enable openflow:
 
 		`"configure", "openstack", "no shutdown"`
 
-	Which has the effect of entering all three of those commands on the Arista command line. 
+	Which has the effect of entering all three of those commands on the Arista command line.
 */
 func (aif *Arista_api) Submit_req( cmds *string, text_req bool ) ( raw_json []byte, err error ) {
 	var (
@@ -173,7 +192,7 @@ func (aif *Arista_api) Submit_req( cmds *string, text_req bool ) ( raw_json []by
 	}
 
 	json_req_prefix := `{ "jsonrpc": "2.0", "method": "runCmds", "params": { "version": 1, "cmds": [ `	// comma separated list of commands in braces
-	if text_req { 
+	if text_req {
 		json_req_suffix = ` ], "format": "text" }, "id": 1 }`
 	} else {
 		json_req_suffix = ` ], "format": "json" }, "id": 1 }`
@@ -187,9 +206,9 @@ func (aif *Arista_api) Submit_req( cmds *string, text_req bool ) ( raw_json []by
 }
 
 /*
-	Get_interfaces sends a request to the switch and generate a map of single interface structs that is 
+	Get_interfaces sends a request to the switch and generate a map of single interface structs that is
 	indexed by the interface name.  The single interface struct contains very limited information compared
-	to what is returned by the switch. 
+	to what is returned by the switch.
 */
 func (aif *Arista_api) Get_interfaces( ifstate string ) ( ifmap map[string]*Swif, err error ) {
 

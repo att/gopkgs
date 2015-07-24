@@ -1,4 +1,21 @@
-// vi: ts=4 sw=4:
+//vi: sw=4 ts=4:
+/*
+ ---------------------------------------------------------------------------
+   Copyright (c) 2013-2015 AT&T Intellectual Property
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at:
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+ ---------------------------------------------------------------------------
+*/
 
 /*
 	Mnemonic:	cert
@@ -14,16 +31,14 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
-	//"fmt"
 	"encoding/pem"
-	//"io/ioutil"
 	"math/big"
 	"os"
 	"time"
 )
 
 /*
-	Create a certificate (self signed) and write to the output file. 
+	Create a certificate (self signed) and write to the output file.
 */
 func Mk_cert( key_bits int, cert_name *string, dns_list []string, cfname *string, kfname *string ) ( err error ) {
 
@@ -35,7 +50,7 @@ func Mk_cert( key_bits int, cert_name *string, dns_list []string, cfname *string
 	now := time.Now()
 
 	// per golang doc, only these fields from the cert are used as the template:
-	//	SerialNumber, Subject, NotBefore, NotAfter, KeyUsage, ExtKeyUsage, UnknownExtKeyUsage, BasicConstraintsValid, IsCA, MaxPathLen, 
+	//	SerialNumber, Subject, NotBefore, NotAfter, KeyUsage, ExtKeyUsage, UnknownExtKeyUsage, BasicConstraintsValid, IsCA, MaxPathLen,
 	//	SubjectKeyId, DNSNames, PermittedDNSDomainsCritical, PermittedDNSDomains.
 	template := x509.Certificate {
 		SerialNumber:	new( big.Int ).SetInt64( 1 ),

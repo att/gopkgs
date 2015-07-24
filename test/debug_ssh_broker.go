@@ -1,3 +1,22 @@
+//vi: sw=4 ts=4:
+/*
+ ---------------------------------------------------------------------------
+   Copyright (c) 2013-2015 AT&T Intellectual Property
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at:
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+ ---------------------------------------------------------------------------
+*/
+
 /*
 	Mnemonic:	debug_ssh_broker.go
 	Abstract:	More than just functional tests that might be provided in a *_test.go
@@ -10,8 +29,6 @@
 package main
 
 import (
-	//"bytes"
-	//"bufio"
 	"flag"
     "fmt"
 	"os"
@@ -47,7 +64,7 @@ func test_script( broker *ssh_broker.Broker, ch chan int, host *string, script *
 */
 func test_cmd( broker *ssh_broker.Broker, ch chan int, host *string, cmd *string ) {
 
-	fmt.Fprintf( os.Stderr, "test_cmd: running commnand %s\n", *cmd )
+	fmt.Fprintf( os.Stderr, "test_cmd: running command %s\n", *cmd )
 	stdout, stderr, err := broker.Run_cmd( *host, *cmd )
 	if err != nil {
 		fmt.Fprintf( os.Stderr, "command failed: %s:  %s \n", *host, err )
@@ -163,22 +180,22 @@ func main( ) {
 					fmt.Fprintf( os.Stderr, "running synch script parms=%s\n", *parms )
 					go test_script( broker, ch, &host[j], script, parms, env_file )
 				} else {
-					fmt.Fprintf( os.Stderr, "running synch commnand %s\n", *cmd )
+					fmt.Fprintf( os.Stderr, "running synch command %s\n", *cmd )
 					go test_cmd( broker, ch, &host[j], cmd )
 				}
 			} else {
-				fmt.Fprintf( os.Stderr, "running asynch commnand on %s parallel=%d parms=%s\n", host[j], i, *parms )
+				fmt.Fprintf( os.Stderr, "running asynch command on %s parallel=%d parms=%s\n", host[j], i, *parms )
 				if *cmd == "" {					// -c not supplied
 					err = broker.NBRun_on_host( host[j], *script, *parms, (i*100)+j, rch )
 				} else {
 					err = broker.NBRun_cmd( host[j], *cmd, (i*100)+j, rch )
 				}
 				if err != nil {
-					fmt.Fprintf( os.Stderr, "asynch commnand submit failed: host=%s parms=%s: %s\n", host[j], *parms, err )
+					fmt.Fprintf( os.Stderr, "asynch command submit failed: host=%s parms=%s: %s\n", host[j], *parms, err )
 				}
 			}
 		}
-	} 
+	}
 
 	for i := 0; i < wait4; i++ {
 		fmt.Fprintf( os.Stderr, "waiting for %d to finish\n", wait4 - i )

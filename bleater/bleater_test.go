@@ -1,4 +1,22 @@
-// vi: sw=4 ts=4:
+//vi: sw=4 ts=4:
+/*
+ ---------------------------------------------------------------------------
+   Copyright (c) 2013-2015 AT&T Intellectual Property
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at:
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+ ---------------------------------------------------------------------------
+*/
+
 
 package bleater_test
 
@@ -12,12 +30,12 @@ import (
 
 /*
 	create three sheep that bleat.  Big sheep acts as the parent and thus
-	the 'master' volume of all children can be controlled by setting the 
+	the 'master' volume of all children can be controlled by setting the
 	level on the big sheep.  The little sheep is given to the big sheep
 	as a child, but black-sheep is left on its own. Thus, when the level
-	of big-sheep is changed to 2, a bleat by little sheep with a setting 
+	of big-sheep is changed to 2, a bleat by little sheep with a setting
 	of 2 should be heard, but when black sheep bleats at 2 it should still
-	be slient as it's level has not been increased and it has no parent. 
+	be silent as it's level has not been increased and it has no parent.
 */
 func TestBleater( t *testing.T ) {
 	big_sheep := bleater.Mk_bleater( 1, os.Stderr );			// create the sheep
@@ -94,12 +112,12 @@ func TestBleater( t *testing.T ) {
 		black_sheep.Baa_some( "foo", 15, 1, "after reset: foo baa_some message 1:15 %d should NOT apear!   [FAIL]", i  )
 		black_sheep.Baa_some( "bar", 5, 1, "after reset: bar baa_some message 1:5 %d  should NOT appear!   [FAIL]", i  )
 	}
-	black_sheep.Baa( 0, "end supression test (no lines should say 'fail' above." )
+	black_sheep.Baa( 0, "end suppression test (no lines should say 'fail' above." )
 	
 	black_sheep.Set_level( 1 )					// reset level, these should both appear!
 	black_sheep.Baa_some( "foo", 15, 1, "after reset: foo baa_some message 1:15  (after level reset)"  )
 	black_sheep.Baa_some( "bar", 5, 1, "after reset: bar baa_some message 1:5  (after level reset)"  )
-	black_sheep.Baa( 0, "two lines should have been written between the end supression message and this" )
+	black_sheep.Baa( 0, "two lines should have been written between the end suppression message and this" )
 }
 
 

@@ -1,3 +1,22 @@
+//vi: sw=4 ts=4:
+/*
+ ---------------------------------------------------------------------------
+   Copyright (c) 2013-2015 AT&T Intellectual Property
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at:
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+ ---------------------------------------------------------------------------
+*/
+
 
 package token
 
@@ -14,7 +33,7 @@ import (
 	Date:		22 Apr 2012
 	Author: 	E. Scott Daniels
 
-	Mods:		14 Jan 2014 - correected bug that would allow quotes to remain on last token
+	Mods:		14 Jan 2014 - corrected bug that would allow quotes to remain on last token
 					if there was not a separator between the quotes.
 				30 Nov 2014 - Allows escaped quote.
 				09 Apr 2015 - Corrected problem where index was not being checked and range
@@ -26,7 +45,7 @@ import (
 /*
 	Takes a string and slices it into tokens using the characters in sepchrs
 	as the breaking points, but allowing double quotes to provide protection
-	against separatrion.  For example, if sepchrs is ",|", then the string
+	against separation.  For example, if sepchrs is ",|", then the string
 		foo,bar,"hello,world","you|me"
 
 	would break into 4 tokens:
@@ -35,7 +54,7 @@ import (
 		hello,world
 		you|me
 
-	If there are empty fields, they are returned as empty tokens. 
+	If there are empty fields, they are returned as empty tokens.
 
 	The return values are the number of tokens and the list of tokens.
 */
@@ -83,7 +102,7 @@ func tokenise_all( buf string, sepchrs string, keep_empty bool ) (int,  []string
 		q = strings.IndexAny( subbuf, "\"" ) 			// index of the next quote
 
 		if idx >= len( tokens ) {						// more than we had room for; alloc new
-			tnew := make( []string, len( tokens ) * 2 ) 
+			tnew := make( []string, len( tokens ) * 2 )
 			copy( tnew[:], tokens )
 			tokens = tnew
 		}

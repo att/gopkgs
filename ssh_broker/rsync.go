@@ -1,8 +1,26 @@
-// vi: ts=4 sw=4:
+//vi: sw=4 ts=4:
+/*
+ ---------------------------------------------------------------------------
+   Copyright (c) 2013-2015 AT&T Intellectual Property
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at:
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+ ---------------------------------------------------------------------------
+*/
+
 /*
 	Mnemonic:	rsync.go
-	Abstract: 	This module contains the support to allow an rsync command to be run on the 
-				localhost for each new remote host connection. The rsync connections are 
+	Abstract: 	This module contains the support to allow an rsync command to be run on the
+				localhost for each new remote host connection. The rsync connections are
 				run "outside" of the ssh environment that is managed by this package.
 
 	Author:		E. Scott Daniels
@@ -16,22 +34,16 @@
 package ssh_broker
 
 import (
-	//"bytes"
-	//"bufio"
     "fmt"
-	//"io"
 	"os"
-	//"os/exec"
-	//"strings"
-	//"sync"
 
 	"codecloud.web.att.com/gopkgs/extcmd"
 )
 
 /*
-	Accepts the setup for rsync commands.  We assume src is one or more 
+	Accepts the setup for rsync commands.  We assume src is one or more
 	source files and dest_dir is the name of the directory on the remote
-	host.  When the rsync command is actually run, the two strings are 
+	host.  When the rsync command is actually run, the two strings are
 	combined (unchanged) with user@host: inserted just before the dest
 	directory.
 */
@@ -55,7 +67,7 @@ func ( b *Broker ) Rm_rsync( ) {
 
 /*
 	Actually run the rsync command.  If verbose is true, then output is written
-	to stderr, otherwise it is ignored. Error is returned and will be nil if 
+	to stderr, otherwise it is ignored. Error is returned and will be nil if
 	the command successfully executed.
 
 	The -e option is used to force rsync to use ssh with a nokey checking option

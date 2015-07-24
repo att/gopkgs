@@ -1,11 +1,28 @@
-// vi: ts=4 sw=4:
+//vi: sw=4 ts=4:
+/*
+ ---------------------------------------------------------------------------
+   Copyright (c) 2013-2015 AT&T Intellectual Property
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at:
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+ ---------------------------------------------------------------------------
+*/
 
 /*
  Mnemonic:	connman.go
  Abstract:	Implements a connection manager that listens for TCP connections, accepts them and then
 			manages the sessions.
 
-			Creates and manages a connetion environment that allows the user to establish TCP connections
+			Creates and manages a connection environment that allows the user to establish TCP connections
 			(outgoing) and listens/accepts connection requests from remote processes.
 
 			The connection manager object is created with NewManager which accepts a listen port and a
@@ -17,7 +34,7 @@
 
 			When a user establishes a connection the remote IP address and a session id (name) are supplied along
 			with a communication channel. The channel may be the same channel supplied when the connection manager
-			object was created or it may be a different channel. 
+			object was created or it may be a different channel.
 		
 			Data received from either a UDP listener, or on a connected TCP session is bundled into a Sess_data
 			struct and placed onto the appropriate channel.  The struct contains, in addition to the received
@@ -41,9 +58,7 @@
 package connman
 
 import (
-	//"bytes"
 	"fmt"
-	//"errors"
 	"net"
 	"os"
 )
@@ -145,9 +160,9 @@ func newdata( buf []byte, id string, state int, sender *connection, from *net.UD
 	return sdp
 }
 
-// Read from sesion and write on the user's channel. The session can be either TCP or
+// Read from session and write on the user's channel. The session can be either TCP or
 // UDP even though there is no continuous UDP connection 'session' implies the listen
-// port that was esabalished.
+// port that was established.
 // On error (disc) we send the user a nil buffer on the channel and close things up
 func (this *Cmgr) conn_reader( cp *connection )   {
 	var buf []byte
@@ -239,7 +254,7 @@ func (this *Cmgr) Listen( kind string, port string,  iface string, data2usr chan
 
 /*
 	Starts a UDP listener which will forward received data back to the application using
-	the supplied channel.  The listener ID is returned along with a boolian indication
+	the supplied channel.  The listener ID is returned along with a boolean indication
 	of success (true) or failure.
 */
 func (this *Cmgr) Listen_udp( port int, data2usr chan *Sess_data ) ( uid string, err error) {
@@ -308,7 +323,7 @@ func (this *Cmgr) Listen_mc( ifname string, addr string, data2usr chan *Sess_dat
 	
 
 /*
-	Provides a more consistant interface with the Listen_udp name convention and is just
+	Provides a more consistent interface with the Listen_udp name convention and is just
 	a wrapper for Listen().
 */
 func (this *Cmgr) Listen_tcp( port string, data2usr chan *Sess_data ) ( string, error ) {
@@ -420,7 +435,7 @@ func (this *Cmgr) Write_n( id string, buf []byte, n int ) ( err error ){
 				return
 			}
 		}
-	} 
+	}
 
 	return
 }
@@ -466,7 +481,7 @@ func ( c *Cmgr ) Get_writer( id string ) ( *connection ) {
 /*
 	Return a writer that can be used to write directly to the address. Faster than the generic
 	id oriented writes because there is no need for id lookup to find the writer, and the address
-	is already constructed. 
+	is already constructed.
 */
 func ( c *Cmgr ) Get_udp_writer( id string, addr string ) ( newcp *connection, err error ) {
 	cp := c.clist[id]
@@ -532,12 +547,12 @@ func (this *connection) Write( buf []byte ) ( nw int, err error ) {
 
 /*
 	Allow udp from address to be captured for fast replies -- users should avoid doing
-	this as all writes will go to the bound address rather than to the sender if 
+	this as all writes will go to the bound address rather than to the sender if
 	sess_data.Write() is used after this.
 */
 func (s *Sess_data) Bind2sender( ) ( err error ) {
 	err = nil
-	if s.sender.uconn != nil { 
+	if s.sender.uconn != nil {
 		s.sender.uaddr, err = net.ResolveUDPAddr( "udp", s.From )
 	} else {
 		return fmt.Errorf( "cannot bind to sender: no uconn in connection" )
@@ -602,7 +617,7 @@ func (this *Sess_data ) Write_str( buf string ) ( n int, err error ) {
 }
 
 /*
-    Writes the buffer to the address assoiated with id.
+    Writes the buffer to the address associated with id.
 */
 func (this *Cmgr) Write_udp_addr( id string, addr *net.UDPAddr, buf []byte ) {
 	if cp, ok := this.clist[id]; ok {

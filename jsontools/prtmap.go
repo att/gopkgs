@@ -1,16 +1,34 @@
-// vi: sw=4 ts=4:
+//vi: sw=4 ts=4:
+/*
+ ---------------------------------------------------------------------------
+   Copyright (c) 2013-2015 AT&T Intellectual Property
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at:
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+ ---------------------------------------------------------------------------
+*/
+
 
 /*
 
 	Mnemonic:	prtmap
 	Abstract:	This may apply outside of the json world, but plays well with json
-				needs so it's here.  These functions take a bunch of unknown 
+				needs so it's here.  These functions take a bunch of unknown
 				stuff (described as an interface) and prints them in a hierarchical manner.
 
-				The public Print() function takes the the 'root' of the data and 
+				The public Print() function takes the the 'root' of the data and
 				invokes either prettyprint() to print it in a 'tree-ish' format, o
 				or dotprint() to print it in a dotted notation. The ptag supplied
-				is used to name the 'root'. 
+				is used to name the 'root'.
 
 	Date:		02 January 2014
 	Author:		E. Scott Daniels
@@ -35,13 +53,13 @@ var pp_need_blank bool;
 
 /*
 	take an unmarshalled blob and print it as a hierarchy. If dotted output is desired
-	the blob must be converted into a map (see jsontools.Unpack) and then printed by 
+	the blob must be converted into a map (see jsontools.Unpack) and then printed by
 	the dotprint method here.
 	ptag is the name of the item's parent
 */
 func prettyprint( ithing interface{}, depth int, ptag string ) {
 	var (
-		indention	string = "                                                                                                                                " 
+		indention	string = "                                                                                                                                "
 	)
 
 	istr := indention[0:depth*4]
@@ -114,7 +132,7 @@ func prettyprint( ithing interface{}, depth int, ptag string ) {
 }
 
 /*
-	Takes an unknown thing and prints it in a hiarchial form as a set of dot separated names.
+	Takes an unknown thing and prints it in a hierarchical form as a set of dot separated names.
 	ptag is the name of the item's parent
 */
 func dotprint( ithing interface{}, depth int, ptag string ) {
@@ -176,8 +194,8 @@ func dotprint( ithing interface{}, depth int, ptag string ) {
 // -------------------- public----------------------------------------------------------------------------------
 
 /*
-	A simple method that allows an interface representation to easily be printed in either hierarchical 
-	or "dotted" format. 
+	A simple method that allows an interface representation to easily be printed in either hierarchical
+	or "dotted" format.
 */
 func Print( stuff interface{}, ptag string, dotted bool ) {
 	if dotted {

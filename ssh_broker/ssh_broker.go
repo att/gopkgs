@@ -1,4 +1,22 @@
-// vi: ts=4 sw=4:
+//vi: sw=4 ts=4:
+/*
+ ---------------------------------------------------------------------------
+   Copyright (c) 2013-2015 AT&T Intellectual Property
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at:
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+ ---------------------------------------------------------------------------
+*/
+
 /*
 	Mnemonic:	ssh_broker
 	Abstract: 	Provides an interface to the ssh package that allows a local script (shell or python)
@@ -6,11 +24,11 @@
 				returned. Ssh connections are established using one or more private key files that
 				are supplied when the broker object is created, and the connections persist until
 				the object is closed allowing for subsequent commands to be executed without the
-				overhead of the ssh setup. 
+				overhead of the ssh setup.
 
 				Scripts must have a #! line which is used to execute the interpreter on the remote
 				host.  The script is then written on stdin to the interpreter.  If python is in the
-				#! line, then leading whitespace isn't stripped as the script is sent to the remote host. 
+				#! line, then leading whitespace isn't stripped as the script is sent to the remote host.
 				Commented lines (beginning with #), and blank lines are removed (might cause issues
 				for strings with embedded newlines, but for now I'm not worrying about those).
 
@@ -25,7 +43,7 @@
 				connection will support.  This seems to be a host policy, rather than a blanket SSH
 				constant, so an initiator will retry the execution of a script when it appears that the
 				failrue is related to this limit.  All other errors are returned to the caller for
-				evaluation and possbile retry.
+				evaluation and possible retry.
 
 				There are two functions that the user can invoke to run a script on a remote host:
 				Run_on_host() and NBRun_on_host().  The former will block until the command is run
@@ -50,7 +68,7 @@
 
 
 				There are also two functions which support the running af a command on the remote host in a
-				"traditional" SSH fasion.  Run_cmd (blocking) and NBRun_cmd (non-blocking) run the command
+				"traditional" SSH fashion.  Run_cmd (blocking) and NBRun_cmd (non-blocking) run the command
 				in a similar fashion as the script execution methods.
 
 				The user can also associate an rsync command to be executed on each successful connection
@@ -67,7 +85,7 @@
 
 	Mods:		15 Jan 2015 - Added ability to send an environment file before the named script file.
 				01 Feb 2015 - Corrected bug, rsync happening on session2, not new connection.
-				12 Feb 2015 - Dropped the ability to ditch leading/trailing whitspace when sending to
+				12 Feb 2015 - Dropped the ability to ditch leading/trailing whitespace when sending to
 					standard input.
 				02 Apr 2015 - Attempt to prevent core dump if ssh has connection issues. The rsync call
 					is now executed after the connection to the host is successful so that if the user isn't
@@ -75,8 +93,8 @@
 				23 Apr 2015 - Added explicit session close calls after running a command.
 					Corrected timing issue that was preventing close of ssh session from happening before
 					an attempt to queue a retry request back onto the main channel.
-				23 Jun 2015 - Prevent panic when writing to a closed channel.  Only senders (initiator) 
-					should close response channels and the response channel was being closed by a command 
+				23 Jun 2015 - Prevent panic when writing to a closed channel.  Only senders (initiator)
+					should close response channels and the response channel was being closed by a command
 					execution function.
 				16 Jul 2015 - Ensure that the authorisation key list does not contain nil entries as this
 					causes ssh library code to panic (nil pointer exception).
@@ -185,7 +203,7 @@ func send_file( src *bufio.Reader, dest io.WriteCloser ) {
 }
 
 /*
-	Expected to be invoked as a gorotine which runs in parallel to sending the ssh command to the
+	Expected to be invoked as a goroutine which runs in parallel to sending the ssh command to the
 	far side. This function reads from the input buffer reader br and writes to the target stripping
 	blank and comment lines as it goes.
 */
@@ -429,7 +447,7 @@ func ( b *Broker ) session2( host string ) ( s *ssh.Session, err error ) {
 	An initiator runs as a goroutine and pulls requests from the initiator channel for
 	processing. The result is folded back into the request and written to the user channel
 	contained in the request. If a request fails with an error that contains the phrase
-	"administraively prohibited", then it is retried as this is usually a bump against the
+	"administratively prohibited", then it is retried as this is usually a bump against the
 	number of sessions permitted to any single host.   The rerty logic is this:
 
 		Queue the request on the specific host's (channel) retry queue. When the next

@@ -1,10 +1,28 @@
-// vi: sw=4 ts=4:
+//vi: sw=4 ts=4:
+/*
+ ---------------------------------------------------------------------------
+   Copyright (c) 2013-2015 AT&T Intellectual Property
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at:
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+ ---------------------------------------------------------------------------
+*/
+
 
 /*
 
 	Mnemonic:	sheep_herder
-	Abstract:	A simple go routine to cause the log file that sheep are writing to to be 
-				rolled now and again. 
+	Abstract:	A simple go routine to cause the log file that sheep are writing to to be
+				rolled now and again.
 
 	Date:		30 April 2014
 	Author:		E. Scott Daniels
@@ -25,16 +43,16 @@ import (
 
 /*
 	Generate a new logfile name based on the current date, the log directory passed in
-	and the cycle period. 
+	and the cycle period.
 
 	The file name created will have the syntax:
 		<log_dir>/<prefix>.log.<date>
 
-	where <prefix> is taken from the bleater. 
+	where <prefix> is taken from the bleater.
 
 	If period is >86400 seconds, then the file name is day based.
 	If period is <86400 but > 3600 seconds, then file is based on hour, else
-	the file includes the minute and is of the general form yyyymmddhhmm. 
+	the file includes the minute and is of the general form yyyymmddhhmm.
 */
 func (b *Bleater) Mk_logfile_nm( ldir *string, period int64 ) ( *string ) {
 	ref := "200601021504"
@@ -46,7 +64,7 @@ func (b *Bleater) Mk_logfile_nm( ldir *string, period int64 ) ( *string ) {
 		if period >= 3600 {
 			ref = "2006010215"
 		}
-	} 
+	}
 
 	s := fmt.Sprintf( "%s/%s.log.%s", *ldir, b.pfx, time.Now().UTC().Format( ref ) )		// 20060102 is Go's reference date and allows us to specify how we want to see it
 	return &s

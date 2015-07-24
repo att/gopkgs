@@ -1,4 +1,22 @@
-// vi: sw=4 ts=4:
+//vi: sw=4 ts=4:
+/*
+ ---------------------------------------------------------------------------
+   Copyright (c) 2013-2015 AT&T Intellectual Property
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at:
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+ ---------------------------------------------------------------------------
+*/
+
 
 package token_test
 
@@ -7,7 +25,6 @@ import (
 	"os"
 	"strings"
 	"testing"
-	//"time"
 
 	"codecloud.web.att.com/gopkgs/token"
 )
@@ -28,12 +45,12 @@ func TestToken_count( t *testing.T ) {
 
 
 	emap := make( map[string]int )
-	emap["aid"] = 1 
-	emap["the"] = 3 
-	emap["for"] = 1 
-	emap["country"] = 2 
-	emap["boys"] = 2 
-	emap["to"] = 3 
+	emap["aid"] = 1
+	emap["the"] = 3
+	emap["for"] = 1
+	emap["country"] = 2
+	emap["boys"] = 2
+	emap["to"] = 3
 
 	fcount := 0
 	for k,v := range emap {
@@ -61,7 +78,7 @@ func TestLarge_token_count( t *testing.T ) {
 	fmt.Fprintf( os.Stderr, "\n" )
 
 	str := ""
-	sep := "" 
+	sep := ""
 	for i := 0; i < 4360; i++ {								// build a long string of space separated tokens
 		str += fmt.Sprintf( "%s%d", sep, i % 100 )			// 100 unique tokens
 		sep = " "
@@ -154,7 +171,7 @@ func TestToken_qsep_pop( t *testing.T ) {
 
 
 /*
-	Test qsep which should return null tokens when mutiple separaters exist (e.g. foo,,,bar)
+	Test qsep which should return null tokens when multiple separaters exist (e.g. foo,,,bar)
 */
 func TestToken_qsep( t *testing.T ) {
 	str := `hello "world this is" a test where token 2 was quoted`

@@ -1,3 +1,22 @@
+//vi: sw=4 ts=4:
+/*
+ ---------------------------------------------------------------------------
+   Copyright (c) 2013-2015 AT&T Intellectual Property
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at:
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+ ---------------------------------------------------------------------------
+*/
+
 
 package token
 
@@ -18,8 +37,8 @@ import (
 
 /*
 	Takes a string and slices it into tokens using the characters in sepchrs
-	as the breaking points keeping only populated fields.  The separation characters 
-	are discarded.  Null (empty) tokens are dropped allowing a space separated record to 
+	as the breaking points keeping only populated fields.  The separation characters
+	are discarded.  Null (empty) tokens are dropped allowing a space separated record to
 	treat multiple spaces as a single separator.
 
 	The return values are the number of tokens and the list of token strings.
@@ -31,7 +50,7 @@ func Tokenise_populated(  buf string, sepchrs string ) (int, []string) {
 	idx = 0;
 	tokens = make( []string, 2048 );	
 
-	sepchrs += "\\"; 
+	sepchrs += "\\";
 	subbuf := buf;
 	tokens[idx] = "";
 	for {
@@ -45,7 +64,7 @@ func Tokenise_populated(  buf string, sepchrs string ) (int, []string) {
 					tokens[idx] += subbuf[0:i]; 	// add everything before separator
 					idx++;							// capture only non-empty tokens
 					tokens[idx] = "";
-				} 
+				}
 
 				subbuf = subbuf[i+1:];
 			}

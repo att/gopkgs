@@ -1,4 +1,22 @@
-// vi: sw=4 ts=4:
+//vi: sw=4 ts=4:
+/*
+ ---------------------------------------------------------------------------
+   Copyright (c) 2013-2015 AT&T Intellectual Property
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at:
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+ ---------------------------------------------------------------------------
+*/
+
 
 package ipc_test
 
@@ -69,7 +87,7 @@ func TestIpc( t *testing.T ) {
 	tklr.Stop();
 
 
-	// when we get here there should only be three active ticklers in the list, so we should be 
+	// when we get here there should only be three active ticklers in the list, so we should be
 	// able to add 3 before we get a full error.
 	// add more spots until we max out to test the error logic in tickle
 	err = nil;

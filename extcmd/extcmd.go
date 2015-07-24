@@ -1,6 +1,25 @@
-/* 
+//vi: sw=4 ts=4:
+/*
+ ---------------------------------------------------------------------------
+   Copyright (c) 2013-2015 AT&T Intellectual Property
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at:
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+ ---------------------------------------------------------------------------
+*/
+
+/*
 	Mnemonic:	extcmd.go
-	Abstract: 	Functions that execute 'external' commands and return a response structure, 
+	Abstract: 	Functions that execute 'external' commands and return a response structure,
 				formatted json buffer, or write each record of the output onto a user
 				channel (not implemented yet).
 	Date: 		04 May 2014
@@ -29,9 +48,9 @@ type Response struct {
 }
 
 /*
-	Accept and build a command, run it writing the output into a json buffer that is 
+	Accept and build a command, run it writing the output into a json buffer that is
 	returned.  Currently, output response is truncated at 8192 records.
-	If a caller needs more, then it should redirect the output and parse the 
+	If a caller needs more, then it should redirect the output and parse the
 	file rather than reading it all into core.
 */
 	
@@ -46,7 +65,7 @@ func Cmd2strings( cbuf string ) ( rdata []string, edata []string, err error ) {
 	cmd := &exec.Cmd{}						// set the command up
 	cmd.Path, _ = exec.LookPath( tokens[0] )
 	cmd.Args = tokens
-	stdout, err := cmd.StdoutPipe()			// create pipes for stderr/out 
+	stdout, err := cmd.StdoutPipe()			// create pipes for stderr/out
 	srdr := bufio.NewReader( stdout )		// standard out reader
 
 	stderr, err := cmd.StderrPipe()
@@ -78,7 +97,7 @@ func Cmd2strings( cbuf string ) ( rdata []string, edata []string, err error ) {
 		}
 	}
 	if i > 0 {
-		rdata = rdata[0:i]					// scale back the output to just what was used 
+		rdata = rdata[0:i]					// scale back the output to just what was used
 	} else {
 		rdata = rdata[0:1]
 	}
@@ -100,7 +119,7 @@ func Cmd2strings( cbuf string ) ( rdata []string, edata []string, err error ) {
 		}
 	}
 	if i > 0 {
-		edata = edata[0:i]					// scale back the output to just what was used 
+		edata = edata[0:i]					// scale back the output to just what was used
 	} else {
 		edata = edata[0:1]
 	}
@@ -111,7 +130,7 @@ func Cmd2strings( cbuf string ) ( rdata []string, edata []string, err error ) {
 }
 
 /*
-	Execute the command in cbuf and return a Response structure with the results. 
+	Execute the command in cbuf and return a Response structure with the results.
 */
 func Cmd2resp( cbuf string, rtype string )  ( rblock *Response, err error ) {
 	rblock = &Response{ Ctype: "response", Rtype: rtype }

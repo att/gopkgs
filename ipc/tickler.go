@@ -1,4 +1,22 @@
-// vi: sw=4 ts=4:
+//vi: sw=4 ts=4:
+/*
+ ---------------------------------------------------------------------------
+   Copyright (c) 2013-2015 AT&T Intellectual Property
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at:
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+ ---------------------------------------------------------------------------
+*/
+
 
 /*
 
@@ -14,7 +32,6 @@ package ipc
 
 import (
 	"fmt"
-	//"os"
 	"sync"
 	"time"
 )
@@ -50,18 +67,18 @@ type tickle_spot struct {
 /*
 	While there are active tickle blocks, loop and tickle each spot when it is time.
 	If a block uses all of its count up then we mark it off and never tickle it again.
-	If we get a stop we'll return, but that won't happen until after the current sleep 
-	ends, but we will guarentee not to tickle anything after stop has been set. 
+	If we get a stop we'll return, but that won't happen until after the current sleep
+	ends, but we will guarantee not to tickle anything after stop has been set.
 
-	We will block on a tickle notification if the user's channel isn't buffered. This 
-	might delay other tickles, but that's completely in the user control. 
+	We will block on a tickle notification if the user's channel isn't buffered. This
+	might delay other tickles, but that's completely in the user control.
 
-	If a tickle_spot is added with a shorter delay than the current time remaining in the 
-	sleep, the first tickling will happen at the time of wakeup which will be after the 
+	If a tickle_spot is added with a shorter delay than the current time remaining in the
+	sleep, the first tickling will happen at the time of wakeup which will be after the
 	perceived first time it should be tickled.  Yes, this might be considered a bug, but
-	if tickles are added shortest delay to longest, or the tickler is stopped before the 
+	if tickles are added shortest delay to longest, or the tickler is stopped before the
 	tickles are added, then started, it can be avoided without having to wake at constants
-	settings and doing nothing if nothing was ready to fire. 
+	settings and doing nothing if nothing was ready to fire.
 */
 func (t *Tickler) tickle_loop( ) {
 	var (
@@ -101,7 +118,7 @@ func (t *Tickler) tickle_loop( ) {
 						//fmt.Fprintf( os.Stderr, "tickle delay: ty=%d old=%d new=%d\n",  t.tlist[i].req_type, delay,  t.tlist[i].nextgo )
 						delay = t.tlist[i].nextgo
 					}
-				} 
+				}
 			}
 		}
 
@@ -111,7 +128,7 @@ func (t *Tickler) tickle_loop( ) {
 
 		sleep_len = time.Duration( delay - now ) * time.Second;		// compute the next wakeup time -- seconds from now and nap
 //fmt.Fprintf( os.Stderr, "tickle sleeping: %d \n",  delay - now )
-		if sleep_len < 0 { 
+		if sleep_len < 0 {
 			sleep_len = 1 * time.Second
 		}
 		time.Sleep( sleep_len );
@@ -129,7 +146,7 @@ func (t *Tickler) tickle_loop( ) {
 func Mk_tickler( max int ) ( t *Tickler ) {
 	t = &Tickler { ok2run: true }
 
-	if max > 1024 {			// sliently enforce sanity
+	if max > 1024 {			// silently enforce sanity
 		max = 1024;
 	} else {
 		if max <= 0 {
@@ -144,15 +161,15 @@ func Mk_tickler( max int ) ( t *Tickler ) {
 
 /*
 	Adds something to the tickle list.  Delay is the number of seconds between tickles
-	and will be set to 1 if it is less than that. Data is any object (best if it's a pointer to 
+	and will be set to 1 if it is less than that. Data is any object (best if it's a pointer to
 	something) that will be sent on each tickle request.  The return is the 'id' of the tickle that
 	can be used to drop it, and an error if we could not add the tickle spot.
 
-	Add is synchronous so concurrent goroutines which share a common tickler can safely add 
+	Add is synchronous so concurrent goroutines which share a common tickler can safely add
 	their tickle spots without worry of corruption.
 
-	Tickle spots should be added in increasing delay order, or the tickler should be stopped until 
-	all tickle spots have been added.  This prevents a long tickle spot from becoming active and 
+	Tickle spots should be added in increasing delay order, or the tickler should be stopped until
+	all tickle spots have been added.  This prevents a long tickle spot from becoming active and
 	blocking shorter tickles until the first long tickle 'pops'.
 */
 func (t *Tickler) Add_spot( delay int64, ch chan *Chmsg, ttype int, data interface{}, count int ) (id int, err error) {
@@ -177,7 +194,7 @@ func (t *Tickler) Add_spot( delay int64, ch chan *Chmsg, ttype int, data interfa
 		}
 
 		if ip >= len( t.tlist ) {
-			err = fmt.Errorf( "tickler/Add_spot: no space in the tickle list, cannot add reqest type: %d (%d/%d)\n", ttype, ip, len( t.tlist)  );
+			err = fmt.Errorf( "tickler/Add_spot: no space in the tickle list, cannot add request type: %d (%d/%d)\n", ttype, ip, len( t.tlist)  );
 			return;
 		}
 	}
@@ -200,7 +217,7 @@ func (t *Tickler) Add_spot( delay int64, ch chan *Chmsg, ttype int, data interfa
 	ts.nextgo = time.Now().Unix() + ts.delay;
 
 	if t.ok2run && !t.isrunning {
-		t.isrunning = true;				// MUST  bump this here else multiple calls might execute before the go routine initialises and we'll start many 
+		t.isrunning = true;				// MUST  bump this here else multiple calls might execute before the go routine initialises and we'll start many
 		go t.tickle_loop( );
 	}
 
@@ -208,7 +225,7 @@ func (t *Tickler) Add_spot( delay int64, ch chan *Chmsg, ttype int, data interfa
 }
 
 /*
-	Drop the tickle_spot from the active list.  
+	Drop the tickle_spot from the active list.
 */
 func (t *Tickler) Drop_spot( id int ) {
 	if id >= 0 && id <= t.tidx {
@@ -217,7 +234,7 @@ func (t *Tickler) Drop_spot( id int ) {
 }
 
 /*
-	Stops the tickler. 
+	Stops the tickler.
 */
 func (t *Tickler) Stop() {
 	//fmt.Fprintf( os.Stderr, "stopping tickler\n" );
@@ -229,7 +246,7 @@ func (t *Tickler) Stop() {
 */
 func (t *Tickler) Start() {
 
-	// TODO: need to searialise this???
+	// TODO: need to serialise this???
 	if !t.isrunning {
 		t.ok2run = true;
 		go t.tickle_loop( );

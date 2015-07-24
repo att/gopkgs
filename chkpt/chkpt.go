@@ -1,4 +1,22 @@
-// vi: sw=4 ts=4:
+//vi: sw=4 ts=4:
+/*
+ ---------------------------------------------------------------------------
+   Copyright (c) 2013-2015 AT&T Intellectual Property
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at:
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+ ---------------------------------------------------------------------------
+*/
+
 
 /*
 
@@ -14,19 +32,19 @@
 /*
 				The chkpt package implements a checkpoint file manager.
 				The checkpoint scheme is based on a two tumbler (a and b) system
-				where the b tumber cyles with each call, and the a tumber cycles 
-				once with each roll-over of b.  If the roll point of b is 24 and 
+				where the b tumber cyles with each call, and the a tumber cycles
+				once with each roll-over of b.  If the roll point of b is 24 and
 				the roll point of a is three, checkpoint files are created in this
 				order:
 					a1, b1, b2, b3... b24, a2, b1... b24, a2...
 
-				If the using programme is creating a checkpoint every hour, then 
-				an 'a' file is created once per day with a coverage of three days; 
-				at the end of the third cycle there will exist a1 (2 days old), 
-				a2 (one day old) and a3 new, along with 24 'b' files. 
+				If the using programme is creating a checkpoint every hour, then
+				an 'a' file is created once per day with a coverage of three days;
+				at the end of the third cycle there will exist a1 (2 days old),
+				a2 (one day old) and a3 new, along with 24 'b' files.
 
 				As the checkpoint is written, the mdd5sum is computed and if desired
-				upon close the value is added to the name such that final names have 
+				upon close the value is added to the name such that final names have
 				the form:
 						<path>_Xnn-<md5>.ckpt
 
@@ -36,7 +54,7 @@
 				The file <path>.ckpt (no tumbler) is used to record the tumbler
 				values such that the next time the programme is started it will
 				create the next file in a continued sequence rather than resetting
-				or requiring the user programme to manage the tumbler data. 
+				or requiring the user programme to manage the tumbler data.
 
 				chkpt implements the io.Writer interface such that it is possible
 				to use the pointer to the object in an fmt.Fprintf() call:
@@ -45,7 +63,7 @@
 					fmt.Fprintf( c, "%s\n", data )
 					c.Close()
 
-				The method Write_string( string ) can also be used to write to 
+				The method Write_string( string ) can also be used to write to
 				an open checkpoint file.
 */
 package chkpt
@@ -126,7 +144,7 @@ func (c *Chkpt) read_tumblers( ) (aval int, bval int, err error) {
 /*
 	Save the current tumbler values into the counter file.
 	We write the current values to a temp file and close it. If successful
-	then we move it over the existing file. 
+	then we move it over the existing file.
 */
 func (c *Chkpt) save_tumblers( ) (error) {
 
@@ -155,13 +173,13 @@ func (c *Chkpt) save_tumblers( ) (error) {
 // --------------- public -----------------------------------------------------------------
 
 /*
-	Mk_chkpt creates a checkpointing environmnent. Path is any leading directory path, with 
-	a basename (prefix) mask (e.g. /usr2/backups/foo).  The tumbler information is added to 
-	path in the form of either a_xxxx or b_xxxx where xxx is the tumbler number.  
+	Mk_chkpt creates a checkpointing environment. Path is any leading directory path, with
+	a basename (prefix) mask (e.g. /usr2/backups/foo).  The tumbler information is added to
+	path in the form of either a_xxxx or b_xxxx where xxx is the tumbler number.
 */
 func Mk_chkpt( path string, amax int, bmax int ) (c *Chkpt) {
 
-	c = &Chkpt { 
+	c = &Chkpt {
 		amax:	amax,
 		bmax:	bmax,
 		path:	&path,
@@ -169,10 +187,10 @@ func Mk_chkpt( path string, amax int, bmax int ) (c *Chkpt) {
 
 	c.aval, c.bval, _ = c.read_tumblers( )
 
-	if c.aval > c.amax { 
+	if c.aval > c.amax {
 		c.aval = 0
 	}
-	if c.bval > c.bmax { 
+	if c.bval > c.bmax {
 		c.bval = 0
 	}
 
@@ -188,7 +206,7 @@ func (c *Chkpt) Add_md5( ) {
 }
 
 /*
-	Write_string writes the string to the open chkpt file. 
+	Write_string writes the string to the open chkpt file.
 */
 func (c *Chkpt) Write_string( s string ) (n int, err error ) {
 	if c.md5hash != nil {
@@ -203,7 +221,7 @@ func (c *Chkpt) Write_string( s string ) (n int, err error ) {
 }
 
 /*
-	Write allows the Go fmt package to be used to easily write a formatted string to the 
+	Write allows the Go fmt package to be used to easily write a formatted string to the
 	open checkpoint file. (see the example in the package description for how the fmt
 	package can be used.
 */
@@ -226,7 +244,7 @@ func (c *Chkpt) Write( b []byte ) (n int, err error ) {
 
 /*
 	Closes the open checkpoint file. The final file is renamed with the md5sum (if no write errors).
-	The final filename and any error status are reported to the caller. 
+	The final filename and any error status are reported to the caller.
 	Success is reported (err == nil) only when no write errors and a successful close/rename.
 */
 func (c *Chkpt) Close( ) (final_name string, err error) {
@@ -238,7 +256,7 @@ func (c *Chkpt) Close( ) (final_name string, err error) {
 
 	if c.bw != nil {		// flush if writing
 		c.bw.Flush( )
-	} 
+	}
 
 	err = c.output.Close( )
 

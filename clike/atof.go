@@ -1,16 +1,34 @@
-//	vi: sw=4 ts=4:
+//vi: sw=4 ts=4:
+/*
+ ---------------------------------------------------------------------------
+   Copyright (c) 2013-2015 AT&T Intellectual Property
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at:
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+ ---------------------------------------------------------------------------
+*/
+
 
 /*
         Mnemonic:       clike.go: atof
         Absrtract:      a clike atof that doesn't error when it encounters
 						a non-digit; returning 0 if there are no digits.  The input
-						(string or buffer) is expected to be base 10 with optional leading 
-						zeros, an optional trailing decimal and an optional fraction 
+						(string or buffer) is expected to be base 10 with optional leading
+						zeros, an optional trailing decimal and an optional fraction
 						following the decimal.  This also allows a lead +/-.
 
-						There is an extension on the C functions... if the value is 
-						postfixed with M/K/G  or m/k/g the return value will be 
-						'expanded' accordingly with the captialised values being
+						There is an extension on the C functions... if the value is
+						postfixed with M/K/G  or m/k/g the return value will be
+						'expanded' accordingly with the capitalised values being
 						powrs of 10 (e.g. MB) and the lower case indicating powers
 						of 2 (e.g. MiB).
 
@@ -33,8 +51,8 @@ import (
 		m,k,g - powers of two expansion. e.g. 10m expands to 10 * 1024 * 1024.
 		M,K,G - powers of ten expansion. e.g. 10M expands to 10000000
 
-	Unlike the Go string functions, this stops parsing at the first non-digit in the 
-	same manner that the Clib functions do. 
+	Unlike the Go string functions, this stops parsing at the first non-digit in the
+	same manner that the Clib functions do.
 */
 func Atof( objx interface{} ) (v float64) {
         var (

@@ -1,4 +1,22 @@
-// vi: sw=4 ts=4:
+//vi: sw=4 ts=4:
+/*
+ ---------------------------------------------------------------------------
+   Copyright (c) 2013-2015 AT&T Intellectual Property
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at:
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+ ---------------------------------------------------------------------------
+*/
+
 
 /*
 
@@ -19,20 +37,20 @@
 	all children, and individual control which affects only the child.  See
 	the test module for an example.
 
-	When the Baa() function is called, the message is written only if the 
-	indicaed level is <= the current level in the bleater, or <= than the 
-	parent level.  When a parent's level is changed, it is "broadcast" to 
-	all children in an attempt to minimise the cycles needed to check for 
+	When the Baa() function is called, the message is written only if the
+	indicaed level is <= the current level in the bleater, or <= than the
+	parent level.  When a parent's level is changed, it is "broadcast" to
+	all children in an attempt to minimise the cycles needed to check for
 	each bleat (the assumption is that the parent level seldomly changes
-	and pushing it is less expensive than constantly checking the parent 
+	and pushing it is less expensive than constantly checking the parent
 	object's value).
 
-	Each bleat message written is prefixed with the current unix timestamp, 
-	a human readable timestamp, the bleater prefix (if given), the level 
+	Each bleat message written is prefixed with the current unix timestamp,
+	a human readable timestamp, the bleater prefix (if given), the level
 	number in square brackets, and the formatted user message passed in printf()
 	style on the Baa() call.  The default human readable timestamp is of
 	the form YYYY/MM/DD HH:MM:SSZ; use the Set_tsformat() function to supply
-	a 'mask' if a different layout is desired.  Masks are as described in 
+	a 'mask' if a different layout is desired.  Masks are as described in
 	the Golang time package.  Bleat messages are automatically terminated
 	with a newline, so including one in the message is not needed.
 */
@@ -92,9 +110,9 @@ func Mk_bleater( level uint, target io.Writer ) ( b *Bleater ) {
 }
 
 /*
-	Baa causes the message to be written to the output device if the current bleating level is 
-	greater or equal to the message level (when). If the when value is greater than the 
-	current level, the message is supressed. 
+	Baa causes the message to be written to the output device if the current bleating level is
+	greater or equal to the message level (when). If the when value is greater than the
+	current level, the message is suppressed.
 	
 */
 func ( b *Bleater ) Baa( when uint, uformat string, va ...interface{} ) {
@@ -114,12 +132,12 @@ func ( b *Bleater ) Baa( when uint, uformat string, va ...interface{} ) {
 
 /*
 	Allows a caller to bleat messages belonging to a 'class' less often than every time called.
-	The Baa_some function accepts additional parameters (class name, and frequency) and will 
-	bleat the message on the first call, and then every frequency of calls there after.  
+	The Baa_some function accepts additional parameters (class name, and frequency) and will
+	bleat the message on the first call, and then every frequency of calls there after.
 	Frequency is not saved with the class, so it is possible to change the frequency at any time.
 
 	The class counter is incremented only if the message would otherwise be written with respect
-	to the value of when.  Thus, a class poised to write a message on the next invocation 
+	to the value of when.  Thus, a class poised to write a message on the next invocation
 	will write that message as soon as the level is appropriate, and does not run the risk of
 	always skipping if levels fluxuate.
 */
@@ -131,7 +149,7 @@ func ( b *Bleater ) Baa_some( class string, freq int, when uint, uformat string,
 		return
 	}
 
-	c, ok := b.bleat_some[class] 
+	c, ok := b.bleat_some[class]
 	if ! ok || c >= freq {						// c could be > if freq was lowered
 		b.bleat_some[class] = 1
 		b.Baa( when, uformat, va... )			// write if level is ok
@@ -153,10 +171,10 @@ func ( b *Bleater ) Baa_some_reset( class string ) {
 }
 
 /*
-	Add_child allows a bleater object to be added to the given object as a child. 
+	Add_child allows a bleater object to be added to the given object as a child.
 	Managing bleaters in a parent child organisation allows a 'master bleating volume'
 	to be managed in the parent, while allowing the volume for a particular subsystem
-	(child) to be set differently (louder) than the rest. 
+	(child) to be set differently (louder) than the rest.
 */
 func ( b *Bleater ) Add_child( cb *Bleater ) {
 	b.mtx.Lock()
@@ -176,7 +194,7 @@ func ( b *Bleater ) Add_child( cb *Bleater ) {
 
 /*
 	Set_tsformat allows the timestamp format that is written on a bleat message to be changed.
-	Any format string that is supported by the Go time package may be used. 
+	Any format string that is supported by the Go time package may be used.
 */
 func ( b *Bleater ) Set_tsformat( fmt string ) {
 	b.tsfmt = fmt
@@ -193,7 +211,7 @@ func ( b *Bleater ) Set_target( new_target io.Writer, close_old bool ) {
 	b.mtx.Lock()
 	defer b.mtx.Unlock()
 
-	if close_old  && b.tfile != nil { 
+	if close_old  && b.tfile != nil {
 		b.tfile.Close( )
 	}
 	b.tfile = nil
@@ -223,7 +241,7 @@ func ( b *Bleater ) Create_target( target_fname string, close_old bool ) ( err e
 }
 
 /*
-	Opens the target file and appends to it. If the file does't exist, it creates it. 
+	Opens the target file and appends to it. If the file doesn't exist, it creates it.
 */
 func ( b *Bleater ) Append_target( target_fname string, close_old bool ) ( err error ) {
 	f, err := os.OpenFile( target_fname, os.O_CREATE|os.O_WRONLY, 0664 )
@@ -242,7 +260,7 @@ func ( b *Bleater ) Append_target( target_fname string, close_old bool ) ( err e
 }
 
 /*
-	Set_level changes the volume for the object, and pushes it to any child bleaters. 
+	Set_level changes the volume for the object, and pushes it to any child bleaters.
 */
 func ( b *Bleater ) Set_level( l uint ) {
 	if l < 0 {
@@ -259,7 +277,7 @@ func ( b *Bleater ) Set_level( l uint ) {
 }
 	
 /*
-	Get_level returns the bleater's current level. 
+	Get_level returns the bleater's current level.
 */
 func ( b *Bleater ) Get_level( ) ( uint ) {
 	return b.level;					// yes, we'll risk not locking here too
@@ -267,7 +285,7 @@ func ( b *Bleater ) Get_level( ) ( uint ) {
 
 /*
 	Would_baa will return true if the Baa method were invokde for the given level.
-	This might be advanteous if the information that is to be bleated is fairly 
+	This might be advantageous if the information that is to be bleated is fairly
 	expensive to compute, and the application wishes to avoid the computation unless
 	it is sure that it will be written.
 */
@@ -276,7 +294,7 @@ func ( b *Bleater ) Would_baa( lvl uint ) ( bool ) {
 }
 
 /*
-	Set_prefix establishes the prefix for this bleater. The prefix is the portion 
+	Set_prefix establishes the prefix for this bleater. The prefix is the portion
 	of the message that is written after the timestamp.
 */
 func ( b *Bleater ) Set_prefix( pfx string ) {
@@ -286,14 +304,14 @@ func ( b *Bleater ) Set_prefix( pfx string ) {
 }
 
 /*
-	Inc_level is a convenient way to incrase the volume by one. 
+	Inc_level is a convenient way to increase the volume by one.
 */
 func ( b *Bleater ) Inc_level( ) {
 	b.level++
 }
 
 /*
-	Dec_level is a convenient way to decrease the volume by one. 
+	Dec_level is a convenient way to decrease the volume by one.
 */
 func ( b *Bleater ) Dec_level( ) {
 	if b.level > 0 {

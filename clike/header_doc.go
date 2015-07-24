@@ -1,5 +1,24 @@
+//vi: sw=4 ts=4:
+/*
+ ---------------------------------------------------------------------------
+   Copyright (c) 2013-2015 AT&T Intellectual Property
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at:
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+ ---------------------------------------------------------------------------
+*/
+
 // this doc is picked up and applied at the package level, makes sense to have it
-// here rather than in one of the other files. 
+// here rather than in one of the other files.
 
 
 /*
@@ -22,10 +41,10 @@ suffixes are supported:
 	K			power of 10
 
 
-The intger based functions all accept a leading '0x' or '0' to indicate that the string
+The integer based functions all accept a leading '0x' or '0' to indicate that the string
 should be interpreted as a hex or octal value respectively.
 
-The functions all accept either a string or an array of bytes ([]byte). 
+The functions all accept either a string or an array of bytes ([]byte).
 
 */
 package clike

@@ -1,4 +1,22 @@
-// vi: sw=4 ts=4:
+//vi: sw=4 ts=4:
+/*
+ ---------------------------------------------------------------------------
+   Copyright (c) 2013-2015 AT&T Intellectual Property
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at:
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+ ---------------------------------------------------------------------------
+*/
+
 
 /*
 	Run like this to test things and pretty print the json output
@@ -12,14 +30,13 @@ import (
 	"fmt"
 	"os"
 	"testing"
-	//"time"
 
 	"codecloud.web.att.com/gopkgs/extcmd"
 )
 
 func TestExec( t *testing.T ) {
 	fmt.Fprintf( os.Stderr, "test started\n" );
-	jdata, err := extcmd.Cmd2json( `test_script.ksh foo bar you "this is one" last`, "test_cmd" ) 
+	jdata, err := extcmd.Cmd2json( `test_script.ksh foo bar you "this is one" last`, "test_cmd" )
 
 	if err != nil {
 		fmt.Fprintf( os.Stderr, "command error: %s\n", err )
@@ -35,7 +52,7 @@ func TestExec( t *testing.T ) {
 
 func TestLong( t *testing.T ) {
 	fmt.Fprintf( os.Stderr, "long test started\n" );
-	jdata, err := extcmd.Cmd2json( `test_script.ksh long foo bar you "this is one" last`, "test_cmd" ) 
+	jdata, err := extcmd.Cmd2json( `test_script.ksh long foo bar you "this is one" last`, "test_cmd" )
 
 	if err != nil {
 		fmt.Fprintf( os.Stderr, "command error: %s\n", err )

@@ -1,4 +1,22 @@
-// vi: sw=4 ts=4:
+//vi: sw=4 ts=4:
+/*
+ ---------------------------------------------------------------------------
+   Copyright (c) 2013-2015 AT&T Intellectual Property
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at:
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+ ---------------------------------------------------------------------------
+*/
+
 
 /*
 
@@ -11,17 +29,15 @@
 */
 
 /*
-	Provides the means to open and parse a sectioned configuration file. 
+	Provides the means to open and parse a sectioned configuration file.
 */
 package config
 
 import (
 	"bufio"
-	//"fmt"
 	"io"
 	"os"
 	"strings"
-	//"time"
 
 	"codecloud.web.att.com/gopkgs/clike"
 	"codecloud.web.att.com/gopkgs/token"
@@ -31,19 +47,19 @@ import (
 // --------------------------------------------------------------------------------------
 
 /*
-	Parses a configuration file containing sections and key/value pairs within the 
+	Parses a configuration file containing sections and key/value pairs within the
 	sections.  Returns a map of sections (by name) with each entry in the map being
-	a map[string]interface{}.  Key/values are converted and stored by the key name as 
-	either string pointers or float64s.  If the value is quoted, the quotes are removed. 
+	a map[string]interface{}.  Key/values are converted and stored by the key name as
+	either string pointers or float64s.  If the value is quoted, the quotes are removed.
 
-	Section names may be duplicated which causes values appearing later in subsequent 
+	Section names may be duplicated which causes values appearing later in subsequent
 	sections to be added to the previously encountered values.  Keys within each section
 	must be uniqueue.  If a duplicate key is encountered, the last one read will be the
 	one that ends up in the map.
 
 	If all_str is true, then all values are returned as strings; no attempt is made
 	to convert values that seem to be numeric into actual values as it  might make logic
-	in the user programme a bit easier (no interface dreferences). 
+	in the user programme a bit easier (no interface dreferences).
 */
 func Parse( sectmap map[string]map[string]interface{}, fname string, all_str bool ) ( m map[string]map[string]interface{}, err error ) {
 	var (
@@ -83,7 +99,7 @@ func Parse( sectmap map[string]map[string]interface{}, fname string, all_str boo
 			}
 
 			switch rec[0] {
-				case ':':							// section 
+				case ':':							// section
 					//sname = rec[1:];
 					_, tokens := token.Tokenise_qpopulated( rec, " \t" )		// easy way to ditch everything after the first token
 					sname = tokens[0][1:]
@@ -124,7 +140,7 @@ func Parse( sectmap map[string]map[string]interface{}, fname string, all_str boo
 						}		
 					}								// silently discard token that is just a key, allowing the default to override
 			}
-		} 
+		}
 	}
 
 	if rerr != io.EOF {
@@ -135,8 +151,8 @@ func Parse( sectmap map[string]map[string]interface{}, fname string, all_str boo
 }
 
 /*
-	Parsees the named file keeping the values as strings, and then we convert each 
-	section map into a map of strings, allowing for a simpler interface if the 
+	Parsees the named file keeping the values as strings, and then we convert each
+	section map into a map of strings, allowing for a simpler interface if the
 	user doesn't want us to do the numeric conversions.
 
 	This may be easier for the caller to use as the returned values can be referenced

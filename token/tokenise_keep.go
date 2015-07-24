@@ -1,3 +1,22 @@
+//vi: sw=4 ts=4:
+/*
+ ---------------------------------------------------------------------------
+   Copyright (c) 2013-2015 AT&T Intellectual Property
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at:
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+ ---------------------------------------------------------------------------
+*/
+
 
 package token
 
@@ -18,9 +37,9 @@ import (
 
 /*
 	Takes a string and slices it into tokens using the characters in sepchrs
-	as the breaking points.  The separation characters are returned as 
+	as the breaking points.  The separation characters are returned as
 	individual tokens in the list.  Separater characters escaped with a backslant
-	are NOT treated like separators. 
+	are NOT treated like separators.
 
 	The return values are ntokens (int) and the list of tokens and separators.
 */

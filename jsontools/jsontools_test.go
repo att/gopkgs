@@ -1,9 +1,26 @@
-// vi: sw=4 ts=4:
+//vi: sw=4 ts=4:
+/*
+ ---------------------------------------------------------------------------
+   Copyright (c) 2013-2015 AT&T Intellectual Property
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at:
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+ ---------------------------------------------------------------------------
+*/
+
 
 package jsontools_test
 
 import (
-	//"bytes"
 	"fmt"
 	"testing"
 	"os"
@@ -43,7 +60,7 @@ json = `{
                     "id":"101",
                     "name":"object-store:admin",
                     "tenantId":"t1000"
-                }                       
+                }
             ],
             "roles_links":[]
         },
@@ -171,10 +188,10 @@ json = `{
 	jsontools.Json2map( blob[:],  nil, true );
 
 	fmt.Fprintf( os.Stderr, "======================== cache testing =======================\n" )
-	jc := jsontools.Mk_jsoncache( ) 
+	jc := jsontools.Mk_jsoncache( )
 	jc.Add_bytes( []byte(`{ "height": "5ft9in",` ) )
 	blob = jc.Get_blob( )
-	if blob != nil { 
+	if blob != nil {
 		fmt.Fprintf( os.Stderr, " blob wasn't nil and should have been: (%s)\n", string( blob ) )
 		t.Fail( )
 		os.Exit( 1 )
@@ -182,7 +199,7 @@ json = `{
 	
 	jc.Add_bytes( []byte(` "weight": "100lbs" } { "height", "6ft10in",` ) )
 	blob = jc.Get_blob( )
-	if blob == nil { 
+	if blob == nil {
 		fmt.Fprintf( os.Stderr, " blob was nil and should NOT have been\n" )
 		t.Fail( )
 		os.Exit( 1 )
@@ -207,7 +224,7 @@ json = `{
 
 		if i < 14 {
 			blob = jc.Get_blob( )
-			if blob != nil { 
+			if blob != nil {
 				fmt.Fprintf( os.Stderr, " blob was NOT nil and should have been: i=%d\n", i )
 				t.Fail( )
 				os.Exit( 1 )
@@ -216,7 +233,7 @@ json = `{
 	}
 
 	blob = jc.Get_blob( )
-	if blob == nil { 
+	if blob == nil {
 		fmt.Fprintf( os.Stderr, " blob was nil and should NOT have been\n" )
 		t.Fail( )
 		os.Exit( 1 )

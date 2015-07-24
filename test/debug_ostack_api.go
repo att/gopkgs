@@ -1,13 +1,32 @@
+//vi: sw=4 ts=4:
+/*
+ ---------------------------------------------------------------------------
+   Copyright (c) 2013-2015 AT&T Intellectual Property
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at:
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+ ---------------------------------------------------------------------------
+*/
+
 
 /*
 	Mnemonic:	debug_ostack_auth
-	Absract: 	Quick and dirty verification of some of the openstack interface. 
+	Absract: 	Quick and dirty verification of some of the openstack interface.
 				This is a bit more flexible than the test module in ostack as it
 				can take url/usr/password from the commandline.
 	Author:		E. Scott Daniels
 	Date:		7 August 2014
 
-	Mod:		11 Jul 2015 : Changess to support new crack function for v2.
+	Mod:		11 Jul 2015 : Changes to support new crack function for v2.
 */
 
 package main
@@ -16,7 +35,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	//"sync"
 	"time"
 	"strings"
 
@@ -76,12 +94,11 @@ func main( ) {
 	run_user := flag.Bool( "R", false, "run user/role test" )
 	run_subnet := flag.Bool( "S", false, "run subnet map test" )
 	run_vfp := flag.Bool( "V", false, "run token valid for project test" )
-	run_exp := flag.Bool( "X", false, "run unknown/undefined experimental test" )
 	run_projects := flag.Bool( "T", false, "run projects test" )
 	flag.Parse()									// actually parse the commandline
 
 	if *token == "" {
-		token = nil 
+		token = nil
 	}
 
 
@@ -96,7 +113,7 @@ func main( ) {
 
 	o := ostack.Mk_ostack_region( url, usr, pwd, nil, region )
 	if o == nil {
-		fmt.Fprintf( os.Stderr, "[FAIL] aborting: unable to make ostack structure\n" ) 
+		fmt.Fprintf( os.Stderr, "[FAIL] aborting: unable to make ostack structure\n" )
 		os.Exit( 1 )
 	}
 
@@ -123,7 +140,7 @@ func main( ) {
 			fmt.Fprintf( os.Stderr, "[FAIL] aborting: unable to generate a tennt list (required for some tests even if -M was not set): %s\n", err )
 			fmt.Fprintf( os.Stderr, "Is %s an admin?\n", *usr )
 			os.Exit( 1 )
-		} 
+		}
 		project_map = m1
 	
 		if * run_projects {
@@ -180,9 +197,9 @@ func main( ) {
 	if *run_projects || *run_all || *run_user {				// needed later for both projects and user so get here first
 		all_projects, _, err = o2.Map_all_tenants( )		// map all tenants using keystsone rather than compute service
 		if err != nil {
-			fmt.Fprintf( os.Stderr, "[FAIL] unable to generate a coomplete tennt list from keystone: %s\n", err )
+			fmt.Fprintf( os.Stderr, "[FAIL] unable to generate a complete tennt list from keystone: %s\n", err )
 			all_projects = nil
-		} 
+		}
 	}
 
 	if all_projects != nil && (*run_all || *run_projects) {				// see if we can get a full list of projects
@@ -215,21 +232,6 @@ func main( ) {
 
 			}
 		}
-	} 
-
-	if *run_exp {								// experimental -- run only when -X given, not when all
-		//m, err := o2.Dig_test( nil, true, nil, false, false )		// bool order: inc-tenant, save-name, reverse		
-		m, err := o2.Agg2hosts( nil, nil )
-		if err == nil {
-			fmt.Fprintf( os.Stderr, "[OK]   Experimental executed successfully, map has %d items\n", len( m ) )
-			for k, v := range m {
-				fmt.Fprintf( os.Stderr, "\texp: %s = %s\n", k, *v );	
-			}
-		} else {
-			fmt.Fprintf( os.Stderr, "[FAIL] Experimental failed: %s\n", err )
-		}
-
-		fmt.Fprintf( os.Stderr, "\n" )
 	}
 
 	if *run_all || *run_user {
@@ -245,7 +247,7 @@ func main( ) {
 		}
 
 /*
-invoking groles when it's not supported causes the user roles request to fail with an auth failure. 
+invoking groles when it's not supported causes the user roles request to fail with an auth failure.
 don't know if openstack is invalidating the token, or what, but it works when global roles isn't
 invoked.  bloody openstack.
 		rm, err = o2.Map_user_groles() 				// map global roles for the user
@@ -416,7 +418,7 @@ invoked.  bloody openstack.
 			err_count++
 		}
 
-		gl1, err := o2.Mk_gwlist() 
+		gl1, err := o2.Mk_gwlist()
 		if err == nil {
 			fmt.Fprintf( os.Stderr, "[OK]    generated gateway list %d entries\n", len( gl1 ) )
 			if *verbose {
@@ -606,7 +608,7 @@ invoked.  bloody openstack.
 		} else {
 			fmt.Fprintf( os.Stderr, "[SKIP] did not run crack test, no token provided\n" )
 		}
-	} 
+	}
 
 	if (*run_all || *run_vfp)  && token != nil { 					// see if token is valid for the given project
 
@@ -655,7 +657,7 @@ invoked.  bloody openstack.
 
 	if *run_all || *run_subnet {
 		msn, mgw, err := o2.Mk_snlists( )
-		if err == nil { 
+		if err == nil {
 			if msn != nil {
 				fmt.Fprintf( os.Stderr, "\n[OK]       subnet map contained %d entries\n", len( msn ) )
 				if *verbose {
@@ -687,7 +689,7 @@ invoked.  bloody openstack.
 		fmt.Fprintf( os.Stderr, "\n[OK]     all tests passed\n" )
 	} else {
 		fmt.Fprintf( os.Stderr, "\n[WARN]   %d errors noticed\n", err_count )
-	} 
+	}
 
 }
 
