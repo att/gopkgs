@@ -1,4 +1,4 @@
-//vi: sw=4 ts=4:
+// vi: sw=4 ts=4:
 /*
  ---------------------------------------------------------------------------
    Copyright (c) 2013-2015 AT&T Intellectual Property
@@ -25,7 +25,7 @@ package clike_test
 
 import (
 	"testing"
-	"github.com/gopkgs/clike"
+	"github.com/att/gopkgs/clike"
 )
 
 func TestAtoll ( t *testing.T ) {           // must use bloody camel case to be recognised by go testing
