@@ -1,4 +1,4 @@
-//vi: sw=4 ts=4:
+// vi: sw=4 ts=4:
 /*
  ---------------------------------------------------------------------------
    Copyright (c) 2013-2015 AT&T Intellectual Property
@@ -34,7 +34,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/gopkgs/ssh_broker"		// CAUTION: ssh_broker requires a fairly recent version of go
+	"github.com/att/gopkgs/ssh_broker"		// CAUTION: ssh_broker requires a fairly recent version of go
 )
 
 

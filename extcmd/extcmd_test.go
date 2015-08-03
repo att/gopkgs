@@ -1,4 +1,4 @@
-//vi: sw=4 ts=4:
+// vi: sw=4 ts=4:
 /*
  ---------------------------------------------------------------------------
    Copyright (c) 2013-2015 AT&T Intellectual Property
@@ -31,7 +31,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/gopkgs/extcmd"
+	"github.com/att/gopkgs/extcmd"
 )
 
 func TestExec( t *testing.T ) {

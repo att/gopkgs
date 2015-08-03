@@ -1,4 +1,4 @@
-//vi: sw=4 ts=4:
+// vi: sw=4 ts=4:
 /*
  ---------------------------------------------------------------------------
    Copyright (c) 2013-2015 AT&T Intellectual Property
@@ -38,7 +38,7 @@ import (
 	"time"
 	"strings"
 
-	"github.com/gopkgs/ostack"
+	"github.com/att/gopkgs/ostack"
 )
 
 func find_in_list( list *string, target *string ) {
