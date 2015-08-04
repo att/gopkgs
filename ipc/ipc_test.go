@@ -37,6 +37,8 @@ func TestIpc( t *testing.T ) {
 		return;
 	}
 
+	start_ts := time.Now().Unix()
+	fmt.Fprintf( os.Stderr, "this test runs for 60 seconds and will generate updates periodically....\n" )
 	req.Response_ch = nil;		// use it to keep compiler happy
 	
 
@@ -49,7 +51,7 @@ func TestIpc( t *testing.T ) {
 	_, err = tklr.Add_spot( 20, ch, 20, &data, 0 );			// will automatically start the tickler
 	_, err = tklr.Add_spot( 15, ch, 15, &data, 0 );	
 	id, err := tklr.Add_spot( 10, ch, 10, &data, 0 );		// nick the id so we can drop it later
-	_, err = tklr.Add_spot( 10, ch, 1, &data, 2 );
+	_, err = tklr.Add_spot( 10, ch, 1, &data, 2 );			// should drive type 1 only twice; 10s apart
 
 	if err != nil {
 		fmt.Fprintf( os.Stderr, "unable to add tickle spot: %s\n", err );
@@ -60,12 +62,13 @@ func TestIpc( t *testing.T ) {
 	limited_count := 0;
 	for count := 0; count < 2;  {
 		req = <- ch;						// wait for tickle
-		fmt.Fprintf( os.Stderr, "got a tickle: %d type=%d count=%d\n", time.Now().Unix(), req.Msg_type, count );
+		fmt.Fprintf( os.Stderr, "got a tickle: %d type=%d count=%d\n", time.Now().Unix() - start_ts, req.Msg_type, count );
 		if req.Msg_type == 30 {
 			if count == 0 {
+				fmt.Fprintf( os.Stderr, "dropping type 10 from list; no more type 10 should appear\n" )
 				tklr.Drop_spot( id );		// drop the 10s tickler after first 30 second one pops
 			}
-			count++;
+			count++;						// count updated only at 30s point
 		}
 
 		if req.Msg_type == 1 {
