@@ -267,7 +267,7 @@ func TestToken_qsep2( t *testing.T ) {
 }
 
 func TestUnique( t *testing.T ) {
-	n, toks := token.Tokeise_qsepu( "foo bar bar man foo goo you who foo too", " " )
+	n, toks := token.Tokenise_qsepu( "foo bar bar man foo goo you who foo too", " " )
 	fmt.Fprintf( os.Stderr, "\n" );
 	if n != 7 {
 		fmt.Fprintf( os.Stderr, "FAIL:  expected 7 unique tokens, got %d", n )
