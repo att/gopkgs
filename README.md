@@ -34,6 +34,10 @@ A TCP connection manager.
 An external command interface which bundles the results (stdout/stderr)
 into a manageable structure for the caller.
 
+###	http_logger  
+Provides a basic logger to log HTTP requests in the format that will be familiar
+to anyone who has ever used Apache.
+
 ###	ipc  
 Interprocess communications support.  Provides a simple request/response message block
 and some wrapper functions to easily send a message on a channel.
