@@ -37,6 +37,7 @@
 				16 Jul 2015 - Ensure that the authorisation key list does not contain nil entries as this
 					causes ssh library code to panic (nil pointer exception).
 				28 Aug 2015 - Moved the abstract down to where it can more usefully be used with godoc to
+				01 Sep 2015 - Corrected typo causing an RUnlock attempt instead of Unlock.
 					document this package.  Fixed typos.
 
 	CAUTION:	This package requires go 1.3.3 or later.
@@ -428,7 +429,7 @@ func ( b *Broker ) session2( host string ) ( s *ssh.Session, err error ) {
 		if c.last_cmd < time.Now().Unix() - 120	{ 		// if it's been a while, try resetting things
 			b.conns_lock.Lock()								// get a write lock
 			b.conns[host] = nil								// force it off, allow new one to recreate
-			b.conns_lock.RUnlock()
+			b.conns_lock.Unlock()
 
 			c, err = b.connect2( host )
 			if err != nil {
