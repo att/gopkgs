@@ -19,77 +19,15 @@
 
 /*
 	Mnemonic:	ssh_broker
-	Abstract: 	Provides an interface to the ssh package that allows a local script (shell or python)
-				to be read and sent to a remote host for execution.  The standard error and output are
-				returned. Ssh connections are established using one or more private key files that
-				are supplied when the broker object is created, and the connections persist until
-				the object is closed allowing for subsequent commands to be executed without the
-				overhead of the ssh setup.
-
-				Scripts must have a #! line which is used to execute the interpreter on the remote
-				host.  The script is then written on stdin to the interpreter.  If python is in the
-				#! line, then leading whitespace isn't stripped as the script is sent to the remote host.
-				Commented lines (beginning with #), and blank lines are removed (might cause issues
-				for strings with embedded newlines, but for now I'm not worrying about those).
-
-				When the broker object is crated, a single script initiator is started, however it is
-				possible for the user application to start additional initiators in order to execute
-				scripts in parallel.  The initiators read from the queue of scripts to run and
-				create a session, send the script, and wait for the results which are returned to the
-				caller directly, or as a message structure on a channel, depending on which function
-				was used.
-
-				There also seems to be a limit on the max number of concurrent sessions that one SSH
-				connection will support.  This seems to be a host policy, rather than a blanket SSH
-				constant, so an initiator will retry the execution of a script when it appears that the
-				failrue is related to this limit.  All other errors are returned to the caller for
-				evaluation and possible retry.
-
-				There are two functions that the user can invoke to run a script on a remote host:
-				Run_on_host() and NBRun_on_host().  The former will block until the command is run
-				and the latter will queue the request with the caller's channel and the results message
-				will be written to the channel when the script execution has been completed.
-
-				Basic usage:	(error checking omitted)
-						// supply the key filenames that are recognised on the remote side in authorised keys
-						keys := []string { "/home/scooter/.ssh/id_rsa", "/home/scooter/.ssh/id_dsa" }
-						broker := Mk_broker( "scooter", keys )			// create a broker for user, with keys
-						host := "cheetah"
-						script := "/user/bin/do_something"					// can be in PATH, or qualified
-						parms := "-t 10 /tmp/output"						// command line parameters
-						stdout, stderr, err := broker.Run_on_host( host, script, parms )
-
-				The script may be Korn shell, bash, or python and is fed into the interpreter as standard
-				in put so $0 (arg[0]) will not be set.  The broker will attempt to set the variable
-				ARGV0 to be the script name should the script need it. Other than this small difference,
-				and there not being any standard input, the script should function as written.  It is possible
-				that other script types can be used, though it is known that #!/usr/bin/env awk will fail and
-				thus "pure awk" must be wrapped inside of a ksh or bash script.
-
-
-				There are also two functions which support the running af a command on the remote host in a
-				"traditional" SSH fashion.  Run_cmd (blocking) and NBRun_cmd (non-blocking) run the command
-				in a similar fashion as the script execution methods.
-
-				The user can also associate an rsync command to be executed on each successful connection
-				to a host.  This is done using the Add_rsync() function which supplies a list of files
-				(space separated) and a directory to which they are to be placed on the remote hosts. The
-				directory name should have a trailing slant (/) to ensure that rsync properly creates
-				it.  Because it _might_ be acceptable to the caller that the directory does not need a
-				slant, this code will not add one if it is missing.
-
-				https://godoc.org/golang.org/x/crypto/ssh
-
 	Author:		E. Scott Daniels
 	Date: 		23 December 2014
-
 	Mods:		15 Jan 2015 - Added ability to send an environment file before the named script file.
 				01 Feb 2015 - Corrected bug, rsync happening on session2, not new connection.
 				12 Feb 2015 - Dropped the ability to ditch leading/trailing whitespace when sending to
 					standard input.
 				02 Apr 2015 - Attempt to prevent core dump if ssh has connection issues. The rsync call
 					is now executed after the connection to the host is successful so that if the user isn't
-					knonw on the remote host there isn't a prompt for password which would block.
+					known on the remote host there isn't a prompt for password which would block.
 				23 Apr 2015 - Added explicit session close calls after running a command.
 					Corrected timing issue that was preventing close of ssh session from happening before
 					an attempt to queue a retry request back onto the main channel.
@@ -98,11 +36,76 @@
 					execution function.
 				16 Jul 2015 - Ensure that the authorisation key list does not contain nil entries as this
 					causes ssh library code to panic (nil pointer exception).
+				28 Aug 2015 - Moved the abstract down to where it can more usefully be used with godoc to
 				01 Sep 2015 - Corrected typo causing an RUnlock attempt instead of Unlock.
+					document this package.  Fixed typos.
 
-	CAUTION:	This package reqires go 1.3.3 or later.
+	CAUTION:	This package requires go 1.3.3 or later.
 */
 
+/*
+	Provides an interface to the ssh package that allows a local script (shell or python)
+	to be read and sent to a remote host for execution.  The standard error and output are
+	returned. Ssh connections are established using one or more private key files that
+	are supplied when the broker object is created, and the connections persist until
+	the object is closed allowing for subsequent commands to be executed without the
+	overhead of the ssh setup.
+
+	Scripts must start with a #! line which is used to execute the interpreter on the remote
+	host.  The script is then written on stdin to the interpreter.  If python is in the
+	#! line, then leading whitespace isn't stripped as the script is sent to the remote host.
+	Commented lines (beginning with #), and blank lines are removed (might cause issues
+	for strings with embedded newlines, but for now I'm not worrying about those).
+
+	When the broker object is created, a single script initiator is started, however it is
+	possible for the user application to start additional initiators in order to execute
+	scripts in parallel.  The initiators read from the queue of scripts to run and
+	create a session, send the script, and wait for the results which are returned to the
+	caller directly, or as a message structure on a channel, depending on which function
+	was used.
+
+	There also seems to be a limit on the max number of concurrent sessions that one SSH
+	connection will support.  This seems to be a host policy, rather than a blanket SSH
+	constant, so an initiator will retry the execution of a script when it appears that the
+	failure is related to this limit.  All other errors are returned to the caller for
+	evaluation and possible retry.
+
+	There are two functions that the user can invoke to run a script on a remote host:
+	Run_on_host() and NBRun_on_host().  The former will block until the command is run
+	and the latter will queue the request with the caller's channel and the results message
+	will be written to the channel when the script execution has been completed.
+
+	Basic usage:	(error checking omitted)
+
+		// supply the key filenames that are recognised on the remote side in authorised keys
+		keys := []string { "/home/scooter/.ssh/id_rsa", "/home/scooter/.ssh/id_dsa" }
+		broker := Mk_broker( "scooter", keys )    // create a broker for user, with keys
+		host := "cheetah"
+		script := "/user/bin/do_something"        // can be in PATH, or qualified
+		parms := "-t 10 /tmp/output"              // command line parameters
+		env := "/tmp/envfile"                     // file containing environment
+		stdout, stderr, err := broker.Run_on_host( host, script, parms, env )
+
+	The script may be Korn shell, bash, or python and is fed into the interpreter as standard
+	input, so $0 (arg[0]) will not be set.  The broker will attempt to set the variable
+	ARGV0 to be the script name should the script need it. Other than this small difference,
+	and there not being any standard input, the script should function as written.  It is possible
+	that other script types can be used, though it is known that #!/usr/bin/env awk will fail and
+	thus "pure awk" must be wrapped inside of a ksh or bash script.
+
+	There are also two functions which support the running af a command on the remote host in a
+	"traditional" SSH fashion.  Run_cmd (blocking) and NBRun_cmd (non-blocking) run the command
+	in a similar fashion as the script execution methods.
+
+	The user can also associate an rsync command to be executed on each successful connection
+	to a host.  This is done using the Add_rsync() function which supplies a list of files
+	(space separated) and a directory to which they are to be placed on the remote hosts. The
+	directory name should have a trailing slant (/) to ensure that rsync properly creates
+	it.  Because it _might_ be acceptable to the caller that the directory does not need a
+	slant, this code will not add one if it is missing.
+
+	https://godoc.org/golang.org/x/crypto/ssh
+ */
 package ssh_broker
 
 import (
@@ -150,7 +153,7 @@ type Broker struct  {
 }
 
 /*
-	Used to pass information into an initator and then back to the requestor. External users
+	Used to pass information into an initiator and then back to the requestor. External users
 	(non-package functions) can use the get functions related to this struct to extract
 	information (none of the information is directly available).
 */
@@ -407,8 +410,7 @@ func ( b *Broker ) connect2( host string ) ( c *connection, err error ) {
 }
 
 /*
-	Create a new sesson to the named host establishing the connection if
-	we must.
+	Create a new session to the named host establishing the connection if we must.
 */
 func ( b *Broker ) session2( host string ) ( s *ssh.Session, err error ) {
 
@@ -421,7 +423,7 @@ func ( b *Broker ) session2( host string ) ( s *ssh.Session, err error ) {
 	}
 
 	s, err = c.schan.NewSession( )						// create a new session
-	if err != nil  && !  strings.Contains(  fmt.Sprintf( "%s", err ), "administratively prohibited" ) {	
+	if err != nil  && !  strings.Contains(  fmt.Sprintf( "%s", err ), "administratively prohibited" ) {
 		s = nil
 
 		if c.last_cmd < time.Now().Unix() - 120	{ 		// if it's been a while, try resetting things
@@ -449,7 +451,7 @@ func ( b *Broker ) session2( host string ) ( s *ssh.Session, err error ) {
 	processing. The result is folded back into the request and written to the user channel
 	contained in the request. If a request fails with an error that contains the phrase
 	"administratively prohibited", then it is retried as this is usually a bump against the
-	number of sessions permitted to any single host.   The rerty logic is this:
+	number of sessions permitted to any single host.   The retry logic is this:
 
 		Queue the request on the specific host's (channel) retry queue. When the next
 		iterator processing a script on that host completes, it will check the retry
@@ -483,7 +485,7 @@ func ( b *Broker ) initiator( id int ) {
 						fmt.Fprintf( os.Stderr, "broker retry channel closed, initiator %d terminating\n", id )
 						return
 					}
-	
+
 				case req, is_open = <- b.init_ch:
 					if !is_open {
 						fmt.Fprintf( os.Stderr, "broker request channel closed, initiator %d terminating\n", id )
@@ -621,7 +623,7 @@ func ( b *Broker ) Start_initiators( n int ) {
 }
 
 /*
-	Clean up things that need to be closed when the user makes us goaway.
+	Clean up things that need to be closed when the user makes us go away.
 */
 func ( b *Broker ) Close( ) {
 	if b == nil {
@@ -638,7 +640,7 @@ func ( b *Broker ) Close( ) {
 		}
 	}
 
-	close( b.init_ch )					// close the initiator channel which should cause iniators to stop
+	close( b.init_ch )					// close the initiator channel which should cause initiators to stop
 										// do NOT close retry channel as it could lead to a panic
 
 	b.was_closed = true					// prevent using it unless more initiators are re-opened
@@ -662,7 +664,7 @@ func ( b *Broker ) Reset( ) {
 	}
 
 	b.conns = make( map[string]*connection, 100 )		// make a whole new set
-	
+
 	b.was_closed = false					// if it was closed, mark it open again
 }
 
@@ -679,7 +681,7 @@ func ( b *Broker ) Close_session( name *string ) ( err error ) {
 	if b.was_closed {
 		return
 	}
-	
+
 	c := b.conns[*name]
 	if c == nil {					// nothing to close
 		return
@@ -712,7 +714,7 @@ func ( b *Broker ) Run_on_host( host string, script string, parms string, env_fi
 		host: 	host,
 		sname:	script,
 		env:	env_file,
-		parms:	parms,	
+		parms:	parms,
 	}
 	req.resp_ch = make( chan *Broker_msg )			// we'll listen on this channel for response
 													// do NOT close the channel as we aren't sending on it
@@ -744,7 +746,7 @@ fmt.Fprintf( os.Stderr, "creating request: %d\n", uid )
 	req := &Broker_msg {
 		host: 	host,
 		sname:	script,
-		parms:	parms,	
+		parms:	parms,
 		id:		uid,
 		resp_ch:	uch,
 	}
