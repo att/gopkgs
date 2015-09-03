@@ -72,3 +72,7 @@ func Set_debugging( count int ) {
 	dbug_json_count = count
 	dbug_url_count = count
 }
+
+func Set_latency_debugging( state bool ) {
+	debug_latency = state
+}
