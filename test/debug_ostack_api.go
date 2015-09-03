@@ -62,7 +62,7 @@ func main( ) {
 		url *string
 	)
 
-	fmt.Fprintf( os.Stderr, "api debugger: v1.9/17155a\n" )
+	fmt.Fprintf( os.Stderr, "api debugger: v1.10/18255\n" )
 	err_count := 0
 
 
@@ -71,9 +71,11 @@ func main( ) {
 	{	p := os.Getenv( "OS_PASSWORD" ); pwd = &p }
 	
 															// tests are -<capital> except -P
+	chost_only := flag.Bool( "c", false, "list only compute hosts" )
 	dump_stuff := flag.Bool( "d", false, "dump stuff" )
 	host2find := flag.String( "h", "", "host search (if -L)" )
 	inc_project := flag.Bool( "i", false, "include project in names" )
+	show_latency := flag.Bool( "l", false, "show latency on openstack calls" )
 	pwd = flag.String( "p", *pwd, "password" )
 	project := flag.String( "P", "", "project for subsequent tests" )
 	region := flag.String( "r", "", "region" )
@@ -105,9 +107,13 @@ func main( ) {
 	if *dump_stuff {
 		ostack.Set_debugging( 0 )					// resets debugging counts to 0
 	}
+	if *show_latency {
+		ostack.Set_latency_debugging( true )
+	}
 
 	if url == nil || usr == nil || pwd == nil {
 		fmt.Fprintf( os.Stderr, "usage: debug_ostack_api -U URL -u user -p password [-d] [-i] [-v] [-A] [-F] [-L] [-M] [-T] [-V]\n" )
+		fmt.Fprintf( os.Stderr, "usage: debug_ostack_api --help\n" )
 		os.Exit( 1 )
 	}
 
@@ -137,13 +143,13 @@ func main( ) {
 	if *project == "" || *run_all || *run_projects {		// map projects that the user belongs to
 		m1, _, err := o.Map_tenants( )
 		if err != nil {
-			fmt.Fprintf( os.Stderr, "[FAIL] aborting: unable to generate a tennt list (required for some tests even if -M was not set): %s\n", err )
+			fmt.Fprintf( os.Stderr, "[FAIL] aborting: unable to generate a project list (required -A or -T tests): %s\n", err )
 			fmt.Fprintf( os.Stderr, "Is %s an admin?\n", *usr )
 			os.Exit( 1 )
 		}
 		project_map = m1
 	
-		if * run_projects {
+		if * run_projects {								// only announce if specific project test is on
 			if *verbose {
 				fmt.Fprintf( os.Stderr, "\n[OK]   project list generation ok:\n" )
 			} else {
@@ -181,15 +187,23 @@ func main( ) {
 	if *run_all || *run_projects {
 		fmt.Fprintf( os.Stderr, "[INFO]  sussing host list for each project....\n" )
 		for k, _ := range( project_map ) {
+			var hlist *string
+
 			o3 :=  ostack.Mk_ostack_region( url, usr, pwd, &k, region )
 			o3.Insert_token( o2.Get_token() )
 			startt := time.Now().Unix()
-			hlist, err := o3.List_hosts( ostack.COMPUTE )
+			fetch_type := "compute & network"
+			if *chost_only {
+				hlist, err = o3.List_hosts( ostack.COMPUTE )
+				fetch_type = "compute only"
+			} else {
+				hlist, err = o3.List_hosts( ostack.COMPUTE | ostack.NETWORK )
+			}
 			endt := time.Now().Unix()
 			if err == nil {
-				fmt.Fprintf( os.Stderr, "[OK]   got hosts for %s: %s  (%d sec)\n", k, *hlist, endt - startt )
+				fmt.Fprintf( os.Stderr, "[OK]   got hosts (%s) for %s: %s  (%d sec)\n", k, fetch_type, *hlist, endt - startt )
 			} else {
-				fmt.Fprintf( os.Stderr, "[WARN] unable to get hosts for %s: %s", k, err )
+				fmt.Fprintf( os.Stderr, "[WARN] unable to get hosts (%s) for %s: %s  (%d sec)", fetch_type, k, err, endt-startt )
 			}
 		}
 	}
@@ -209,27 +223,31 @@ func main( ) {
 				fmt.Fprintf( os.Stderr, "\t\tproject: %s --> %s\n", k, *v )
 			}
 
-			fmt.Fprintf( os.Stderr, "[INFO]  sussing host list for each project....\n" )
-			for k, _ := range( all_projects ) {
-				o3 :=  ostack.Mk_ostack_region( url, usr, pwd, &k, region )
-				o3.Insert_token( o2.Get_token() )
-				startt := time.Now().Unix()
-				hlist, err := o3.List_hosts( ostack.COMPUTE )
-				endt := time.Now().Unix()
-				if err == nil {
-					fmt.Fprintf( os.Stderr, "[OK]   got compute hosts for %s: %s  (%d sec)\n", k, *hlist, endt - startt )
-				} else {
-					fmt.Fprintf( os.Stderr, "[WARN] unable to get compute hosts for %s: %s", k, err )
+			if *verbose {
+				fmt.Fprintf( os.Stderr, "[INFO]  sussing host list for all known project....\n" )
+				for k, _ := range( all_projects ) {
+					o3 :=  ostack.Mk_ostack_region( url, usr, pwd, &k, region )
+					o3.Insert_token( o2.Get_token() )
+					startt := time.Now().Unix()
+					hlist, err := o3.List_hosts( ostack.COMPUTE )
+					endt := time.Now().Unix()
+					if err == nil {
+						fmt.Fprintf( os.Stderr, "[OK]   got compute hosts for %s: %s  (%d sec)\n", k, *hlist, endt - startt )
+					} else {
+						fmt.Fprintf( os.Stderr, "[WARN] unable to get compute hosts for %s: %s", k, err )
+					}
+					startt = time.Now().Unix()
+					hlist, err = o3.List_hosts( ostack.NETWORK )
+					endt = time.Now().Unix()
+					if err == nil {
+						fmt.Fprintf( os.Stderr, "[OK]   got network hosts for %s: %s  (%d sec)\n", k, *hlist, endt - startt )
+					} else {
+						fmt.Fprintf( os.Stderr, "[WARN] unable to get network hosts for %s: %s", k, err )
+					}
+	
 				}
-				startt = time.Now().Unix()
-				hlist, err = o3.List_hosts( ostack.NETWORK )
-				endt = time.Now().Unix()
-				if err == nil {
-					fmt.Fprintf( os.Stderr, "[OK]   got network hosts for %s: %s  (%d sec)\n", k, *hlist, endt - startt )
-				} else {
-					fmt.Fprintf( os.Stderr, "[WARN] unable to get network hosts for %s: %s", k, err )
-				}
-
+			} else {
+				fmt.Fprintf( os.Stderr, "[SKIP]  did not suss host list for all known project (use -T -v to do this)\n" )
 			}
 		}
 	}

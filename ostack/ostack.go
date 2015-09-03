@@ -511,6 +511,7 @@ type VM_info struct {
 var (								// counters used by ostack_debug functions -- these apply to all objects!
 	dbug_json_count int = 15		// set >= 10 to prevent json dumping of first 10 calls
 	dbug_url_count int = 15			// set to 10 to prevent url dumping of first 10 calls
+	debug_latency = false			// set to true to emit latency info to stderr on openstack requests
 )
 
 /*
@@ -607,42 +608,50 @@ const (								// reset iota
 */
 func (o *Ostack) Send_req( method string, url *string, data *bytes.Buffer ) (jdata []byte, headers map[string][]string, err error) {
 	var (
-		req 	*http.Request;
-		rsrc	*http.Client;		// request source	
+		req 	*http.Request
+		rsrc	*http.Client		// request source	
+		stime	int64
 	)
 	
 	jdata = nil;
-	headers = nil;
-	req, err = http.NewRequest( method, *url, data );
+	headers = nil
+	req, err = http.NewRequest( method, *url, data )
 	if err != nil {
-		fmt.Fprintf( os.Stderr, "error making request for %s to %s\n", method, *url );
+		fmt.Fprintf( os.Stderr, "error making request for %s to %s\n", method, *url )
 		return
 	}
 
-	req.Header.Add( "Content-Type", "application/json" );
+	req.Header.Add( "Content-Type", "application/json" )
 	if o.token != nil {											// authorisation won't have a token
 		if len( *o.token ) > 100 {
-			req.Header.Add( "X-Auth-Token", *o.small_tok );		// use compressed token
+			req.Header.Add( "X-Auth-Token", *o.small_tok )		// use compressed token
 		} else {
-			req.Header.Add( "X-Auth-Token", *o.token );
+			req.Header.Add( "X-Auth-Token", *o.token )
 		}
 	}
 
-	rsrc = &http.Client{};
+	rsrc = &http.Client{}
+	if debug_latency {
+		stime = time.Now().UnixNano()
+	}
 	resp, err := rsrc.Do( req )
-	if err == nil {
+	if debug_latency {
+		stime = time.Now().UnixNano() - stime			// delta
+		fmt.Fprintf( os.Stderr, "[DBUG] ostack latency: %.3fs %5s: %s\n", float64( stime )/1000000000, method, *url )
+	}
 
+	if err == nil {
 		jdata, err = ioutil.ReadAll( resp.Body )
 		resp.Body.Close( )
 
-		headers = resp.Header;
+		headers = resp.Header
 
 		err = scanj4gook( jdata )				// quick scan to see if there are bad things in the json
 	} else {
-		fmt.Fprintf( os.Stderr, "ostack/Send_req: received err response %s\n", err );
+		fmt.Fprintf( os.Stderr, "ostack/Send_req: received err response %s\n", err )
 	}
 
-	return;
+	return
 }
 
 /*
