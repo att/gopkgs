@@ -39,6 +39,8 @@
 				28 Aug 2015 - Moved the abstract down to where it can more usefully be used with godoc to
 				01 Sep 2015 - Corrected typo causing an RUnlock attempt instead of Unlock.
 					document this package.  Fixed typos.
+				21 Sep 2015 - Corrected bug preventing the detection and reconnect if the remote host is
+					rebooted or the ssh session is closed from the other end.
 
 	CAUTION:	This package requires go 1.3.3 or later.
 */
@@ -131,6 +133,7 @@ type connection struct {
 	schan		*ssh.Client			// the ssh supplied connection
 	retry_ch	chan *Broker_msg	// retry channel for the host
 	last_cmd	int64				// timestamp of last command to prevent ssh from going stale
+	active		bool				// if an error occurs this flag is marked false forcing a reconnect
 }
 
 // ------ public structures -----------------------------------------------------------------------------
@@ -370,7 +373,7 @@ func ( b *Broker ) connect2( host string ) ( c *connection, err error ) {
 	b.conns_lock.RLock()								// get a read lock
 	c = b.conns[host]
 	b.conns_lock.RUnlock()
-	if c != nil {										// we've already connected, just return
+	if c != nil && c.active {							// we've already connected, just return
 		return
 	}
 
@@ -382,12 +385,15 @@ func ( b *Broker ) connect2( host string ) ( c *connection, err error ) {
 	defer b.conns_lock.Unlock()							// hold until we return
 
 	c = b.conns[host]
-	if c != nil {										// someone created while we were waiting on lock
-		return											// just send it back now
+	if c != nil {										// created while we were waiting on lock or existed but not active
+		if c.active {
+			return										// if active, then safe to send it back now
+		}
+	} else {
+		c = &connection{ host: host }
+		c.retry_ch = make( chan *Broker_msg, 1024 )		// the host retry queue
 	}
 
-	c = &connection{ host: host }
-	c.retry_ch = make( chan *Broker_msg, 1024 )			// the host retry queue
 	c.schan, err = ssh.Dial( "tcp", host, b.config )	// establish the tcp session (ssh channel)
 	if err != nil {
 		c = nil
@@ -400,11 +406,13 @@ func ( b *Broker ) connect2( host string ) ( c *connection, err error ) {
 		if err != nil {
 			err = fmt.Errorf( "unable to rsynch to %s: %s", host, err )
 			c.schan.Close()								// if rsynch fails connection "fails"
+			c.active = false
 			return
 		}
 	}
 	
 	c.last_cmd = time.Now().Unix()
+	c.active = true
 	b.conns[host] = c									// finally, add to our map (host:port)
 	return
 }
@@ -423,24 +431,22 @@ func ( b *Broker ) session2( host string ) ( s *ssh.Session, err error ) {
 	}
 
 	s, err = c.schan.NewSession( )						// create a new session
-	if err != nil  && !  strings.Contains(  fmt.Sprintf( "%s", err ), "administratively prohibited" ) {
+	if err != nil  && !  strings.Contains(  fmt.Sprintf( "%s", err ), "administratively prohibited" ) {	
+		c.schan.Close( )					// any error other than at session max, assume we need to reconnect
+		c.active = false
+
 		s = nil
 
-		if c.last_cmd < time.Now().Unix() - 120	{ 		// if it's been a while, try resetting things
-			b.conns_lock.Lock()								// get a write lock
-			b.conns[host] = nil								// force it off, allow new one to recreate
-			b.conns_lock.Unlock()
-
-			c, err = b.connect2( host )
-			if err != nil {
-				return
-			}
-
-			s, err = c.schan.NewSession( )
-			if err != nil {							// time to give up and return error
-				s = nil
-			}
+		c, err = b.connect2( host )
+		if err != nil {
+			return
 		}
+
+		s, err = c.schan.NewSession( )
+		if err != nil {							// time to give up and return error
+			s = nil
+		}
+
 	}
 
 	return
@@ -509,9 +515,12 @@ func ( b *Broker ) initiator( id int ) {
 		}
 
 		if req.err != nil {
-			if req.ntries < 10  &&  strings.Contains( fmt.Sprintf( "%s", req.err ), "administratively prohibited" ) {	// likely over max sessions
+			if req.ntries < 10  &&  
+				( strings.Contains( fmt.Sprintf( "%s", req.err ), "administratively prohibited" ) ||
+				  strings.Contains( fmt.Sprintf( "%s", req.err ), "use of closed network connection" )  ) {	// likely over max sessions or remote rebooted/died
 				c, err := b.connect2( req.host )			// find the connection
 				if err == nil { 							// no error finding it, then queue the request to be retried
+					req.err = nil
 					req.ntries++
 					c.retry_ch <- req
 					req = nil								// don't send result and dont check retry queue below

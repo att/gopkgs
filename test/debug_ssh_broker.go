@@ -23,7 +23,8 @@
 				module, this provides an end to end test of the ssh_broker.
 	Author:		E. Scott Daniels
 	Date:		23 December 2014
-	Mods:		Fixed fmt statement in printf.
+	Mods:		              Fixed fmt statement in printf.
+				21 Sep 2015 - Added repeat function.
 */
 
 package main
@@ -33,6 +34,7 @@ import (
     "fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/att/gopkgs/ssh_broker"		// CAUTION: ssh_broker requires a fairly recent version of go
 )
@@ -118,12 +120,14 @@ func main( ) {
 
 	asynch := flag.Bool( "a", false, "asynch processing" )
 	cmd := flag.String( "c", "", "command to execute" )
+	repeat_delay := flag.Int( "d", 30, "repeat delay (seconds)" )
 	env_file := flag.String( "e", "", "environment file for script" )
-	host_list := flag.String( "h", "localhost", "host name" )
+	host_list := flag.String( "h", "localhost", "host name(s) (comma sep)" )
 	key := flag.String( "k", def_key, "key file" )
 	parms := flag.String( "p", "", "parms" )
 	parallel := flag.Int( "P", 1, "parallel scripts" )
 	rsync := flag.String( "r", "", "rsync files:dir" )
+	repeat := flag.Int( "R", 0, "Repeat n times" )
 	script := flag.String( "s", "test_script", "script to execute" )
 	user = flag.String ( "u", def_user, "user name" )
 	flag.Parse()
@@ -171,35 +175,45 @@ func main( ) {
 
 	host := strings.Split( *host_list, "," )
 
-	wait4 := 0
-	for i := 0; i < *parallel; i++  {
-		for j := range host {
-			wait4++
-			if ! *asynch {
-				if *cmd == "" {
-					fmt.Fprintf( os.Stderr, "running synch script parms=%s\n", *parms )
-					go test_script( broker, ch, &host[j], script, parms, env_file )
+	for {
+		wait4 := 0
+		for i := 0; i < *parallel; i++  {
+			for j := range host {
+				wait4++
+				if ! *asynch {
+					if *cmd == "" {
+						fmt.Fprintf( os.Stderr, "running synch script parms=%s\n", *parms )
+						go test_script( broker, ch, &host[j], script, parms, env_file )
+					} else {
+						fmt.Fprintf( os.Stderr, "running synch command %s\n", *cmd )
+						go test_cmd( broker, ch, &host[j], cmd )
+					}
 				} else {
-					fmt.Fprintf( os.Stderr, "running synch command %s\n", *cmd )
-					go test_cmd( broker, ch, &host[j], cmd )
-				}
-			} else {
-				fmt.Fprintf( os.Stderr, "running asynch command on %s parallel=%d parms=%s\n", host[j], i, *parms )
-				if *cmd == "" {					// -c not supplied
-					err = broker.NBRun_on_host( host[j], *script, *parms, (i*100)+j, rch )
-				} else {
-					err = broker.NBRun_cmd( host[j], *cmd, (i*100)+j, rch )
-				}
-				if err != nil {
-					fmt.Fprintf( os.Stderr, "asynch command submit failed: host=%s parms=%s: %s\n", host[j], *parms, err )
+					fmt.Fprintf( os.Stderr, "running asynch command on %s parallel=%d parms=%s\n", host[j], i, *parms )
+					if *cmd == "" {					// -c not supplied
+						err = broker.NBRun_on_host( host[j], *script, *parms, (i*100)+j, rch )
+					} else {
+						err = broker.NBRun_cmd( host[j], *cmd, (i*100)+j, rch )
+					}
+					if err != nil {
+						fmt.Fprintf( os.Stderr, "asynch command submit failed: host=%s parms=%s: %s\n", host[j], *parms, err )
+					}
 				}
 			}
 		}
-	}
 
-	for i := 0; i < wait4; i++ {
-		fmt.Fprintf( os.Stderr, "waiting for %d to finish\n", wait4 - i )
-		<- ch
+		for i := 0; i < wait4; i++ {
+			fmt.Fprintf( os.Stderr, "waiting for %d to finish\n", wait4 - i )
+			<- ch
+		}
+
+		if *repeat <= 0 {
+			break
+		} else {
+			fmt.Fprintf( os.Stderr, "delay before repeat: %ds\n", *repeat_delay )
+			time.Sleep( time.Second * time.Duration( *repeat_delay ) )
+		}
+
+		*repeat--
 	}
-	
 }
