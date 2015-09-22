@@ -39,7 +39,7 @@
 
 	Mods:		24 July 2014 - bloody icehouse has no backward compat inasmuch as the complete
 					list of gateways cannot be fetched on one call. Users will need to
-					make a call per project, and we need to provde the support to update
+					make a call per project, and we need to provide the support to update
 					an existing map.
 				13 Aug 2014 - Added error checking centered round missing urls.
 					Moved deprecated code out and added a function which (through a hackish
@@ -60,6 +60,7 @@
 				21 May 2015 - Now looks for either neutron-l3-agent or neutron-openvswitch-agent
 					as an indication that the node is a network supporting node.
 				28 Jun 2015 - General cleanup and some dissection of duplicated code.
+				21 Sep 2015 - Added FetchPortInfo()/FetchHostInfo()
 ------------------------------------------------------------------------------------------------
 */
 
@@ -75,7 +76,7 @@ import (
 /*
 	Fetch information for gwmac2xip to use and return a generic_response struct with
 	the json expansion already done. We need to fetch in several different spots and
-	this keeps the url conststruction in one place.
+	this keeps the url construction in one place.
 */
 func (o *Ostack) fetch_gwmac_data( ) ( response *generic_response, err error ) {
 	response = &generic_response{}
@@ -93,6 +94,44 @@ func (o *Ostack) fetch_gwmac_data( ) ( response *generic_response, err error ) {
 }
 
 // ------------------- public ----------------------------------------------------------------
+
+/*
+	Fetch info for the port identified by uuid.
+ */
+func (o *Ostack) FetchPortInfo( uuid *string ) ( response *ost_os_port, err error ) {
+	type simple_port_response struct {
+		Port ost_os_port
+	}
+	err = o.Validate_auth()						// reauthorise if needed
+	if err == nil {
+		if o.nhost == nil || *o.nhost == "" {
+			err = fmt.Errorf( "no network host url to query %s", o.To_str() )
+			return
+		}
+		if o.project_id == nil {
+			err = fmt.Errorf("project_id is nil")
+			return
+		}
+		url := fmt.Sprintf( "%s/v2.0/ports/%s?tenant_id=%s", *o.nhost, *uuid, *o.project_id )
+		body := bytes.NewBufferString( "" )
+		outer_response := &simple_port_response{}
+		err = o.get_unpacked( url, body, outer_response, "FetchPortInfo:" )
+		if err == nil {
+			response = &outer_response.Port
+		}
+	}
+	return
+}
+/*
+	Fetch host name for the port identified by uuid.
+ */
+func (o *Ostack) FetchHostInfo( uuid *string ) ( response *string, err error ) {
+	gresp, err := o.FetchPortInfo( uuid )
+	if err == nil {
+		response = &gresp.Bind_host_id
+	}
+	return
+}
 
 /*
 	Given a gateway ID, make the call to dig out the external network id.
@@ -141,7 +180,7 @@ func (o *Ostack) Gw2extid( id *string ) ( extid *string, err error ) {
 	} else {
 		err = fmt.Errorf( "Router or external gateway info was missing in openstack data" )
 	}
-	
+
 	return
 }
 
@@ -188,7 +227,7 @@ func (o *Ostack) Gw2phost( id *string ) ( host *string, err error ) {
 	} else {
 		err = fmt.Errorf( "agent list missing in openstack output" )
 	}
-	
+
 	return
 }
 
@@ -246,7 +285,7 @@ func (o *Ostack) List_net_hosts( udup_list map[string]bool, limit2neutron bool )
 
 			tokens := strings.SplitN( *rdata.Agents[i].Host, ".", 2 )	// ostack isn't consistent, these might come back fully qualified with domain; strip
 			tokens = strings.SplitN( tokens[0], ":", 2 )				// and it sometimes adds :uuid to the name so trash that too
-			
+
 			if ! dup_map[tokens[0]] {
 				wstr += sep + tokens[0]
 				sep = " "
@@ -260,7 +299,7 @@ func (o *Ostack) List_net_hosts( udup_list map[string]bool, limit2neutron bool )
 }
 
 /*
-	Generate a map that is keyed by the network name with each entrying beign a three tuple, space
+	Generate a map that is keyed by the network name with each entry being a three tuple, space
 	separated, string of: physical net, type (gre,vlan,etc), and segment id.
 */
 func (o *Ostack) Mk_netinfo_map( ) ( nmap map[string]*string, err error ) {
@@ -301,7 +340,7 @@ func (o *Ostack) Mk_netinfo_map( ) ( nmap map[string]*string, err error ) {
 }
 
 /*
-	Reads through the openstack crap passed in, or rquests the crap, and generates
+	Reads through the openstack crap passed in, or requests the crap, and generates
 	maps for each gateway (router):
 		1) mac -> tenant/ip			(umap_ad)
 		2) mac -> gateway-id		(umap_id)
@@ -350,7 +389,7 @@ func (o *Ostack) gwmac2xip(  umap_ad map[string]*string, umap_id map[string]*str
 		m_ad = make( map[string]*string )
 	}
 
-	if m_id == nil {								
+	if m_id == nil {
 		m_id = make( map[string]*string )
 	}
 
@@ -447,7 +486,7 @@ func (o *Ostack) Mk_gwmaps( umac2ip map[string]*string,
 }
 
 /*
- 	Creates a list of IP addresses that are gateways. 	
+ 	Creates a list of IP addresses that are gateways.
 */
 func (o *Ostack) Mk_gwlist( ) ( gwlist []string, err error ) {
 	var (
@@ -544,5 +583,3 @@ func (o *Ostack) Mk_snlists( ) ( snlist map[string]*string, gw2cidr map[string]*
 
 	return
 }
-
-
