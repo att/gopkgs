@@ -288,8 +288,6 @@ type ost_ifattach struct {
 	Mac_addr	string		// colon sep mac address
 }
 
-type iface struct {
-}
 
 // --- port related things -----
 
@@ -486,6 +484,18 @@ type Ostack struct {
 }
 
 /*
+	An endpoint: attachment point, port, interface, or whatever the virtualisation flavour of the week
+	wants to call them.
+*/
+type End_pt struct {
+	id		*string			// uuid of the endpoint (for stringer)
+	project	*string			// uuid of the project
+	phost	*string			// name of the physical host where the endpoint lives
+	mac		*string			// must have to pass to reservations on different hosts for fmods
+	network	*string			// uuid of the network the endpoint connects to
+}
+
+/*
 	Certain info about a VM that we dug up. We could pass back the ost_* structure, but this provides
 	insulation between the user app and openstack changes and keeps data private to the struct.
 */
@@ -504,6 +514,7 @@ type VM_info struct {
 	launched	string
     terminated	string
 	host_name	string
+	endpoints	map[string]*End_pt	// endpoints which are associated with the VM, by endpoint uuid
 }
 
 // ---- necessary globals --------------------------------------------------------------------
