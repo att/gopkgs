@@ -62,7 +62,7 @@ func main( ) {
 		url *string
 	)
 
-	fmt.Fprintf( os.Stderr, "api debugger: v1.10/18255\n" )
+	fmt.Fprintf( os.Stderr, "api debugger: v1.11/19235\n" )
 	err_count := 0
 
 
