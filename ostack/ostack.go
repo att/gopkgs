@@ -363,8 +363,15 @@ type ost_vm_image struct {
 	//links ???
 }
 
+// returned by 2.1/os-virtual-interfaces API call.
+type ost_vm_interface struct {
+	Id	string
+	Mac_address string
+	Net_id 	string
+}
+
 type ost_vm_server struct {			// we don't use all of the data; fields not included are commented out
-	Azone		string	`json:"OS-EXT-AZ:availability_zone"`
+	Azone		string		`json:"OS-EXT-AZ:availability_zone"`
 	Accessipv4	string				// huh?
 	Accessipv6	string
 	Addresses	map[string][]ost_addr
@@ -433,6 +440,7 @@ type ost_aggregate struct {
 	Updated_at 	string
 }
 
+// -------------------------- generic ----------------------------------------------------------
 /*
 	A collection of things that might come back from the various ostack calls. Should serve
 	as a receiver for unbundling any json response.
@@ -454,6 +462,7 @@ type generic_response struct {
 	Subnets		[]ost_subnet
 	Tenants		[]ost_tenant
 	Agents		[]ost_net_agent
+	Virtual_interfaces []ost_vm_interface
 }
 
 // -- our structs ----------------------------------------------------------------------------

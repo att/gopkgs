@@ -83,6 +83,7 @@ func main( ) {
 	usr = flag.String( "u", *usr, "user-name" )
 	url = flag.String( "U", *url, "auth-url" )
 	verbose := flag.Bool( "v", false, "verbose" )
+	target_vm := flag.String( "vm", "", "target VM ID" )
 
 	run_all := flag.Bool( "A", false, "run all tests" )				// the various tests
 	run_crack := flag.Bool( "C", false, "crack a token" )
@@ -90,6 +91,7 @@ func main( ) {
 	run_gw_map := flag.Bool( "G", false, "run gw list test" )
 	run_mac := flag.Bool( "H", false, "run mac-ip map test" )
 	run_info := flag.Bool( "I", false, "run vm info map test" )
+	run_if := flag.Bool( "IF", false, "run get interfaces test" )
 	run_hlist := flag.Bool( "L", false, "run list-host test" )
 	run_maps := flag.Bool( "M", false, "run maps test" )
 	run_netinfo := flag.Bool( "N", false, "run netinfo maps" )
@@ -363,6 +365,10 @@ invoked.  bloody openstack.
 			find_in_list( hlist, host2find )
 		}
 
+	}
+
+	if *run_all || *run_if {							// interfaces (if) test
+		o2.Get_interfaces( target_vm )
 	}
 
 	if *run_all || *run_info {

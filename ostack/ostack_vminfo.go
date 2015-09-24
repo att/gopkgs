@@ -26,7 +26,9 @@
 	Date:		01 May 2015
 	Author:		E. Scott Daniels
 
-	Mod:		23 Sep 2015 - Added ability to get endpoint info for each VM
+	Mod:		10 Sep 2015 - Added extra calls to get information about individual interfaces
+						for each VM; sepecifally the uuid.
+				23 Sep 2015 - Added ability to get endpoint info for each VM
 					interface that is listed by os-interface.
 ------------------------------------------------------------------------------------------------
 */
@@ -110,7 +112,6 @@ func (o *Ostack) Map_vm_info( umap map[string]*VM_info ) ( info map[string]*VM_i
 
 	return
 }
-
 
 func (vi *VM_info) Get_name() ( string ) {
 	if vi == nil {
