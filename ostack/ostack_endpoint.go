@@ -49,13 +49,14 @@ func Mk_endpt( id string, mac string, netid string, proj *string, phost *string 
 		phost:		phost,
 		mac:		&mac,
 		network:	&netid,	
+		router:		false,
 	}
 
 	return ep
 }
 
 /*
- 	Generate endpoint (port/interface) information for a VM. Vmid is either the VM name or the 
+ 	Generate endpoint (port/interface) information for one VM. Vmid is either the VM name or the 
 	UUID as openstack seems to accept either. Returns a map, indexed by the endpoint UUID
 	of each port/interface that is associated with the named VM.
 */
@@ -81,22 +82,130 @@ func (o *Ostack) Get_endpoints( vmid *string, phost *string ) ( epmap map[string
 
 	body := bytes.NewBufferString( "" )
 	url := fmt.Sprintf( "%s/servers/%s/os-interface", *o.chost, *vmid )				// chost has project id built-in
-	err = o.get_unpacked( url, body, &resp, "vm_ports:" )
+	err = o.get_unpacked( url, body, &resp, "get_endpts:" )
 	if err != nil {
 		return
 	}
 
 	epmap = make( map[string]*End_pt )
 	for _, a := range resp.Interfaceattachments {
-		epmap[a.Port_id] = Mk_endpt( a.Port_id, a.Mac_addr, a.Net_id, o.project, phost )
+		epmap[a.Port_id] = Mk_endpt( a.Port_id, a.Mac_addr, a.Net_id, o.project_id, phost )
 	}
 
 	return
 }
 
 /*
+	Creates a map of endpoints indexed by the endpoint ID for every VM in the project referenced 
+	by the ostack struct. If umap is passed in, the new endpoints are added to that map otherwise
+	a map is created and returned.
+*/
+func (o *Ostack) Map_endpoints( umap map[string]*End_pt ) ( epmap map[string]*End_pt, err error ) {
+	var (
+		vm_data	generic_response	// "root" of the response goo after pulling out of json format
+	)
+
+	if umap != nil {
+		epmap = umap
+	} else {
+		epmap = make( map[string]*End_pt, 1024 )			// 1024 is a hint, not a hard limit
+	}
+
+	if o == nil {
+		err = fmt.Errorf( "ostact struct was nil" )
+		return
+	}
+
+	err = o.Validate_auth()						// reauthorise if needed
+	if err != nil {
+		return
+	}
+
+	body := bytes.NewBufferString( "" )
+
+	url := *o.chost + "/servers/detail"
+	err = o.get_unpacked( url, body, &vm_data, "get_interfaces:" )
+	if err != nil {
+		return
+	}
+
+	for i := range vm_data.Servers {							// for each vm
+		vm := vm_data.Servers[i]
+		id := vm.Id
+
+		endpoints, _ := o.Get_endpoints( &id, &vm.Host_name )
+		for k, v := range endpoints {	
+			epmap[k] = v
+		}
+	}
+
+	return
+}
+
+/*
+	Requests router (gateway in openstack lingo) information for the project associated
+	with the creds, an builds a list of endpoints for each.  If umap is not nil, then 
+	the map is added to and returned, otherwise a new map is created.
+	Relies on the ostack_net.go functions to make the api call.
+*/
+func (o *Ostack) Map_gw_endpoints(  umap map[string]*End_pt ) ( epmap map[string]*End_pt, err error ) { 
+	var (
+		ports 	*generic_response	// unpacked json from response
+	)
+
+	epmap  = umap					// ensure something goes back
+	if o == nil {
+		err = fmt.Errorf( "map_gw_ep: openstack creds were nil" )
+		return
+	}
+
+	if o.nhost == nil || *o.nhost == "" {
+		err = fmt.Errorf( "no network host url to query %s", o.To_str()  )
+		return
+	}
+
+	ports, err =  o.fetch_gwmac_data( )				// fetch the openstack crap
+	if err != nil {
+		return
+	}
+
+	if epmap == nil {								// create maps if user didn't supply one/both
+		epmap = make( map[string]*End_pt )
+	}
+
+	for j := range ports.Ports {
+
+		id := ports.Ports[j].Device_id				// MUST duplicate them
+		mac := ports.Ports[j].Mac_address
+		netid := ports.Ports[j].Network_id
+		phost := ports.Ports[j].Bind_host_id
+		projid := ports.Ports[j].Tenant_id
+
+		epmap[id] = Mk_endpt( id, mac, netid, &projid, &phost )
+		epmap[id].Set_router( true )
+	}
+
+	return
+}
+
+/*
+	Returns true if the endpoint is a router.
+*/
+func (ep *End_pt) Is_router( ) ( bool ) {
+	return ep.router
+}
+
+/*
+	By default and endpoint isn't a router, but this allows 
+	the router flag to be set.
+*/
+func (ep *End_pt) Set_router( flag bool ) {
+	ep.router = flag
+}
+
+/*
 	Implement stringer.
 */
 func (ep *End_pt) String( ) (string) {
-	return fmt.Sprintf( "uuid=%s phost=%s mac=%s proj=%s netid=%s", *ep.id, *ep.phost, *ep.mac, *ep.project, *ep.network )
+	return fmt.Sprintf( "uuid=%s phost=%s mac=%s proj=%s netid=%s rtr=%v", *ep.id, *ep.phost, *ep.mac, *ep.project, *ep.network, ep.router )
 }

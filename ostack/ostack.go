@@ -502,6 +502,7 @@ type End_pt struct {
 	phost	*string			// name of the physical host where the endpoint lives
 	mac		*string			// must have to pass to reservations on different hosts for fmods
 	network	*string			// uuid of the network the endpoint connects to
+	router	bool			// true if the endpoint is a router
 }
 
 /*

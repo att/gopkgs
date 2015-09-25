@@ -103,6 +103,9 @@ type floatip_list struct {
 
 //-------------------- interface generation, requires one call per VM. ------------------------------------------
 
+/*
+	Get a list of interfaces for a VM.  Requires compute 2.1 interface. 
+*/
 func (o *Ostack) Get_interfaces( vmid *string ) ( err error ) {
 	var (
 		vm_data	generic_response	// "root" of the response goo after pulling out of json format
@@ -120,26 +123,18 @@ func (o *Ostack) Get_interfaces( vmid *string ) ( err error ) {
 
 	body := bytes.NewBufferString( "" )
 
-	xxx := "http://10.1.1.1:8774/v2.1/65c3e5ee5ee0428caa5e5275c58ead61"
-	//url := fmt.Sprintf( "%s/servers/%s/os-virtual-interfaces", *o.chost, *vmid  )
-	url := fmt.Sprintf( "%s/servers/%s/os-virtual-interfaces", xxx, *vmid  )
+	url := fmt.Sprintf( "%s/servers/%s/os-virtual-interfaces", o.chost, *vmid  )
 	err = o.get_unpacked( url, body, &vm_data, "get_interfaces:" )
 	if err != nil {
 		return
 	}
 
+/*
 	for i, v := range vm_data.Virtual_interfaces {
 		fmt.Fprintf( os.Stderr, ">>>> [%d] %s %s\n", i, vmid, v.Id )
 	}
-
-
-/*
-	err = json.Unmarshal( jdata, &vm_data )			// unpack the json into jif
-	if err != nil {
-		dump_json(  fmt.Sprintf( "get_vm_info: unpack err: %s\n", err ), 30, jdata )
-		return
-	}
 */
+
 
 	return
 }
@@ -207,8 +202,6 @@ func (o *Ostack) xip2vmid( deftab map[string]*string, inc_tenant bool, usr_jdata
 
 	for i := range vm_data.Servers {							// for each vm
 		have_reverse := false									// we only capture first address when mapping by vmid
-
-		o.Get_interfaces( &vm_data.Servers[i].Id )			/// need to capture this data
 
 		for _, v := range vm_data.Servers[i].Addresses {		// for each network interface (addresses is a poor choice) (does NOT provide the interface uuid)
 			var dup_vminfo string
