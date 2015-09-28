@@ -42,12 +42,13 @@ import (
 /*
 	Create an endpoint struct.
 */
-func Mk_endpt( id string, mac string, netid string, proj *string, phost *string ) (*End_pt) {
+func Mk_endpt( id string, mac string, ip string, netid string, proj *string, phost *string ) (*End_pt) {
 	ep := &End_pt {
 		id: 		&id,
 		project: 	proj,
 		phost:		phost,
 		mac:		&mac,
+		ip:			&ip,
 		network:	&netid,	
 		router:		false,
 	}
@@ -89,7 +90,11 @@ func (o *Ostack) Get_endpoints( vmid *string, phost *string ) ( epmap map[string
 
 	epmap = make( map[string]*End_pt )
 	for _, a := range resp.Interfaceattachments {
-		epmap[a.Port_id] = Mk_endpt( a.Port_id, a.Mac_addr, a.Net_id, o.project_id, phost )
+		ip := ""
+		if len( a.Fixed_ips ) > 0 {
+			ip = a.Fixed_ips[0].Ip_address
+		}
+		epmap[a.Port_id] = Mk_endpt( a.Port_id, a.Mac_addr, ip, a.Net_id, o.project_id, phost )
 	}
 
 	return
@@ -180,12 +185,58 @@ func (o *Ostack) Map_gw_endpoints(  umap map[string]*End_pt ) ( epmap map[string
 		netid := ports.Ports[j].Network_id
 		phost := ports.Ports[j].Bind_host_id
 		projid := ports.Ports[j].Tenant_id
+		ip := ""
+		if len( ports.Ports[j].Fixed_ips ) > 0 {
+			ip = ports.Ports[j].Fixed_ips[0].Ip_address
+		}
 
-		epmap[id] = Mk_endpt( id, mac, netid, &projid, &phost )
+		epmap[id] = Mk_endpt( id, mac, ip, netid, &projid, &phost )
 		epmap[id].Set_router( true )
 	}
 
 	return
+}
+
+/*
+	Get physical host
+*/
+func (ep *End_pt) Get_phost( ) ( *string ) {
+	if ep == nil {
+		return nil
+	}
+
+	return ep.phost
+}
+/*
+	Get mac address
+*/
+func (ep *End_pt) Get_mac( ) ( *string ) {
+	if ep == nil {
+		return nil
+	}
+
+	return ep.mac
+}
+/*
+	Get ip adderess
+*/
+func (ep *End_pt) Get_ip( ) ( *string ) {
+	if ep == nil {
+		return nil
+	}
+
+	return ep.ip
+}
+
+/*
+	Get project id
+*/
+func (ep *End_pt) Get_project( ) ( *string ) {
+	if ep == nil {
+		return nil
+	}
+
+	return ep.project
 }
 
 /*
