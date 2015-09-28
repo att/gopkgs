@@ -62,7 +62,7 @@ func main( ) {
 		url *string
 	)
 
-	fmt.Fprintf( os.Stderr, "api debugger: v1.10/18255\n" )
+	fmt.Fprintf( os.Stderr, "api debugger: v1.11/19235\n" )
 	err_count := 0
 
 
@@ -83,13 +83,16 @@ func main( ) {
 	usr = flag.String( "u", *usr, "user-name" )
 	url = flag.String( "U", *url, "auth-url" )
 	verbose := flag.Bool( "v", false, "verbose" )
+	target_vm := flag.String( "vm", "", "target VM ID" )
 
 	run_all := flag.Bool( "A", false, "run all tests" )				// the various tests
 	run_crack := flag.Bool( "C", false, "crack a token" )
+	run_endpt := flag.Bool( "E", false, "test endpoint list gen" )
 	run_fip := flag.Bool( "F", false, "run fixed-ip test" )
 	run_gw_map := flag.Bool( "G", false, "run gw list test" )
 	run_mac := flag.Bool( "H", false, "run mac-ip map test" )
 	run_info := flag.Bool( "I", false, "run vm info map test" )
+	run_if := flag.Bool( "IF", false, "run get interfaces test" )
 	run_hlist := flag.Bool( "L", false, "run list-host test" )
 	run_maps := flag.Bool( "M", false, "run maps test" )
 	run_netinfo := flag.Bool( "N", false, "run netinfo maps" )
@@ -105,7 +108,7 @@ func main( ) {
 
 
 	if *dump_stuff {
-		ostack.Set_debugging( 0 )					// resets debugging counts to 0
+		ostack.Set_debugging( -100 )					// resets debugging counts to 0
 	}
 	if *show_latency {
 		ostack.Set_latency_debugging( true )
@@ -363,6 +366,28 @@ invoked.  bloody openstack.
 			find_in_list( hlist, host2find )
 		}
 
+	}
+
+	if *run_all || *run_endpt {
+		eplist, err := o2.Map_endpoints( nil )
+		if err == nil {
+			eplist, err = o2.Map_gw_endpoints( eplist )
+		}
+		if err != nil {
+			fmt.Fprintf( os.Stderr, "[FAIL] unable to generate an enpoint list: %s\n", err )
+		} else {
+			fmt.Fprintf( os.Stderr, "[OK]   endpoint list has %d elements\n", len( eplist ) )
+			if *verbose {
+				for k, v := range eplist {
+					fmt.Fprintf( os.Stderr, "\tep: %s %s\n", k, v )
+		
+				}
+			}
+		}
+	}
+
+	if *run_all || *run_if {							// interfaces (if) test
+		o2.Get_interfaces( target_vm )
 	}
 
 	if *run_all || *run_info {

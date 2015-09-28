@@ -169,25 +169,9 @@ func (o *Ostack) xx_list_hosts( htype int ) ( hlist *string, err error ) {
 		}
 	}
 
-	//jdata = nil
 	body := bytes.NewBufferString( "" )
 
 	url := fmt.Sprintf( "%s/os-hosts", *o.chost )		// tennant id is built into chost
-/*
-    dump_url( "xhosts", 10, url )
-	jdata, _, err = o.Send_req( "GET",  &url, body );
-
-	if err != nil {
-		return
-	}
-	dump_json( "hosts", 10, jdata )
-
-	err = json.Unmarshal( jdata, &host_data )			// unpack the json into response struct
-	if err != nil {
-		dump_json(  fmt.Sprintf( "list_hosts: unpack err: %s\n", err ), 30, jdata )
-		return
-	}
-*/
 	err = o.get_unpacked( url, body, &host_data, "list_hosts:" )
 	if err != nil {
 		return

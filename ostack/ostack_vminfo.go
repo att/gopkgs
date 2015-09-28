@@ -26,7 +26,10 @@
 	Date:		01 May 2015
 	Author:		E. Scott Daniels
 
-	Mod:
+	Mod:		10 Sep 2015 - Added extra calls to get information about individual interfaces
+						for each VM; sepecifally the uuid.
+				23 Sep 2015 - Added ability to get endpoint info for each VM
+					interface that is listed by os-interface.
 ------------------------------------------------------------------------------------------------
 */
 
@@ -103,11 +106,12 @@ func (o *Ostack) Map_vm_info( umap map[string]*VM_info ) ( info map[string]*VM_i
 			launched:	vm.Launched,
     		terminated:	vm.Terminated,
 		}
+
+		info[id].endpoints, _ = o.Get_endpoints( &info[id].id, &info[id].host_name )
 	}
 
 	return
 }
-
 
 func (vi *VM_info) Get_name() ( string ) {
 	if vi == nil {
@@ -212,10 +216,21 @@ func (vi *VM_info) String() ( string ) {
 		return s
 	}	
 
-	return fmt.Sprintf( "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s",
+	s = fmt.Sprintf( "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,[",
 			vi.id, vi.name, vi.hostid, vi.host_name, vi.status,
 			vi.tenant_id, vi.flavour, vi.image, vi.zone, vi.created,
 			vi.launched, vi.updated, vi.terminated )
+
+	
+	sep := ""
+	for _, v := range( vi.endpoints ) {
+		s += fmt.Sprintf( "%s%s", sep, v )
+		sep = ","
+	}
+
+	s += "]"
+
+	return s
 }
 
 
