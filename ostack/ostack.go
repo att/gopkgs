@@ -770,8 +770,8 @@ func (o *Ostack) To_str( ) ( s string ) {
 	return o.String()
 }
 
+// ----	Stringer interfaces for various things -------------------------------------------
 /*
-	Stringer interface.
 	Returns a string with some of the information that is being used to communicate with OpenStack.
 */
 func (o *Ostack) String( ) ( s string ) {
@@ -805,6 +805,29 @@ func (o *Ostack) String( ) ( s string ) {
 		s = fmt.Sprintf( "ostack=<%s %s %s %s %s %d ch=%s cah=%s>", *o.user, host, nhost, project, region, o.expiry, ch, cah );
 	}
 	return;
+}
+
+/*
+	Convert openstack' inconnsistent representation of an error into a string.
+*/
+func ( e *error_obj ) String( ) (string) {
+	if e == nil {
+		return ""
+	}
+
+	code := ""
+	switch c := e.Code.( type  ) {			// code comes as either float, integer or string; sigh.
+		case int, int64:
+			code = fmt.Sprintf( "%d", c )
+
+		case float64:
+			code = fmt.Sprintf( "%.0f", c )
+
+		case string:
+			code = fmt.Sprintf( "%s", c )
+	}
+
+	return fmt.Sprintf( "%s (%s): %s", e.Title, code, e.Message )
 }
 
 // ----- testing things mostly ----
