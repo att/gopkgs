@@ -42,13 +42,13 @@ import (
 /*
 	Create an endpoint struct.
 */
-func Mk_endpt( id string, mac string, ip string, netid string, proj *string, phost *string ) (*End_pt) {
+func Mk_endpt( id string, mac string, ip []*string, netid string, proj *string, phost *string ) (*End_pt) {
 	ep := &End_pt {
 		id: 		&id,
 		project: 	proj,
 		phost:		phost,
 		mac:		&mac,
-		ip:			&ip,
+		ip:			ip,
 		network:	&netid,	
 		router:		false,
 	}
@@ -57,13 +57,14 @@ func Mk_endpt( id string, mac string, ip string, netid string, proj *string, pho
 }
 
 /*
- 	Generate endpoint (port/interface) information for one VM. Vmid is either the VM name or the 
+ 	Generate endpoint (port/interface) information for one VM. Vmid is either the VM name or the
 	UUID as openstack seems to accept either. Returns a map, indexed by the endpoint UUID
 	of each port/interface that is associated with the named VM.
 */
 func (o *Ostack) Get_endpoints( vmid *string, phost *string ) ( epmap map[string]*End_pt, err error ) {
 	var (
 		resp 	generic_response		// unpacked json from response
+		ip []*string
 	)
 
 	if o == nil {
@@ -90,9 +91,14 @@ func (o *Ostack) Get_endpoints( vmid *string, phost *string ) ( epmap map[string
 
 	epmap = make( map[string]*End_pt )
 	for _, a := range resp.Interfaceattachments {
-		ip := ""
-		if len( a.Fixed_ips ) > 0 {
-			ip = a.Fixed_ips[0].Ip_address
+		ln := len( a.Fixed_ips )
+		if ln > 0 {
+			ip = make( []*string, ln )
+			for i, v := range a.Fixed_ips {
+				ip[i] = &v.Ip_address
+			}
+		} else {
+			ip = make( []*string, 0, 1 )
 		}
 		epmap[a.Port_id] = Mk_endpt( a.Port_id, a.Mac_addr, ip, a.Net_id, o.project_id, phost )
 	}
@@ -101,7 +107,7 @@ func (o *Ostack) Get_endpoints( vmid *string, phost *string ) ( epmap map[string
 }
 
 /*
-	Creates a map of endpoints indexed by the endpoint ID for every VM in the project referenced 
+	Creates a map of endpoints indexed by the endpoint ID for every VM in the project referenced
 	by the ostack struct. If umap is passed in, the new endpoints are added to that map otherwise
 	a map is created and returned.
 */
@@ -149,13 +155,14 @@ func (o *Ostack) Map_endpoints( umap map[string]*End_pt ) ( epmap map[string]*En
 
 /*
 	Requests router (gateway in openstack lingo) information for the project associated
-	with the creds, an builds a list of endpoints for each.  If umap is not nil, then 
+	with the creds, an builds a list of endpoints for each.  If umap is not nil, then
 	the map is added to and returned, otherwise a new map is created.
 	Relies on the ostack_net.go functions to make the api call.
 */
-func (o *Ostack) Map_gw_endpoints(  umap map[string]*End_pt ) ( epmap map[string]*End_pt, err error ) { 
+func (o *Ostack) Map_gw_endpoints(  umap map[string]*End_pt ) ( epmap map[string]*End_pt, err error ) {
 	var (
 		ports 	*generic_response	// unpacked json from response
+		ip []*string
 	)
 
 	epmap  = umap					// ensure something goes back
@@ -185,9 +192,15 @@ func (o *Ostack) Map_gw_endpoints(  umap map[string]*End_pt ) ( epmap map[string
 		netid := ports.Ports[j].Network_id
 		phost := ports.Ports[j].Bind_host_id
 		projid := ports.Ports[j].Tenant_id
-		ip := ""
-		if len( ports.Ports[j].Fixed_ips ) > 0 {
-			ip = ports.Ports[j].Fixed_ips[0].Ip_address
+		
+		ln := len( ports.Ports[j].Fixed_ips )
+		if ln > 0 {
+			ip = make( []*string, ln )
+			for i, v := range ports.Ports[j].Fixed_ips {
+				ip[i] = &v.Ip_address
+			}
+		} else {
+			ip = make( []*string, 0, 1 )
 		}
 
 		epmap[id] = Mk_endpt( id, mac, ip, netid, &projid, &phost )
@@ -220,12 +233,16 @@ func (ep *End_pt) Get_mac( ) ( *string ) {
 /*
 	Get ip adderess
 */
-func (ep *End_pt) Get_ip( ) ( *string ) {
+func (ep *End_pt) Get_ip( n int ) ( *string ) {
 	if ep == nil {
 		return nil
 	}
 
-	return ep.ip
+	if len( ep.ip ) > n && n > 0 {
+		return ep.ip[n]
+	}
+
+	return nil
 }
 
 /*
@@ -247,7 +264,7 @@ func (ep *End_pt) Is_router( ) ( bool ) {
 }
 
 /*
-	By default and endpoint isn't a router, but this allows 
+	By default and endpoint isn't a router, but this allows
 	the router flag to be set.
 */
 func (ep *End_pt) Set_router( flag bool ) {
@@ -258,5 +275,15 @@ func (ep *End_pt) Set_router( flag bool ) {
 	Implement stringer.
 */
 func (ep *End_pt) String( ) (string) {
-	return fmt.Sprintf( "uuid=%s phost=%s mac=%s proj=%s netid=%s rtr=%v", *ep.id, *ep.phost, *ep.mac, *ep.project, *ep.network, ep.router )
+	s := fmt.Sprintf( "uuid=%s phost=%s mac=%s proj=%s netid=%s rtr=%v ips=[ ", *ep.id, *ep.phost, *ep.mac, *ep.project, *ep.network, ep.router )
+	sep := ""
+	if len( ep.ip ) > 0 {
+		for _, v := range ep.ip {
+			s += fmt.Sprintf( "%s%s", sep, *v )
+			sep = ", "
+		}
+	}
+
+	s += " ]"
+	return  s
 }
