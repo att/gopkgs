@@ -36,6 +36,7 @@
 				13 Apr 2015 - Converted to more generic error structure use.
 				10 Jul 2015 - Added specific v3/v2 calls since the v3 call doesn't seem to
 						provide useful role information in all cases.
+				05 Aug 2015 - Need the tenant ID from the token also.
 ------------------------------------------------------------------------------------------------
 */
 
@@ -55,6 +56,7 @@ import (
 type Ostack_tstuff struct  {
 	User	string
 	Id		string
+	TenantId string
 	Roles	map[string]bool
 	Expiry	int64
 }
@@ -82,7 +84,7 @@ func (o *Ostack) Crack_token( token *string ) ( stuff *Ostack_tstuff, err error 
 
 	The use_v3 parameter causes the openstack indentity version 3 interface to be used in place of the
 	version 2 interface.
-	
+
 */
 func (o *Ostack) Crack_ptoken( token *string, project *string, use_v3 bool ) ( stuff *Ostack_tstuff, err error ) {
 	return o.crack_token( token, project, use_v3 )
@@ -127,7 +129,7 @@ func (o *Ostack) crack_token( token *string, project *string, use_v3 bool ) ( st
 	jdata, _, err := o.Send_req( "POST",  &url, body );
 	dump_json( "token-crack", 10, jdata )
 
-	if err != nil {	
+	if err != nil {
 		return
 	}
 
@@ -144,21 +146,22 @@ func (o *Ostack) crack_token( token *string, project *string, use_v3 bool ) ( st
 		if response_data.Error == nil  {
 			if response_data.Token.User != nil {
 				stuff = &Ostack_tstuff{ }
-	
-				stuff.User = response_data.Token.User.Name
-				stuff.Id = response_data.Token.User.Id
+
+				stuff.User     = response_data.Token.User.Name
+				stuff.Id       = response_data.Token.User.Id
+				stuff.TenantId = response_data.Token.Project.Id
 				stuff.Expiry, err = Unix_time( &response_data.Token.Expires_at )			// convert openstack human time string to timestamp
 				if err != nil {
 					stuff.Expiry = 0
 				}
-	
+
 				if len( response_data.Token.Roles ) > 0 {
 					stuff.Roles = make( map[string]bool, len( response_data.Token.Roles ) )
 					for i := range  response_data.Token.Roles {
 						stuff.Roles[response_data.Token.Roles[i].Name] = true
 					}
 				}
-	
+
 			} else {
 				err = fmt.Errorf( "token is not valid: response from openstack did not contain valid data: missing user information" )
 			}
@@ -176,23 +179,24 @@ func (o *Ostack) crack_token( token *string, project *string, use_v3 bool ) ( st
 		}
 
 		if response_data.Error == nil  {
-			if response_data.Access.User != nil {				// blody v3 adds a layer; ditch for v2
+			if response_data.Access.User != nil {				// bloody v3 adds a layer; ditch for v2
 				stuff = &Ostack_tstuff{ }
-	
-				stuff.User = response_data.Access.User.Name
-				stuff.Id = response_data.Access.User.Id
+
+				stuff.User     = response_data.Access.User.Name
+				stuff.Id       = response_data.Access.User.Id
+				stuff.TenantId = response_data.Access.Token.Tenant.Id
 				stuff.Expiry, err = Unix_time( &response_data.Access.Token.Expires )			// convert openstack human time string to timestamp
 				if err != nil {
 					stuff.Expiry = 0
 				}
-	
+
 				if len( response_data.Access.User.Roles ) > 0 {
 					stuff.Roles = make( map[string]bool, len( response_data.Roles ) )
 					for i := range  response_data.Access.User.Roles {
 						stuff.Roles[response_data.Access.User.Roles[i].Name] = true
 					}
 				}
-	
+
 			} else {
 				err = fmt.Errorf( "token is not valid: v2 response from openstack did not contain valid data: missing user information" )
 			}
@@ -211,7 +215,7 @@ func (s *Ostack_tstuff) String() ( string ) {
 	sep := ""
 	roles := ""
 	for r := range s.Roles {
-		roles = roles + sep + r	
+		roles = roles + sep + r
 		sep = " "
 	}
 

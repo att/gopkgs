@@ -61,6 +61,7 @@
 					as an indication that the node is a network supporting node.
 				28 Jun 2015 - General cleanup and some dissection of duplicated code.
 				21 Sep 2015 - Added FetchPortInfo()/FetchHostInfo()
+				30 Sep 2015 - Added FetchAllPorts()
 ------------------------------------------------------------------------------------------------
 */
 
@@ -69,6 +70,9 @@ package ostack
 import (
 	"bytes"
 	"fmt"
+	"io"
+	"net/http"
+	"os"
 	"strings"
 )
 
@@ -94,6 +98,47 @@ func (o *Ostack) fetch_gwmac_data( ) ( response *generic_response, err error ) {
 }
 
 // ------------------- public ----------------------------------------------------------------
+
+/*
+	Fetch info for ALL ports (should be run by an admin user).
+	Output is put in the named file.
+ */
+func (o *Ostack) FetchAllPorts( destfile string ) (err error) {
+	err = o.Validate_auth()						// reauthorise if needed
+	if err == nil {
+		if o.nhost == nil || *o.nhost == "" {
+			err = fmt.Errorf( "no network host url to query %s", o.To_str() )
+			return
+		}
+		url := fmt.Sprintf( "%s/v2.0/ports", *o.nhost )
+		req, err := http.NewRequest( "GET", url, nil )
+		if err == nil {
+			req.Header.Add( "Content-Type", "application/json" )
+			req.Header.Add( "X-Auth-Token", o.pickToken() )
+			rsrc := &http.Client{}
+			resp, err := rsrc.Do( req )
+			if err == nil {
+				defer resp.Body.Close()
+				outf, err := os.Create( destfile )
+				if err == nil {
+					defer outf.Close()
+					_, err = io.Copy(outf, resp.Body)
+				}
+			}
+		}
+	}
+	return
+}
+func (o *Ostack) pickToken() string {
+	if o.token != nil {											// authorisation won't have a token
+		if len( *o.token ) > 100 {
+			return *o.small_tok		// use compressed token
+		} else {
+			return *o.token
+		}
+	}
+	return ""
+}
 
 /*
 	Fetch info for the port identified by uuid.
