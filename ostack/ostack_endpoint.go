@@ -230,6 +230,7 @@ func (ep *End_pt) Get_mac( ) ( *string ) {
 
 	return ep.mac
 }
+
 /*
 	Get ip adderess
 */
@@ -243,6 +244,31 @@ func (ep *End_pt) Get_ip( n int ) ( *string ) {
 	}
 
 	return nil
+}
+
+/*
+	Get a copy of the ip list
+*/
+func (ep *End_pt) Get_ip_copy( ) ( []*string ) {
+	if ep == nil {
+		return nil
+	}
+
+	nip := make( []*string, len( ep.ip ) )
+	copy( nip[:], ep.ip[:] )
+
+	return nip
+}
+
+/*
+	Return the network ID
+*/
+func (ep *End_pt) Get_netid( ) ( *string ) {
+	if ep == nil {
+		return nil
+	}
+
+	return ep.network
 }
 
 /*
