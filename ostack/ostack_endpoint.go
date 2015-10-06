@@ -28,7 +28,7 @@
 
 	Related:
 
-	Mods:
+	Mods:		06 Oct 2015 - Added valid auth check to Map_gw_endpoints() function.
 ------------------------------------------------------------------------------------------------
 */
 
@@ -168,6 +168,11 @@ func (o *Ostack) Map_gw_endpoints(  umap map[string]*End_pt ) ( epmap map[string
 	epmap  = umap					// ensure something goes back
 	if o == nil {
 		err = fmt.Errorf( "map_gw_ep: openstack creds were nil" )
+		return
+	}
+
+	err = o.Validate_auth()						// reauthorise if needed
+	if err != nil {
 		return
 	}
 
