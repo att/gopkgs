@@ -28,7 +28,7 @@
 
 	Related:
 
-	Mods:
+	Mods:		06 Oct 2015 - Added valid auth check to Map_gw_endpoints() function.
 ------------------------------------------------------------------------------------------------
 */
 
@@ -171,6 +171,11 @@ func (o *Ostack) Map_gw_endpoints(  umap map[string]*End_pt ) ( epmap map[string
 		return
 	}
 
+	err = o.Validate_auth()						// reauthorise if needed
+	if err != nil {
+		return
+	}
+
 	if o.nhost == nil || *o.nhost == "" {
 		err = fmt.Errorf( "no network host url to query %s", o.To_str()  )
 		return
@@ -230,6 +235,7 @@ func (ep *End_pt) Get_mac( ) ( *string ) {
 
 	return ep.mac
 }
+
 /*
 	Get ip adderess
 */
@@ -243,6 +249,31 @@ func (ep *End_pt) Get_ip( n int ) ( *string ) {
 	}
 
 	return nil
+}
+
+/*
+	Get a copy of the ip list
+*/
+func (ep *End_pt) Get_ip_copy( ) ( []*string ) {
+	if ep == nil {
+		return nil
+	}
+
+	nip := make( []*string, len( ep.ip ) )
+	copy( nip[:], ep.ip[:] )
+
+	return nip
+}
+
+/*
+	Return the network ID
+*/
+func (ep *End_pt) Get_netid( ) ( *string ) {
+	if ep == nil {
+		return nil
+	}
+
+	return ep.network
 }
 
 /*
