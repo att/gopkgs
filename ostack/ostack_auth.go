@@ -45,6 +45,7 @@
 				13 Apr 2015 - Converted to more generic error structure use.
 				16 Apr 2015 - Added support to suss out things based on region.
 				02 Jul 2015 - Corrected nil pointer potential in insert token.
+				06 Oct 2015 - Corrected return sequence in authorise function.
 ------------------------------------------------------------------------------------------------
 */
 
@@ -274,6 +275,7 @@ func (o *Ostack) Validate_auth( ) ( err error ) {
 		now = time.Now().Unix()
 		if now > o.expiry {				// our expiry should be less than openstacks so that we never attempt to use a stale token
 			err = o.Authorise( )
+		} else {
 			return
 		}
 	}
@@ -284,7 +286,7 @@ func (o *Ostack) Validate_auth( ) ( err error ) {
 		}
 	}
 
-	return;			// shouldn't get here, but keeps compiler happy
+	return;
 }
 
 /*
