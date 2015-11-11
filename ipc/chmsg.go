@@ -25,6 +25,7 @@
 	Date:		02 December 2013
 	Author:		E. Scott Daniels
 
+	Mod:		2015 Nov 06 - Added nil ptr protection.
 */
 
 /*
@@ -78,6 +79,10 @@ func Mk_chmsg( ) (r *Chmsg) {
 	Pdata is the private requestor data.
 */
 func (r *Chmsg) Send_req( dest_ch chan *Chmsg, resp_ch chan *Chmsg, mtype int, data interface{}, pdata interface{} ) {
+	if r == nil {
+		return
+	}
+
 	r.Msg_type = mtype;
 	r.Req_data = data;
 	r.Response_ch = resp_ch;
@@ -94,6 +99,10 @@ func (r *Chmsg) Send_req( dest_ch chan *Chmsg, resp_ch chan *Chmsg, mtype int, d
 	Data is mapped to response data and state is set. All other fields are left unchanged.
 */
 func (r *Chmsg) Send_resp( data interface{}, state error ) {
+	if r == nil {
+		return
+	}
+
 	r.Response_data = data;
 	r.State = state;
 
