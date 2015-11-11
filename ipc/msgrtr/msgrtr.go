@@ -48,6 +48,27 @@
 				'path' (e.g. network/router) and the action type will be appended to 
 				the path provided that the action is not empty or missing.
 
+				When an event is received it is written on the channel of all listeners
+				which have registered for the event type.  The contents pushed on the 
+				channel is a *msgrtr.Event which has public fields so that they are 
+				easily accessed by the user programme. Speifically, the event type
+				and paylod are probably what is of the most interest. The payload is
+				is a map, indexed by string, which references interface{} elements. 
+				The event type is the _complete_ type; not just the portion of the 
+				type that the listener registered.  For example, if the listener
+				registered network.swtich (wanting all events for network switches)
+				the event types generated would include:  network.switch.add, network.switch.del
+				network.switch.mod, etc.  If a listener registers only for a specific type,
+				then that will be the only type delivered.  
+
+				The third  field of interest, and to which the user process must pay attention
+				to, is the Ack field.  If true, one of the listeners _must_ call event.Reply()
+				to send a reply to the sender.  
+
+				Event types are determined by the message generator, the process sending
+				the http request to this process, and are _not_ controlled by this package.
+				Same goes for the payload map.  The keys are up to the message generator.
+
 	Date:		30 Oct 2015
 	Author:		E. Scott Daniels
 
@@ -61,6 +82,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/att/gopkgs/bleater"
 	"github.com/att/gopkgs/ipc"
@@ -96,7 +118,7 @@ type Reg_msg struct {
 	Block passed to the dispatcher to, well, dispatch.
 */
 type Data_block struct {
-	Events []*Event					// events from the http message
+	Events []*Event					// events from the json http message (unmarshal)
 
 									// info added to track the event(s)
 	rel_ch	chan int				// releases the http dealwith function for the request
@@ -109,7 +131,12 @@ type Data_block struct {
 // ------------ HTTP listener functions -------------------------------------------
 
 /*
-    Pull the data from the request (the -d stuff from churl;  -D stuff from rjprt)
+    Pull the data from the request (the -d stuff from churl;  -D stuff from rjprt).
+	We really want an array of events, but some senders might not want to play that
+	game, so we will first look for an array, and if we don't find one we will assume
+	that it's a singleton, and will wrap the json in '{event: [ <json> ] }' so that 
+	we end up with one. Output is written directly to the interface datablock
+	that is passed in (assuming it has Events field).
 */
 func dig_data( resp *http.Request, data_blk interface{} ) ( err error ) {
 	data, err := ioutil.ReadAll( resp.Body )
@@ -348,7 +375,10 @@ func listen( url string, port string ) {
 	}
 
 	http.HandleFunc( url, deal_with )						// invoke deal_with function for all messages received on the url
-	err := http.ListenAndServe( ":" + port, nil )			// drive the bus
+	if strings.Index( port, ":" ) < 0 {
+		port = ":" + port
+	}
+	err := http.ListenAndServe( port, nil )			// drive the bus
 	if err != nil {
 		sheep.Baa( 0, "msgrtr: unable to initialise http interface on url, port %s %s", url, port )
 	}
@@ -389,9 +419,16 @@ func Unregister( band string, ch chan *Event ) {
 	Initialises the message router and returns the channel that it will 
 	accept retquest (ipc structs) on allowing the user thread(s) to 
 	register for messages.  Port is the port that the http listener should
-	camp on, and url is the url string that should be used. This may be invoked 
-	multiple times, with different ports, but be advised that all messages are funneled 
-	to the same handler.
+	camp on, and url is the url string that should be used.  Port may be of either of
+	these two forms:
+		interface:port
+		port
+
+	If interface is supplied, then the listener will be started only on that interface/port
+	combination. If interface is omitted, then the listener will listen on all interfaces.
+	This funciton may be invoked multiple times, with different ports, but be advised that 
+	all messages are funneled to the same handler.  Multiple invocations only serve to 
+	establish different interfaces and/or ports.
 */
 func Start( port string, url string, usr_sheep *bleater.Bleater ) ( chan *ipc.Chmsg ) {
 	if usr_sheep != nil {
