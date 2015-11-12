@@ -69,9 +69,18 @@
 				the http request to this process, and are _not_ controlled by this package.
 				Same goes for the payload map.  The keys are up to the message generator.
 
+				The user programme may specify an optional data item (probably a pointer to struct,
+				but it can be anything) when an event registration is made.  This data item
+				is then included when the event is sent to the listener allowing the listener
+				to avoid having to depend on global data whenever possible. To support this, 
+				the struct passed to a listener for an event is actually of tyep *Envelope
+				which is stuffed with the even and data item. 
+
 	Date:		30 Oct 2015
 	Author:		E. Scott Daniels
 
+	Mods:		12 Nov 2015 - Added support to accept listener data and include that
+					when events are sent out.
 */
 
 package msgrtr
@@ -110,7 +119,8 @@ var (
 	Message user app sends to register for a message or set of messages.
 */
 type Reg_msg struct {
-	ch			chan *Event		// channel that the user wants messages on
+	ch			chan *Envelope		// channel that the user wants messages on
+	ldata		interface{}		// listener data (if needed)
 	band		string			// message "band" to listen to (e.g. network router add)
 }
 
@@ -195,7 +205,7 @@ func deal_with( out http.ResponseWriter, in *http.Request ) {
 	out.Header().Set( "Content-Type", "application/json" )				// announce that everything out of this is json
 	out.WriteHeader( http.StatusOK )									// if we dealt with it, then it's always OK; requests errors in the output if there were any
 
-	sheep.Baa( 0, "dealing with a request" )
+	sheep.Baa( 2, "dealing with a request" )
 
 	data_blk := &Data_block{}
 	err := dig_data( in, data_blk )
@@ -211,7 +221,7 @@ func deal_with( out http.ResponseWriter, in *http.Request ) {
 			msg = "PUT requests are unsupported"
 
 		case "POST":
-			sheep.Baa( 1, "deal_with called for post" )
+			sheep.Baa( 2, "deal_with called for post" )
 
 			if len( data_blk.Events ) <= 0 {
 				sheep.Baa( 1, "data block has no events?????" )
@@ -220,7 +230,7 @@ func deal_with( out http.ResponseWriter, in *http.Request ) {
 				data_blk.rel_ch = make( chan int, 1 )
 
 				state = "OK"
-				sheep.Baa( 1, "data: type=%s", data_blk.Events[0].Event_type )
+				sheep.Baa( 2, "data: type=%s", data_blk.Events[0].Event_type )
 				req := ipc.Mk_chmsg( )
 				req.Send_req( disp_ch, nil, RAW_BLOCK, data_blk, nil )			// pass to dispatcher to process
 				<- data_blk.rel_ch												// wait on the dispatcher to signal ok to go on; we don't care what comes back
@@ -239,7 +249,7 @@ func deal_with( out http.ResponseWriter, in *http.Request ) {
 	}
 
 	if state == "ERROR" {
-		fmt.Fprintf( out, fmt.Sprintf( `{ "endstate": { "status": %q, "comment": %q } }`, state, msg ) )		// final, overall status and close bracket
+		fmt.Fprintf( out, fmt.Sprintf( `{ "endstate": { "status": %q, "comment": %q } }`, state, msg ) )		// send back a failure/error state
 	}
 }
 
@@ -262,7 +272,7 @@ func deal_with( out http.ResponseWriter, in *http.Request ) {
 	from the user programme.
 */
 func dispatcher( ch chan *ipc.Chmsg ) {
-	gallery := mk_audience( "", nil )						// initialise the audence tree
+	gallery := mk_audience( "", nil, nil )					// initialise the audence tree
 
 	for {
 		req := <- disp_ch									// listen for requests from http world, or from users
@@ -305,10 +315,10 @@ func dispatcher( ch chan *ipc.Chmsg ) {
 
 			case REGISTER:									// msg from user to register for an event band
 				if reg, ok := req.Req_data.( *Reg_msg ); ok {
-					sheep.Baa( 1, "dispatch: registering a listener for: %s", reg.band )
-					gallery.add_listener( reg.band, reg.ch )
+					sheep.Baa( 1, "dispatch: registering listener for: %s", reg.band )
+					gallery.add_listener( reg.band, reg.ch, reg.ldata )
 					
-					sheep.Baa( 1, "audience: %s", gallery )
+					sheep.Baa( 2, "audience: %s", gallery )
 				} else {
 					sheep.Baa( 1, "dispatch: internal mishap: bad message struct on register" )
 				}
@@ -328,10 +338,10 @@ func dispatcher( ch chan *ipc.Chmsg ) {
 
 			case UNREGISTER:								// msg from user to unregister for an event band
 				if reg, ok := req.Req_data.( *Reg_msg ); ok {
-					sheep.Baa( 1, "dispatch: unregistering a listener for: %s", reg.band )
+					sheep.Baa( 2, "dispatch: unregistering a listener for: %s", reg.band )
 					gallery.drop_listener( reg.band, reg.ch )
 					
-					sheep.Baa( 1, "audience: %s", gallery )
+					sheep.Baa( 2, "audience: %s", gallery )
 				} else {
 					sheep.Baa( 1, "dispatch: internal mishap: bad msg struct on unregister" )
 				}
@@ -391,9 +401,10 @@ func listen( url string, port string ) {
 	A wrapper allowing a user thread to register with a function call rather than 
 	having to send a message to the dispatcher.
 */
-func Register( band string, ch chan *Event ) {
+func Register( band string, ch chan *Envelope, ldata interface{} ) {
 	reg := &Reg_msg {
 		band: band,
+		ldata: ldata,
 		ch: ch,
 	}
 
@@ -405,7 +416,7 @@ func Register( band string, ch chan *Event ) {
 	A wrapper allowing a user thread to unregister with a function call rather than 
 	having to send a message to the dispatcher.
 */
-func Unregister( band string, ch chan *Event ) {
+func Unregister( band string, ch chan *Envelope ) {
 	reg := &Reg_msg {
 		band: band,
 		ch: ch,
@@ -431,12 +442,13 @@ func Unregister( band string, ch chan *Event ) {
 	establish different interfaces and/or ports.
 */
 func Start( port string, url string, usr_sheep *bleater.Bleater ) ( chan *ipc.Chmsg ) {
+	sheep = bleater.Mk_bleater( 0, os.Stderr )			// create our bleater
+	sheep.Set_prefix( "msgrtr" )
 	if usr_sheep != nil {
-		sheep = usr_sheep								// baa with user supplied bleater, else crate our own
+    	usr_sheep.Add_child( sheep )                   // we become a child if given to us so that if the master vol is adjusted we'll react too
 	} else {
-		sheep = bleater.Mk_bleater( 1, os.Stderr )		// if no bleater from user, only bleat critical things
-		sheep.Set_prefix( "msgrtr" )
-	}
+		sheep.Set_level( 1 )
+	} 
 
 	if disp_ch == nil {
 		disp_ch = make( chan *ipc.Chmsg, 1024 )
