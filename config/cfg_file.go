@@ -26,6 +26,7 @@
 	Author:		E. Scott Daniels
 
 	Mods:		30 Nov 2014 - allows for comments on key = value lines.
+				11 Nov 2015 - Added ability to use += 
 */
 
 /*
@@ -120,21 +121,41 @@ func Parse( sectmap map[string]map[string]interface{}, fname string, all_str boo
 					}
 
 				default:							// assume key value pair
+					append := false
+					first_tok := 1					// first token of var is 1, but could be later
+
 					ntokens, tokens := token.Tokenise_qpopulated( rec, " \t=" )
 					if ntokens >= 2 {				// if key = "value" # [comment],  n will be 3 or more
-						key := tokens[0]
-						if tokens[1] == "" {		// key = (missing value) given
-							tokens[1] = " "
+						tl := len( tokens[0] )
+
+						if tokens[0][tl-1:] == "+" {				//foo+= bar rather than foo = bar or foo += bar
+							tokens[0] = tokens[0][:tl-1]
+							append = true
+						} else {
+							if tokens[1] == "+" {					// += results in lone plus, not to be confused with +9999
+								append = true
+								first_tok++
+							}
 						}
-						fc := tokens[1][0:1]
+
+						key := tokens[0]
+						if tokens[first_tok] == "" {		// key = (missing value) given
+							tokens[first_tok] = " "
+						}
+						fc := tokens[first_tok][0:1]
 						if ! all_str && ((fc >= "0"  && fc <= "9") || fc == "+" || fc == "-") {		// allowed to convert numbers to float
-							sect[key] = clike.Atof( tokens[1] );
+							sect[key] = clike.Atof( tokens[first_tok] );
 						} else {
 							dup := ""
 							sep := ""
-							for i := 1; i < ntokens && tokens[i][0:1] != "#"; i++ {
+							for i := first_tok; i < ntokens && tokens[i][0:1] != "#"; i++ {
 								dup += sep + tokens[i]									// snarf tokens up to comment reducing white space to 1 blank
 								sep = " "
+							}
+							if append && sect[key] != nil {
+								if old_str, ok := sect[key].(*string); ok {
+									dup = *old_str + " " + dup
+								}
 							}
 							sect[key] = &dup
 						}		
