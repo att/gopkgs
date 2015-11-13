@@ -192,7 +192,8 @@ func (o *Ostack) Map_gw_endpoints(  umap map[string]*End_pt ) ( epmap map[string
 
 	for j := range ports.Ports {
 
-		id := ports.Ports[j].Device_id				// MUST duplicate them
+													// MUST duplicate them
+		id := ports.Ports[j].Id						// who knows what device id is, but that is wrong; save id.
 		mac := ports.Ports[j].Mac_address
 		netid := ports.Ports[j].Network_id
 		phost := ports.Ports[j].Bind_host_id
