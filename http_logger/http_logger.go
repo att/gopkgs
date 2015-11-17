@@ -21,6 +21,7 @@
 	Mnemonic:	http_logger
 	Author:		Robert Eby
 	Mods:		10 Aug 2015 - Created.
+				17 Nov 2015 - Log query string as well
 */
 
 /*
@@ -132,7 +133,12 @@ func ( p *Http_Logger ) LogRequest( in *http.Request, user string, code int, len
 				msg.WriteString("-")
 
 			case "r":
-				msg.WriteString(fmt.Sprintf("%s %s %s", in.Method, in.URL.Path, in.Proto))
+				url := in.URL.Path
+				q := in.URL.RawQuery
+				if q != "" {
+					url = url + "?" + q
+				}
+				msg.WriteString(fmt.Sprintf("%s %s %s", in.Method, url, in.Proto))
 
 			case "s":
 				msg.WriteString(fmt.Sprintf("%d", code))
