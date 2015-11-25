@@ -129,3 +129,83 @@ func Atoll( objx interface{} ) (v int64) {
         return
 }
 
+/*
+	Convert to unsigned 64bit.
+*/
+func Atoull( objx interface{} ) (v uint64) {
+        var (
+			i int
+			buf	[]byte
+		)
+
+		v = 0							// ensure all early returns have a value of 0
+
+		if objx == nil {
+			return
+		}
+
+		switch objx.( type ) {					// place into a container we can deal with
+			case []byte:	
+						buf = objx.([]byte)			
+			case string:	
+						buf = []byte( objx.(string) )
+			case *string:
+						bp := objx.( *string )
+						if bp == nil {
+							return 0
+						}
+						buf = []byte( *bp );
+			default:
+						return					// who knows, but it doesn't convert
+		}
+
+		if len( buf ) < 1 {
+			return
+		}
+
+        i = 0
+		if buf[i] == '-' || buf[i] == '+' {
+			i++
+		}
+        if buf[i] == '0' {
+			if  len( buf ) > 1 && buf[i+1] == 'x' {
+				i += 2
+        		for ; i < len(buf)  &&  ((buf[i] >= '0'  &&  buf[i] <= '9') || (buf[i] >= 'a' && buf[i] <= 'f') ); i++ {}	// find last digit
+			} else {
+				i++
+        		for ; i < len(buf)  &&  (buf[i] >= '0'  &&  buf[i] <= '7'); i++ {}							// find last octal digit
+			}
+        }  else {
+        	for ; i < len(buf)  &&  (buf[i] >= '0'  &&  buf[i] <= '9'); i++ {}	// find last digit
+		}
+
+        if i > 0 {
+                v, _ = strconv.ParseUint( string( buf[0:i] ), 0, 64 )
+        }
+
+		if i < len( buf ) {
+			switch string( buf[i:] ) {
+				case "M", "MB":
+						v *= 1000000
+
+				case "G", "GB":
+						v *= 1000000000
+
+				case "K", "KB":
+						v *= 1000
+
+				case "m", "MiB":
+						v *= 1048576
+
+				case "g", "GiB":
+						v *= 1073741824
+
+				case "k", "KiB":
+						v *= 1024
+
+				default: break;	
+			}
+		}
+
+        return
+}

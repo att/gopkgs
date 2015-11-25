@@ -80,6 +80,33 @@ func Atoi( objx interface{} ) (int) {
 */
 func Atou( objx interface{} ) (uint) {
 
-	v := Atoll( objx )
+	v := Atoull( objx )
 	return uint( v )
+}
+
+/*
+	Convert a string or an array of bytes into a 64 bit integer.
+*/
+func Atou64( objx interface{} ) (uint64) {
+
+	v := Atoull( objx )
+	return v
+}
+
+/*
+	Convert a string or an array of bytes into a 32 bit integer.
+*/
+func Atou32( objx interface{} ) (uint32) {
+
+	v := Atoull( objx )
+	return uint32( v )
+}
+
+/*
+	Convert a string or an array of bytes into a 16 bit integer.
+*/
+func Atou16( objx interface{} ) (uint16) {
+
+	v := Atoull( objx )
+	return uint16( v )
 }
