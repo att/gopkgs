@@ -143,9 +143,9 @@ func (o *Ostack) pickToken() string {
 /*
 	Fetch info for the port identified by uuid.
  */
-func (o *Ostack) FetchPortInfo( uuid *string ) ( response *ost_os_port, err error ) {
+func (o *Ostack) FetchPortInfo( uuid *string ) ( response *Ost_os_port, err error ) {
 	type simple_port_response struct {
-		Port ost_os_port
+		Port Ost_os_port
 	}
 	err = o.Validate_auth()						// reauthorise if needed
 	if err == nil {

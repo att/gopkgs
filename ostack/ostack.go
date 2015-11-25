@@ -291,7 +291,7 @@ type ost_ifattach struct {
 
 // --- port related things -----
 
-type ost_os_port struct {
+type Ost_os_port struct {
 	Status			string
 	Bind_host_id	string	`json:"binding:host_id"`			// assume this is the physical host name
 	Bind_vif_type	string	`json:"binding:vif_type"`
@@ -453,7 +453,7 @@ type generic_response struct {
 	Hosts		[]ost_os_host
     Interfaceattachments	 []ost_ifattach
 	Networks 	[]ost_network
-	Ports		[]ost_os_port
+	Ports		[]Ost_os_port
 	Roles		[]ost_role
 	Routers		[]ost_router				// from v2.0/routers
 	Router		*ost_router					// from v2.0/routers/<routerid>/l3-agent
