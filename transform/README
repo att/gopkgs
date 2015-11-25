@@ -1,0 +1,10 @@
+
+This package contains various functions which support the transformation of 
+something into something else in a generic way.
+
+	tomap:
+		struct_to_map - create a map from a structure's exported and tagged fields
+
+	tostruct:
+		map_to_struct - populate a structure's exported and tagged fields  from 
+			a map's contents.
