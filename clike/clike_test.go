@@ -151,3 +151,31 @@ func TestAtoi16 ( t *testing.T ) {           // must use bloody camel case to be
 		t.Fail();
 	}
 }
+
+
+func TestAtou16 ( t *testing.T ) {           // must use bloody camel case to be recognised by go testing
+	var (
+		iv	interface{};					// use interface to ensure var type returned is int32
+		v 	uint16;
+	)
+
+	iv = clike.Atou16( "256" );
+
+	switch iv.( type ) {
+		case uint16:		
+			break;
+
+		default:	
+			t.Errorf( "atoi16() did not return uint16, no other atol16() tests executed" );
+			return;
+	}
+
+	if iv.(uint16) != 256 {
+		t.Fail();
+	}
+
+	v = clike.Atou16( "0x7def" );
+	if v != 0x7def {
+		t.Fail();
+	}
+}
