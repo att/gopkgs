@@ -29,31 +29,48 @@ package transform
 
 import (
 	"fmt"
+	"os"
 	"reflect"
 )
 
 /*
 	Accept a structure and build a map from it's values. The map
 	is [string]string, and the keys are taken from fields tagged with
-	datacahce: tags.   Only 'simple' fields are captured; structs, arrays,
-	and other 'recursive' things are not.
+	datacahce: tags.   With one exception, only 'simple' fields are captured; 
+	structs, arrays, and other 'recursive' things are not. Anonymous structures
+	_are_ captured as their namespace is the same as the top level struct, but
+	the fields in the anon struct must have a matching tag_id or they are 
+	ignored in the same way defined fields in the structure are.
 */
 func Struct_to_map( ustruct interface{}, tag_id string ) ( m map[string]string ) {
 	var imeta reflect.Type
+	var thing reflect.Value
 
-	thing := reflect.ValueOf( ustruct )		// thing is the interface 'value'
+	thing = reflect.ValueOf( ustruct )			// thing is the actual usr struct (in reflect container)
 	if thing.Kind() == reflect.Ptr {
-		thing = thing.Elem()
-		imeta = thing.Type() //reflect.TypeOf( thing )			// convert input to a Type allowing for extraction of meta data
+		thing = thing.Elem()					// deref the pointer to get the real container
+		imeta = thing.Type() 					// snag the type allowing for extraction of meta data
 	} else {
 		imeta = reflect.TypeOf( thing )			// convert input to a Type allowing for extraction of meta data
 	}
 
+	m = make( map[string]string )	
+	return value_to_map( thing, imeta, tag_id, m )
+}
+
+/*
+	This is the work horse which can call itself to process nested structs.
+*/
+func value_to_map( thing reflect.Value, imeta reflect.Type, tag_id string, m map[string]string ) ( map[string]string ) {
+
 	if thing.Kind() != reflect.Struct {
-		return nil
+		return m
 	}
 	
-	m = make( map[string]string )	
+	if m == nil {
+		m = make( map[string]string )	
+	}
+
 	for i := 0; i < thing.NumField(); i++ {
 		f := thing.Field( i )					// get the value of the ith field
 		fmeta := imeta.Field( i )				// get the ith field's metadata from Type
@@ -63,8 +80,9 @@ func Struct_to_map( ustruct interface{}, tag_id string ) ( m map[string]string )
 			ftag = fmeta.Name
 		}
 
-		if ftag != "" {
-			switch f.Kind() {
+		fkind := f.Kind()
+		if ftag != "" || fkind == reflect.Struct {		// process all structs regardless of tag
+			switch fkind {
 				case reflect.String:
 					m[ftag] = fmt.Sprintf( "%s", f )
 
@@ -102,8 +120,13 @@ func Struct_to_map( ustruct interface{}, tag_id string ) ( m map[string]string )
 				case reflect.Bool:
 					m[ftag] = fmt.Sprintf( "%v", f )
 
+				case reflect.Struct:
+					if fmeta.Anonymous {
+						value_to_map( f, f.Type(), tag_id, m )			// recurse to process; only anonymous fields as they share this level namespace
+					}
+
 				default:
-					fmt.Printf( "unkonw at %d\n", i )
+					fmt.Fprintf( os.Stderr, "tomap: unknown at %d tag=%s type=%s val=%s\n", i, ftag, f.Kind(), reflect.ValueOf( f ) )
 			}	
 		}
 	}

@@ -36,7 +36,25 @@ import (
 	"github.com/att/gopkgs/transform"
 )
 
+/*
+	Annon structs need to be labeled too.
+*/
+type Adjunct struct {
+	Foo_AJ1	int				`Foo:"_"`
+	Foo_AJ2	int				`Foo:"_"`
+	Foo_AJ3	int				`Foo:"_"`
+	Bar_AJ4	int				`Bar:"_"`
+	Unmarked int
+}
+
+type Thing struct {
+	s string
+}
+
 type Foo_bar struct {
+						Adjunct					// annon structure
+
+	Athing				Thing `Goo:"_"`
 	Foo_str string		`Foo:"FooString"`
 	Foo_int int			`Foo:"FooInteger"`
 	Foo_intp1 *int  	`Foo:"FooPtr1"`
@@ -105,6 +123,10 @@ func mk_struct1( ) ( *Foo_bar ) {
 		internal2:	2,
 	}
 
+	fbs.Foo_AJ1 = 10001
+	fbs.Foo_AJ2 = 10002
+	fbs.Foo_AJ3 = 10003
+
 	return fbs
 }
 		
@@ -116,18 +138,20 @@ func TestFooOnly( t *testing.T ) {
 	fs := mk_struct1()
 	count := 0
 
+	fmt.Fprintf( os.Stderr, "testfoo only\n" )
 	m := transform.Struct_to_map( fs, "Foo" )		// should only generate foo elements into map
 	for k, v := range m {
 		if strings.Index( k, "Foo" ) != 0 {
 			fmt.Fprintf( os.Stderr, "BAD: unexpected key found in 'foo' map: %s (%v)\n", k, v )
 			t.Fail()
 		} else {
+			//fmt.Printf( "foo: %s = %s\n", k, v )
 			count++
 		}
 	}
 
-	if count != 9 {
-		fmt.Fprintf( os.Stderr, "didn't find enough elements in foo map, expected 9 found %d\n", count )
+	if count != 12 {
+		fmt.Fprintf( os.Stderr, "didn't find enough elements in foo map, expected 12 found %d\n", count )
 	}
 }
 
@@ -136,6 +160,7 @@ func TestFooOnly( t *testing.T ) {
 	Should generate a map with only bar tagged items
 */
 func TestBarOnly( t *testing.T ) {
+	fmt.Fprintf( os.Stderr, "testbar only\n" )
 	count := 0
 	fs := mk_struct1()
 	m := transform.Struct_to_map( fs, "Bar" )		// should only generate foo elements into map
@@ -148,8 +173,8 @@ func TestBarOnly( t *testing.T ) {
 		}
 	}
 
-	if count != 9 {
-		fmt.Fprintf( os.Stderr, "didn't find enough elements in bar map, expected 9 found %d\n", count )
+	if count != 10 {
+		fmt.Fprintf( os.Stderr, "didn't find enough elements in bar map, expected 10 found %d\n", count )
 	}
 }
 
@@ -162,24 +187,24 @@ func TestAll( t *testing.T ) {
 	fcount := 0
 	zcount := 0
 
+	fmt.Fprintf( os.Stderr, "testall\n" )
 	m := transform.Struct_to_map( fs, "_" )		// should capture all fields
 	for k, _ := range m {
-		if strings.Index( k, "Foo" ) != 0 {
+		if strings.Index( k, "Foo" ) == 0 {
 			fcount++
 		} else {
-			if strings.Index( k, "Bar" ) != 0 {
+			if strings.Index( k, "Bar" ) == 0 {
 				bcount++
 			} else {
-				if strings.Index( k, "Baz" ) != 0 {
+				if strings.Index( k, "Baz" ) == 0 {
 					zcount++
 				}
 			}
 		}
 	}
 
-
-	if bcount != 9 && fcount != 9 && zcount != 2 {
-		fmt.Fprintf( os.Stderr, "all test: unexpected count, expected 9/9/2 got %d/%d/%d\n", fcount, bcount, zcount )
+	if fcount != 12 || bcount != 10 || zcount != 2 {
+		fmt.Fprintf( os.Stderr, "all test: unexpected count, expected 12/10/2 got %d/%d/%d\n", fcount, bcount, zcount )
 		t.Fail()
 	}
 }
@@ -188,6 +213,7 @@ func TestAll( t *testing.T ) {
 	Generate a map, and then use it to populate an empty struct.
 */
 func TestPopulate( t *testing.T ) {
+	fmt.Fprintf( os.Stderr, "test populate\n" )
 	ofs := mk_struct1( )									// make original struct
 	fm := transform.Struct_to_map( ofs, "Foo" )				// generate foo map
 	nfs := &Foo_bar{}										// empty strut to populate
