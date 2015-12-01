@@ -46,25 +46,23 @@ import (
 	is given as an '_' (underbar) character, then the structure field name is
 	used.   Names are case sensitive.
 
-	With one exception, only 'simple' types (bool, int, float, string, and pointers to 
-	them) are supported (nested structs, arrays, maps, etc. are not supported). For
-	boolean, the value is set to true if the map value is one of: true, True, or TRUE,
-	and false otherwise. If a struct which contains an anonymous structure is passed
-	as the target, the fields marked with tag_id in the anonymous struct(s) will also
-	be populated since their namespace is at the same level as the struct.
+	This function supports transferring the simple types (bool, int, float, etc.) and 
+	pointers to those types from the map.  It also supports structures, anonymous
+	structures and pointers to structures. It does not support maps or arrays.
 */
 func Map_to_struct( m map[string]string, ustructp interface{}, tag_id string ) ( ) {
 	
 	thing := reflect.ValueOf( ustructp ).Elem() // get a reference to the struct
 	tmeta := thing.Type()						// meta data for the struct
 	
-	map_to_struct( m, thing, tmeta, tag_id )
+	map_to_struct( m, thing, tmeta, tag_id, "" )
 }
 
 /*
 	Real work horse which can recurse down to process anon structs.
+	Prefix (pfx) allows us to manage nested structs.
 */
-func map_to_struct( m map[string]string, thing reflect.Value, tmeta reflect.Type, tag_id string ) ( ) {
+func map_to_struct( m map[string]string, thing reflect.Value, tmeta reflect.Type, tag_id string, pfx string ) ( ) {
 
 	for i := 0; i <  thing.NumField(); i++ {	// try all fields (they must be external!)
 		f := thing.Field( i )					// get the value of the ith field
@@ -76,7 +74,10 @@ func map_to_struct( m map[string]string, thing reflect.Value, tmeta reflect.Type
 
 		fkind := f.Kind()
 
-		if (fkind == reflect.Struct || ftag != "" ) && f.CanAddr()  {			// if there was a datacache tag, then attempt to pull the field from the map
+		//if (fkind == reflect.Struct || ftag != "" ) && f.CanAddr()  {			// if there was a datacache tag, then attempt to pull the field from the map
+		if (fmeta.Anonymous || ftag != "" ) && f.CanAddr()  {			// if there was a datacache tag, then attempt to pull the field from the map
+			ftag = pfx + ftag
+
 			switch fkind {
 				default:
 					fmt.Fprintf( os.Stderr, "transform.mts: tagged sturct member cannot be converted from map: tag=%s kind=%v", ftag, f.Kind() )
@@ -146,6 +147,9 @@ func map_to_struct( m map[string]string, thing reflect.Value, tmeta reflect.Type
 						case reflect.Bool:
 							b := m[ftag] == "true" || m[ftag] == "True" || m[ftag] == "TRUE"
 							f.Set( reflect.ValueOf(  &b ) )
+
+						case reflect.Struct:
+							map_to_struct( m, p, p.Type(), tag_id, pfx + fmeta.Name + "/" )			// recurse to process
 					}
 					
 				case reflect.Int, reflect.Int64, reflect.Int32, reflect.Int16, reflect.Int8:
@@ -162,9 +166,11 @@ func map_to_struct( m map[string]string, thing reflect.Value, tmeta reflect.Type
 		
 				case reflect.Struct:
 					if fmeta.Anonymous {
-						map_to_struct( m, f, f.Type(), tag_id )			// recurse to process; only anonymous fields as they share this level namespace
+						map_to_struct( m, f, f.Type(), tag_id, pfx )			// anon structs share namespace, so prefix is the same
+					} else {
+						map_to_struct( m, f, f.Type(), tag_id, pfx + fmeta.Name + "/" )			// dive to get the substruct adding a level to the prefix
 					}
-			}	
+			}
 		}
 	}
 

@@ -36,11 +36,16 @@ import (
 /*
 	Accept a structure and build a map from it's values. The map
 	is [string]string, and the keys are taken from fields tagged with
-	datacahce: tags.   With one exception, only 'simple' fields are captured; 
-	structs, arrays, and other 'recursive' things are not. Anonymous structures
-	_are_ captured as their namespace is the same as the top level struct, but
-	the fields in the anon struct must have a matching tag_id or they are 
-	ignored in the same way defined fields in the structure are.
+	tags that match the tag_id string passed in. 
+	
+	If the tag id is map, then a tag might be `map:"xyz"` where xyz is used
+	as the name in the map, or `map:"_"` where the structure field name is 
+	used in the map. If the tag id "_" is passed in, then all fields in the 
+	structure are captured. 
+
+	This function will capture all simple fields (int, bool, float, etc.) and 
+	structures, anonynmous structures and pointers to structures. It will _NOT_
+	capture arrays or maps.
 */
 func Struct_to_map( ustruct interface{}, tag_id string ) ( m map[string]string ) {
 	var imeta reflect.Type
@@ -55,13 +60,13 @@ func Struct_to_map( ustruct interface{}, tag_id string ) ( m map[string]string )
 	}
 
 	m = make( map[string]string )	
-	return value_to_map( thing, imeta, tag_id, m )
+	return value_to_map( thing, imeta, tag_id, m, "" )
 }
 
 /*
 	This is the work horse which can call itself to process nested structs.
 */
-func value_to_map( thing reflect.Value, imeta reflect.Type, tag_id string, m map[string]string ) ( map[string]string ) {
+func value_to_map( thing reflect.Value, imeta reflect.Type, tag_id string, m map[string]string, pfx string ) ( map[string]string ) {
 
 	if thing.Kind() != reflect.Struct {
 		return m
@@ -80,7 +85,9 @@ func value_to_map( thing reflect.Value, imeta reflect.Type, tag_id string, m map
 		}
 
 		fkind := f.Kind()
-		if ftag != "" || fkind == reflect.Struct {		// process all structs regardless of tag
+		if ftag != "" || fmeta.Anonymous {		// process all structs regardless of tag
+			ftag = pfx + ftag
+
 			switch fkind {
 				case reflect.String:
 					m[ftag] = fmt.Sprintf( "%s", f )
@@ -102,6 +109,9 @@ func value_to_map( thing reflect.Value, imeta reflect.Type, tag_id string, m map
 
 						case reflect.Bool:
 							m[ftag] = fmt.Sprintf( "%v", p)
+
+						case reflect.Struct:
+							value_to_map( p, p.Type(), tag_id, m, pfx + fmeta.Name + "/" )	// recurse to process with a prefix which matches the field
 					}
 					
 				case reflect.Uintptr:
@@ -121,7 +131,9 @@ func value_to_map( thing reflect.Value, imeta reflect.Type, tag_id string, m map
 
 				case reflect.Struct:
 					if fmeta.Anonymous {
-						value_to_map( f, f.Type(), tag_id, m )			// recurse to process; only anonymous fields as they share this level namespace
+						value_to_map( f, f.Type(), tag_id, m, pfx )			// recurse to process; only anonymous fields as they share this level namespace
+					} else {
+						value_to_map( f, f.Type(), tag_id, m, pfx + fmeta.Name + "/" )	// recurse to process; only anonymous fields as they share this level namespace
 					}
 
 				default:
