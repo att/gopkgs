@@ -138,7 +138,7 @@ func TestFooOnly( t *testing.T ) {
 	fs := mk_struct1()
 	count := 0
 
-	fmt.Fprintf( os.Stderr, "testfoo only\n" )
+	fmt.Fprintf( os.Stderr, "test: capture only foo fields\n" )
 	m := transform.Struct_to_map( fs, "Foo" )		// should only generate foo elements into map
 	for k, v := range m {
 		if strings.Index( k, "Foo" ) != 0 {
@@ -160,7 +160,7 @@ func TestFooOnly( t *testing.T ) {
 	Should generate a map with only bar tagged items
 */
 func TestBarOnly( t *testing.T ) {
-	fmt.Fprintf( os.Stderr, "testbar only\n" )
+	fmt.Fprintf( os.Stderr, "test: capture only bar fields\n" )
 	count := 0
 	fs := mk_struct1()
 	m := transform.Struct_to_map( fs, "Bar" )		// should only generate foo elements into map
@@ -187,7 +187,7 @@ func TestAll( t *testing.T ) {
 	fcount := 0
 	zcount := 0
 
-	fmt.Fprintf( os.Stderr, "testall\n" )
+	fmt.Fprintf( os.Stderr, "test: capture all fields in map\n" )
 	m := transform.Struct_to_map( fs, "_" )		// should capture all fields
 	for k, _ := range m {
 		if strings.Index( k, "Foo" ) == 0 {
@@ -213,11 +213,32 @@ func TestAll( t *testing.T ) {
 	Generate a map, and then use it to populate an empty struct.
 */
 func TestPopulate( t *testing.T ) {
-	fmt.Fprintf( os.Stderr, "test populate\n" )
+	fmt.Fprintf( os.Stderr, "test: populate struct from map\n" )
 	ofs := mk_struct1( )									// make original struct
 	fm := transform.Struct_to_map( ofs, "Foo" )				// generate foo map
 	nfs := &Foo_bar{}										// empty strut to populate
+
+	if ofs.Foo_AJ1 == nfs.Foo_AJ1 {						// spot check to ensure that the struct to fill is really 'empty'
+		fmt.Fprintf( os.Stderr, "FAIL: old foo_aj1 did  matches new before transform: (%d)  != (%d)\n", ofs.Foo_AJ1, nfs.Foo_AJ1 )
+		t.Fail()
+	}
+
 	transform.Map_to_struct( fm, nfs,  "Foo" )				// fill it in
+
+	if ofs.Foo_AJ1 != nfs.Foo_AJ1 {
+		fmt.Fprintf( os.Stderr, "FAIL: old foo_aj1 did not match new: (%d) != (%d)\n", ofs.Foo_AJ1, nfs.Foo_AJ1 )
+		t.Fail()
+	}
+
+	if ofs.Foo_AJ2 != nfs.Foo_AJ2 {
+		fmt.Fprintf( os.Stderr, "FAIL: old foo_aj1 did not match new: (%d) != (%d)\n", ofs.Foo_AJ2, nfs.Foo_AJ2 )
+		t.Fail()
+	}
+
+	if ofs.Foo_AJ3 != nfs.Foo_AJ3 {
+		fmt.Fprintf( os.Stderr, "FAIL: old foo_aj1 did not match new: (%d) != (%d)\n", ofs.Foo_AJ3, nfs.Foo_AJ3 )
+		t.Fail()
+	}
 
 	if ofs.Foo_str != nfs.Foo_str {
 		fmt.Fprintf( os.Stderr, "FAIL: old foo_str did not match new: (%s) != (%s)\n", ofs.Foo_str, nfs.Foo_str )
@@ -232,6 +253,7 @@ func TestPopulate( t *testing.T ) {
 		fmt.Fprintf( os.Stderr, "FAIL: old foo_str did not match new: (%d) != (%d)\n", *ofs.Foo_intp1, *nfs.Foo_intp1 )
 		t.Fail()
 	}
+
 	if ofs.Foo_intp1 == nfs.Foo_intp1 {			// pointers should NOT be the same
 		fmt.Fprintf( os.Stderr, "FAIL: old and new intp1 pointers are the same and shouldn't be!\n" )
 		t.Fail()
@@ -241,22 +263,27 @@ func TestPopulate( t *testing.T ) {
 		fmt.Fprintf( os.Stderr, "FAIL: old foo_str did not match new: (%d) != (%d)\n", *ofs.Foo_intp2, *nfs.Foo_intp2 )
 		t.Fail()
 	}
+
 	if ofs.Foo_uint != nfs.Foo_uint {
 		fmt.Fprintf( os.Stderr, "FAIL: old foo_str did not match new: (%d) != (%d)\n", ofs.Foo_uint, nfs.Foo_uint )
 		t.Fail()
 	}
+
 	if *ofs.Foo_uintp1 != *nfs.Foo_uintp1 {
 		fmt.Fprintf( os.Stderr, "FAIL: old foo_str did not match new: (%d) != (%d)\n", *ofs.Foo_uintp1, *nfs.Foo_uintp1 )
 		t.Fail()
 	}
+
 	if *ofs.Foo_uintp2 != *nfs.Foo_uintp2 {
 		fmt.Fprintf( os.Stderr, "FAIL: old foo_str did not match new: (%d) != (%d)\n", *ofs.Foo_uintp2, *nfs.Foo_uintp2 )
 		t.Fail()
 	}
+
 	if ofs.Foo_bool != nfs.Foo_bool {
 		fmt.Fprintf( os.Stderr, "FAIL: old foo_str did not match new: (%v) != (%v)\n", ofs.Foo_bool, nfs.Foo_bool )
 		t.Fail()
 	}
+
 	if *ofs.Foo_boolp != *nfs.Foo_boolp {
 		fmt.Fprintf( os.Stderr, "FAIL: old foo_str did not match new: (%v) != (%v)\n", *ofs.Foo_boolp, *nfs.Foo_boolp )
 		t.Fail()

@@ -75,7 +75,6 @@ func value_to_map( thing reflect.Value, imeta reflect.Type, tag_id string, m map
 		f := thing.Field( i )					// get the value of the ith field
 		fmeta := imeta.Field( i )				// get the ith field's metadata from Type
 		ftag := fmeta.Tag.Get( tag_id ) 		// get the field's datacache tag
-		//fmt.Printf( ">>>> k=%s field=(%s) tag=(%s) id=%s\n", thing.Kind(), fmeta.Name, ftag, tag_id )
 		if ftag == "_" || tag_id == "_" {
 			ftag = fmeta.Name
 		}
@@ -126,7 +125,7 @@ func value_to_map( thing reflect.Value, imeta reflect.Type, tag_id string, m map
 					}
 
 				default:
-					fmt.Fprintf( os.Stderr, "tomap: unknown at %d tag=%s type=%s val=%s\n", i, ftag, f.Kind(), reflect.ValueOf( f ) )
+					fmt.Fprintf( os.Stderr, "transform:stm: field %d cannot be captured in map: tag=%s type=%s val=%s\n", i, ftag, f.Kind(), reflect.ValueOf( f ) )
 			}	
 		}
 	}

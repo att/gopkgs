@@ -46,16 +46,26 @@ import (
 	is given as an '_' (underbar) character, then the structure field name is
 	used.   Names are case sensitive.
 
-	Currently, only 'simple' types (bool, int, float, string, and pointers to them) 
-	are supported (nested structs, arrays, maps, etc. are not supported). For
+	With one exception, only 'simple' types (bool, int, float, string, and pointers to 
+	them) are supported (nested structs, arrays, maps, etc. are not supported). For
 	boolean, the value is set to true if the map value is one of: true, True, or TRUE,
-	and false otherwise.
+	and false otherwise. If a struct which contains an anonymous structure is passed
+	as the target, the fields marked with tag_id in the anonymous struct(s) will also
+	be populated since their namespace is at the same level as the struct.
 */
 func Map_to_struct( m map[string]string, ustructp interface{}, tag_id string ) ( ) {
 	
 	thing := reflect.ValueOf( ustructp ).Elem() // get a reference to the struct
 	tmeta := thing.Type()						// meta data for the struct
 	
+	map_to_struct( m, thing, tmeta, tag_id )
+}
+
+/*
+	Real work horse which can recurse down to process anon structs.
+*/
+func map_to_struct( m map[string]string, thing reflect.Value, tmeta reflect.Type, tag_id string ) ( ) {
+
 	for i := 0; i <  thing.NumField(); i++ {	// try all fields (they must be external!)
 		f := thing.Field( i )					// get the value of the ith field
 		fmeta := tmeta.Field( i )				// get the meta data for field i
@@ -64,10 +74,12 @@ func Map_to_struct( m map[string]string, ustructp interface{}, tag_id string ) (
 			ftag = fmeta.Name
 		}
 
-		if ftag != "" && f.CanAddr()  {			// if there was a datacache tag, then attempt to pull the field from the map
-			switch f.Kind() {
+		fkind := f.Kind()
+
+		if (fkind == reflect.Struct || ftag != "" ) && f.CanAddr()  {			// if there was a datacache tag, then attempt to pull the field from the map
+			switch fkind {
 				default:
-					fmt.Fprintf( os.Stderr, "tagged sturct member cannot be converted from map: tag=%s kind=%v", ftag, f.Kind() )
+					fmt.Fprintf( os.Stderr, "transform.mts: tagged sturct member cannot be converted from map: tag=%s kind=%v", ftag, f.Kind() )
 
 				case reflect.String:
 						f.SetString( m[ftag] )
@@ -147,6 +159,11 @@ func Map_to_struct( m map[string]string, ustructp interface{}, tag_id string ) (
 
 				case reflect.Bool:
 					f.SetBool(  m[ftag] == "true" )
+		
+				case reflect.Struct:
+					if fmeta.Anonymous {
+						map_to_struct( m, f, f.Type(), tag_id )			// recurse to process; only anonymous fields as they share this level namespace
+					}
 			}	
 		}
 	}
