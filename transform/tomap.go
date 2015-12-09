@@ -33,8 +33,12 @@ import (
 	"reflect"
 )
 
+var (
+	depth int = 0
+)
+
 /*
-	Accept a structure and build a map from it's values. The map
+	Accept a structure and build a map from its values. The map
 	is [string]string, and the keys are taken from fields tagged with
 	tags that match the tag_id string passed in. 
 	
@@ -60,13 +64,113 @@ func Struct_to_map( ustruct interface{}, tag_id string ) ( m map[string]string )
 	}
 
 	m = make( map[string]string )	
-	return value_to_map( thing, imeta, tag_id, m, "" )
+	return struct_to_map( thing, imeta, tag_id, m, "" )
+}
+
+func dec_depth() {
+	if depth > 0 {
+		depth--
+	}
 }
 
 /*
-	This is the work horse which can call itself to process nested structs.
+	Insert a value into the map using its 'tag'.  If the value is a struct, map or array (slice)
+	then we recurse to insert each component (array/map) and invoke the struct function to 
+	dive into the struct extracting tagged fields.
 */
-func value_to_map( thing reflect.Value, imeta reflect.Type, tag_id string, m map[string]string, pfx string ) ( map[string]string ) {
+func insert_value( thing reflect.Value, tkind reflect.Kind, anon bool, tag string, tag_id string, m map[string]string, pfx string ) {
+	depth++
+	if depth > 50 {
+		fmt.Fprintf( os.Stderr, "recursion to deep in transform insert value: %s\n%s\n", pfx, tkind ) 
+		os.Exit( 1 )
+	}
+	defer dec_depth()
+
+	tag = pfx + tag
+	switch tkind {
+		case reflect.String:
+			m[tag] = fmt.Sprintf( "%s", thing )
+
+		case reflect.Ptr:
+			p := thing.Elem()
+			switch p.Kind() {
+				case reflect.String:
+					m[tag] = fmt.Sprintf( "%s", p )
+
+				case reflect.Int, reflect.Int64, reflect.Int32, reflect.Int16, reflect.Int8:
+					m[tag] = fmt.Sprintf( "%d", p )
+
+				case reflect.Uint, reflect.Uint64, reflect.Uint32, reflect.Uint16, reflect.Uint8:
+					m[tag] = fmt.Sprintf( "%d", p )
+
+				case reflect.Float64, reflect.Float32:
+					m[tag] = fmt.Sprintf( "%f", p )
+
+				case reflect.Bool:
+					m[tag] = fmt.Sprintf( "%v", p)
+
+				case reflect.Struct:
+					struct_to_map( p, p.Type(), tag_id, m, pfx + tag + "/"  )	// recurse to process with a prefix which matches the field
+
+				default:
+					//fmt.Fprintf( os.Stderr, "ptr not handled: %s\n", p.Kind() )
+			}
+			
+		case reflect.Uintptr:
+			m[tag] = fmt.Sprintf( "%d", thing )
+
+		case reflect.Int, reflect.Int64, reflect.Int32, reflect.Int16, reflect.Int8:
+			m[tag] = fmt.Sprintf( "%d", thing )
+
+		case reflect.Uint, reflect.Uint64, reflect.Uint32, reflect.Uint16, reflect.Uint8:
+			m[tag] = fmt.Sprintf( "%d", thing )
+
+		case reflect.Float64, reflect.Float32:
+			m[tag] = fmt.Sprintf( "%f", thing )
+
+		case reflect.Bool:
+			m[tag] = fmt.Sprintf( "%v", thing )
+
+		case reflect.Struct:
+			if anon {
+				struct_to_map( thing, thing.Type(), tag_id, m, pfx )				// recurse to process; anonymous fields share this level namespace
+			} else {
+				struct_to_map( thing, thing.Type(), tag_id, m, tag + "/" )			// recurse to process; tag becomes the prefix
+			}
+
+		case reflect.Slice:
+			length := thing.Len()
+			capacity := thing.Cap()
+			for j := 0; j <  length; j++ {
+				v := thing.Slice( j, j+1 )								// value struct for the jth element (which will be a slice too :(
+				vk := v.Type().Elem().Kind()							// must drill down for the kind
+				mtag := fmt.Sprintf( "%s%s.cap", pfx, tag )
+				m[mtag] = fmt.Sprintf( "%d", capacity )
+				mtag = fmt.Sprintf( "%s%s.len", pfx, tag )
+				m[mtag] = fmt.Sprintf( "%d", length )
+				new_tag := fmt.Sprintf( "%s/%d", tag, j )
+				insert_value(  thing.Index( j ), vk, false, new_tag, tag_id, m, pfx  )		// prefix remains the same, the 'index' changes as we go through the slice
+			}
+
+		case reflect.Map:
+			keys := thing.MapKeys()						// list of all of the keys (values)
+			for _, key := range keys {
+				vk := thing.Type().Elem().Kind()			// must drill down for the kind
+				new_tag := fmt.Sprintf( "%s/%s", tag, key )
+				insert_value(  thing.MapIndex( key ), vk, false, new_tag, tag_id, m, pfx  )					// prefix stays the same, just gets a new tag
+			}
+
+		default:
+			fmt.Fprintf( os.Stderr, "transform:stm: field cannot be captured in a map: tag=%s type=%s val=%s\n", tag, thing.Kind(), reflect.ValueOf( thing ) )
+	}	
+}
+
+
+/*
+	We require the initial 'thing' passed to be a struct, this then is the real entry point, but 
+	is broken so that it can be recursively called as we encounter structs in the insert code.
+*/
+func struct_to_map( thing reflect.Value, imeta reflect.Type, tag_id string, m map[string]string, pfx string ) ( map[string]string ) {
 
 	if thing.Kind() != reflect.Struct {
 		return m
@@ -77,68 +181,15 @@ func value_to_map( thing reflect.Value, imeta reflect.Type, tag_id string, m map
 	}
 
 	for i := 0; i < thing.NumField(); i++ {
-		f := thing.Field( i )					// get the value of the ith field
-		fmeta := imeta.Field( i )				// get the ith field's metadata from Type
+		f := thing.Field( i )					// get the _value_ of the ith field
+		fmeta := imeta.Field( i )				// get the ith field's metadata from Type (a struct_type)
 		ftag := fmeta.Tag.Get( tag_id ) 		// get the field's datacache tag
 		if ftag == "_" || tag_id == "_" {
 			ftag = fmeta.Name
 		}
 
-		fkind := f.Kind()
 		if ftag != "" || fmeta.Anonymous {		// process all structs regardless of tag
-			ftag = pfx + ftag
-
-			switch fkind {
-				case reflect.String:
-					m[ftag] = fmt.Sprintf( "%s", f )
-
-				case reflect.Ptr:
-					p := f.Elem()
-					switch p.Kind() {
-						case reflect.String:
-							m[ftag] = fmt.Sprintf( "%s", p )
-
-						case reflect.Int, reflect.Int64, reflect.Int32, reflect.Int16, reflect.Int8:
-							m[ftag] = fmt.Sprintf( "%d", p )
-
-						case reflect.Uint, reflect.Uint64, reflect.Uint32, reflect.Uint16, reflect.Uint8:
-							m[ftag] = fmt.Sprintf( "%d", p )
-
-						case reflect.Float64, reflect.Float32:
-							m[ftag] = fmt.Sprintf( "%f", p )
-
-						case reflect.Bool:
-							m[ftag] = fmt.Sprintf( "%v", p)
-
-						case reflect.Struct:
-							value_to_map( p, p.Type(), tag_id, m, pfx + fmeta.Name + "/" )	// recurse to process with a prefix which matches the field
-					}
-					
-				case reflect.Uintptr:
-					m[ftag] = fmt.Sprintf( "%d", f )
-
-				case reflect.Int, reflect.Int64, reflect.Int32, reflect.Int16, reflect.Int8:
-					m[ftag] = fmt.Sprintf( "%d", f )
-
-				case reflect.Uint, reflect.Uint64, reflect.Uint32, reflect.Uint16, reflect.Uint8:
-					m[ftag] = fmt.Sprintf( "%d", f )
-
-				case reflect.Float64, reflect.Float32:
-					m[ftag] = fmt.Sprintf( "%f", f )
-
-				case reflect.Bool:
-					m[ftag] = fmt.Sprintf( "%v", f )
-
-				case reflect.Struct:
-					if fmeta.Anonymous {
-						value_to_map( f, f.Type(), tag_id, m, pfx )			// recurse to process; only anonymous fields as they share this level namespace
-					} else {
-						value_to_map( f, f.Type(), tag_id, m, pfx + fmeta.Name + "/" )	// recurse to process; only anonymous fields as they share this level namespace
-					}
-
-				default:
-					fmt.Fprintf( os.Stderr, "transform:stm: field %d cannot be captured in map: tag=%s type=%s val=%s\n", i, ftag, f.Kind(), reflect.ValueOf( f ) )
-			}	
+			insert_value( f, f.Kind(), fmeta.Anonymous,  ftag, tag_id, m, pfx )
 		}
 	}
 
