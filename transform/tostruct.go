@@ -31,6 +31,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"strings"
 
 	"github.com/att/gopkgs/clike"
 )
@@ -59,6 +60,144 @@ func Map_to_struct( m map[string]string, ustructp interface{}, tag_id string ) (
 }
 
 /*
+	Given a thing (field value in a struct), set the thing with the element in the map (key)
+	the map value to the proper type.
+*/
+func set_value( thing reflect.Value, kind reflect.Kind, key string, tag_id string, pfx string, annon bool, m map[string]string ) {
+
+	if ! thing.CanAddr( ) {			// prevent stack dump
+		return
+	}
+
+	switch kind {
+		default:
+			fmt.Fprintf( os.Stderr, "transform.mts: tagged sturct member cannot be converted from map: tag=%s kind=%v\n", key, thing.Kind() )
+
+		case reflect.String:
+				thing.SetString( m[key] )
+
+		case reflect.Ptr:
+			p := thing.Elem()								// get the pointer value; allows us to suss the type
+			if ! p.IsValid() {							// ptr is nill in the struct so we must allocate a pointer to 0 so it can be changed below
+				thing.Set( reflect.New(thing.Type().Elem()) )
+				p = thing.Elem()
+			}
+			switch p.Kind() {
+				case reflect.String:
+					s := m[key]						// copy it and then point to the copy
+					thing.Set( reflect.ValueOf(  &s ) )
+
+				case reflect.Int:
+					i := clike.Atoi( m[key] )				// convert to integer and then point at the value
+					thing.Set( reflect.ValueOf(  &i ) )
+
+				case  reflect.Int64:
+					i := clike.Atoi64( m[key] )
+					thing.Set( reflect.ValueOf(  &i ) )
+
+				case  reflect.Int32:
+					i := clike.Atoi32( m[key] )
+					thing.Set( reflect.ValueOf(  &i ) )
+
+				case  reflect.Int16:
+					i := clike.Atoi16( m[key] )
+					thing.Set( reflect.ValueOf(  &i ) )
+
+				case  reflect.Int8:
+					i := int8( clike.Atoi16( m[key] ) )
+					thing.Set( reflect.ValueOf(  &i ) )
+
+				case reflect.Uint:
+					ui := clike.Atou( m[key] )
+					thing.Set( reflect.ValueOf(  &ui ) )
+
+				case reflect.Uint64:
+					ui := clike.Atou64( m[key] )
+					thing.Set( reflect.ValueOf(  &ui ) )
+
+				case reflect.Uint32:
+					ui := clike.Atou32( m[key] )
+					thing.Set( reflect.ValueOf(  &ui ) )
+
+				case reflect.Uint16:
+					ui := clike.Atou16( m[key] )
+					thing.Set( reflect.ValueOf(  &ui ) )
+
+				case reflect.Uint8:
+					ui := uint8( clike.Atou16( m[key] ) )
+					thing.Set( reflect.ValueOf(  &ui ) )
+
+				case reflect.Float64:
+					fv := clike.Atof( m[key] )
+					thing.Set( reflect.ValueOf(  &fv ) )
+
+				case  reflect.Float32:
+					fv := float32( clike.Atof( m[key] ) )
+					thing.Set( reflect.ValueOf(  &fv ) )
+
+				case reflect.Bool:
+					b := m[key] == "true" || m[key] == "True" || m[key] == "TRUE"
+					thing.Set( reflect.ValueOf(  &b ) )
+
+				case reflect.Struct:
+					map_to_struct( m, p, p.Type(), tag_id, pfx  )			// recurse to process
+			}
+			
+		case reflect.Int, reflect.Int64, reflect.Int32, reflect.Int16, reflect.Int8:
+			thing.SetInt( clike.Atoi64( m[key] ) )
+
+		case reflect.Uint, reflect.Uint64, reflect.Uint32, reflect.Uint16, reflect.Uint8:
+			thing.SetUint( uint64( clike.Atoi64( m[key] ) ) )
+
+		case reflect.Float64, reflect.Float32:
+			thing.SetFloat( clike.Atof( m[key] ) )
+
+		case reflect.Bool:
+			thing.SetBool(  m[key] == "true" )
+
+		case reflect.Map:
+			new_map := reflect.MakeMap( thing.Type() ) 					// create the map
+			thing.Set( new_map )								// put it in the struct
+
+			idx := key + "/"									// now populate the map
+			ilen := len( idx )
+			for k, _ := range m {								// we could keep a separate list of keys, but for now this should do
+				if strings.HasPrefix( k, key ) {
+					tokens := strings.Split( k[ilen:], "/" )
+					map_key := reflect.ValueOf( tokens[0] )				// map key is everything past the tag to the next slant
+					map_ele_type := new_map.Type().Elem()				// the type of the element that the map references
+
+					mthing := reflect.New( map_ele_type ).Elem() 		// new returns pointer, so dereference with Elem() (value not type!)
+
+					set_value( mthing, mthing.Kind(), idx + tokens[0], tag_id, idx + tokens[0] + "/", false, m  )	// put the value into the map thing
+					new_map.SetMapIndex( map_key,  mthing ) 				// put it into the map (order IS important; add to map after recursion)
+					//fmt.Fprintf( os.Stderr, "saving: %s  thing-type=%s mthing=%s\n", map_key, thing.Type(), mthing )
+				}
+			}
+
+		case reflect.Slice:
+			c := clike.Atoi( m[key + ".cap"] )
+			l := clike.Atoi( m[key + ".len"] )
+
+			thing.Set( reflect.MakeSlice( thing.Type(), l, c ) )		// create a new slice with the same len/cap that it had
+			for j := 0; j < l; j++ {
+				idx := fmt.Sprintf( "%s/%d", key, j )
+				set_value(  thing.Index( j ), thing.Type().Elem().Kind(), idx, tag_id, idx + "/", false, m  )	// populate each value of the slice up to len
+			}
+
+		case reflect.Struct:
+			if annon {
+				map_to_struct( m, thing, thing.Type(), tag_id, key )			// anon structs share namespace, so prefix is the same
+			} else {
+				map_to_struct( m, thing, thing.Type(), tag_id, pfx )			// dive to get the substruct adding a level to the prefix
+			}
+
+	}
+
+}
+
+
+/*
 	Real work horse which can recurse down to process anon structs.
 	Prefix (pfx) allows us to manage nested structs.
 */
@@ -78,99 +217,8 @@ func map_to_struct( m map[string]string, thing reflect.Value, tmeta reflect.Type
 		if (fmeta.Anonymous || ftag != "" ) && f.CanAddr()  {			// if there was a datacache tag, then attempt to pull the field from the map
 			ftag = pfx + ftag
 
-			switch fkind {
-				default:
-					fmt.Fprintf( os.Stderr, "transform.mts: tagged sturct member cannot be converted from map: tag=%s kind=%v", ftag, f.Kind() )
+			set_value( f, fkind, ftag, tag_id, pfx +  fmeta.Name + "/", fmeta.Anonymous, m )
 
-				case reflect.String:
-						f.SetString( m[ftag] )
-
-				case reflect.Ptr:
-					p := f.Elem()								// get the pointer value; allows us to suss the type
-					if ! p.IsValid() {							// ptr is nill in the struct so we must allocate a pointer to 0 so it can be changed below
-						f.Set( reflect.New(f.Type().Elem()) )
-						p = f.Elem()
-					}
-					switch p.Kind() {
-						case reflect.String:
-							s := m[ftag]						// copy it and then point to the copy
-							f.Set( reflect.ValueOf(  &s ) )
-
-						case reflect.Int:
-							i := clike.Atoi( m[ftag] )				// convert to integer and then point at the value
-							f.Set( reflect.ValueOf(  &i ) )
-
-						case  reflect.Int64:
-							i := clike.Atoi64( m[ftag] )
-							f.Set( reflect.ValueOf(  &i ) )
-
-						case  reflect.Int32:
-							i := clike.Atoi32( m[ftag] )
-							f.Set( reflect.ValueOf(  &i ) )
-
-						case  reflect.Int16:
-							i := clike.Atoi16( m[ftag] )
-							f.Set( reflect.ValueOf(  &i ) )
-
-						case  reflect.Int8:
-							i := int8( clike.Atoi16( m[ftag] ) )
-							f.Set( reflect.ValueOf(  &i ) )
-
-						case reflect.Uint:
-							ui := clike.Atou( m[ftag] )
-							f.Set( reflect.ValueOf(  &ui ) )
-
-						case reflect.Uint64:
-							ui := clike.Atou64( m[ftag] )
-							f.Set( reflect.ValueOf(  &ui ) )
-
-						case reflect.Uint32:
-							ui := clike.Atou32( m[ftag] )
-							f.Set( reflect.ValueOf(  &ui ) )
-
-						case reflect.Uint16:
-							ui := clike.Atou16( m[ftag] )
-							f.Set( reflect.ValueOf(  &ui ) )
-
-						case reflect.Uint8:
-							ui := uint8( clike.Atou16( m[ftag] ) )
-							f.Set( reflect.ValueOf(  &ui ) )
-
-						case reflect.Float64:
-							fv := clike.Atof( m[ftag] )
-							f.Set( reflect.ValueOf(  &fv ) )
-
-						case  reflect.Float32:
-							fv := float32( clike.Atof( m[ftag] ) )
-							f.Set( reflect.ValueOf(  &fv ) )
-
-						case reflect.Bool:
-							b := m[ftag] == "true" || m[ftag] == "True" || m[ftag] == "TRUE"
-							f.Set( reflect.ValueOf(  &b ) )
-
-						case reflect.Struct:
-							map_to_struct( m, p, p.Type(), tag_id, pfx + fmeta.Name + "/" )			// recurse to process
-					}
-					
-				case reflect.Int, reflect.Int64, reflect.Int32, reflect.Int16, reflect.Int8:
-					f.SetInt( clike.Atoi64( m[ftag] ) )
-
-				case reflect.Uint, reflect.Uint64, reflect.Uint32, reflect.Uint16, reflect.Uint8:
-					f.SetUint( uint64( clike.Atoi64( m[ftag] ) ) )
-
-				case reflect.Float64, reflect.Float32:
-					f.SetFloat( clike.Atof( m[ftag] ) )
-
-				case reflect.Bool:
-					f.SetBool(  m[ftag] == "true" )
-		
-				case reflect.Struct:
-					if fmeta.Anonymous {
-						map_to_struct( m, f, f.Type(), tag_id, pfx )			// anon structs share namespace, so prefix is the same
-					} else {
-						map_to_struct( m, f, f.Type(), tag_id, pfx + fmeta.Name + "/" )			// dive to get the substruct adding a level to the prefix
-					}
-			}
 		}
 	}
 

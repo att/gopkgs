@@ -69,6 +69,7 @@ type Foo_bar struct {
 										// 12 foo things at outer level (9 here and 2 in adjunct)
 
 	Foo_array []int					`Foo:"_"`
+	Foo_arrayp []*int					`Foo:"_"`
 	Foo_arraym []map[string]int		`Foo:"_"`
 	Foo_mapp map[string]*Thing		`Foo:"_"`
 	Foo_mapi map[string]int			`Foo:"_"`
@@ -141,6 +142,15 @@ func mk_struct1( ) ( *Foo_bar ) {
 	fbs.Foo_array = append( fbs.Foo_array, 5 )
 													// 3 elements
 
+	fbs.Foo_arrayp = make( []*int, 0, 17 )			// will generate capacity and len elements so +2
+	iv1 := 11
+	iv2 := 13
+	iv3 := 15
+	fbs.Foo_arrayp = append( fbs.Foo_arrayp, &iv1 )
+	fbs.Foo_arrayp = append( fbs.Foo_arrayp, &iv2 )
+	fbs.Foo_arrayp = append( fbs.Foo_arrayp, &iv3 )
+													// 3 elements
+
 	fbs.Foo_mapp = make( map[string]*Thing )
 	fbs.Foo_mapi = make( map[string]int )
 	fbs.Foo_mapi["one"] = 1
@@ -173,7 +183,7 @@ func mk_struct1( ) ( *Foo_bar ) {
 	mp["dallas"] = 1993
 	mp["dallas_whisp"] = 1995						// 3 elements
 	fbs.Foo_arraym = append( fbs.Foo_arraym, mp )
-													// 23 slice/map things to check for
+													// 28 slice/map things to check for
 
 	fbs.Foo_AJ1 = 10001
 	fbs.Foo_AJ2 = 10002
@@ -221,7 +231,7 @@ func TestFooOnly( t *testing.T ) {
 		}
 	}
 
-	expect_count := 12 + 23				// top level + array and map elements (don't forget cap and len elements for each array)
+	expect_count := 12 + 28				// top level + array and map elements (don't forget cap and len elements for each array)
 	expect_apcount := 1					// pointer to thing struct elements (athing and athingp)
 	expect_acount := 0					// direct struct thing elements
 	if count != expect_count || apcount != expect_apcount || acount != expect_acount {			// should only find the athing pointer referenced thing
@@ -313,7 +323,7 @@ func TestAll( t *testing.T ) {
 		}
 	}
 
-	expect_fcount := 12 + 25	// two additional fields captured in foo space when doing all
+	expect_fcount := 12 + 30	// two additional fields captured in foo space when doing all
 	expect_bcount := 10
 	expect_zcount := 2
 	expect_acount := 2
@@ -327,6 +337,175 @@ func TestAll( t *testing.T ) {
 		}
 		t.Fail()
 	}
+}
+
+
+/*
+	Run two maps which we expect to be equal
+*/
+func map_ck( m1 map[string]string, m2 map[string]string ) ( pass bool ) {
+	pass = true
+
+	for k, v := range m1 {
+		if m2[k] == "" {
+			fmt.Fprintf( os.Stderr, "key %s not in m2\n", k )
+			pass = false
+		} else {
+			if v != m2[k] {
+				fmt.Fprintf( os.Stderr, "values for key %s do not match", k )
+				pass = false
+			}
+		}
+	}
+
+	
+	for k, _ := range m2 {		// just need to check for missing from m1
+		if m1[k] == "" {
+			fmt.Fprintf( os.Stderr, "key %s not in m1\n", k )
+			pass = false
+		}
+	}
+
+	return pass
+}
+
+/*
+	Run two maps of integers which we expect to be the same
+*/
+func imap_ck( m1 map[string]int, m2 map[string]int ) ( pass bool ) {
+	pass = true
+
+	for k, v := range m1 {
+		if m2[k] == 0 {
+			fmt.Fprintf( os.Stderr, "key %s not in m2\n", k )
+			pass = false
+		} else {
+			if v != m2[k] {
+				fmt.Fprintf( os.Stderr, "values for key %s do not match", k )
+				pass = false
+			}
+		}
+	}
+
+	
+	for k, _ := range m2 {		// just need to check for missing from m1
+		if m1[k] == 0 {
+			fmt.Fprintf( os.Stderr, "key %s not in m1\n", k )
+			pass = false
+		}
+	}
+
+	return pass
+}
+
+/*
+	Run two maps which are pointers to structs.
+	This supports the populate test which only populates based on foo
+	tagged things, so we need to ensure that bar things are nil and foo things
+	are equal.
+*/
+func tmap_ck( m1 map[string]*Thing, m2 map[string]*Thing ) ( pass bool ) {
+	pass = true
+
+	for k, v := range m1 {
+		if m2[k] == nil {
+			fmt.Fprintf( os.Stderr, "key %s not in m2\n", k )
+			pass = false
+		} else {
+			if v.Foo_thing_s != m2[k].Foo_thing_s {
+				fmt.Fprintf( os.Stderr, "values for key %s do not match", k )
+				pass = false
+			}
+		}
+	}
+
+	for k, _ := range m2 {		// just need to check for missing from m1
+		if m1[k] == nil {
+			fmt.Fprintf( os.Stderr, "key %s not in m1\n", k )
+			pass = false
+		}
+	}
+
+	return pass
+}
+
+func array_ck( t1 interface{}, t2 interface{}, name string ) ( pass bool ) {
+	pass = true
+
+	switch t1a := t1.( type ) {
+		case []*int:
+			if t2a, ok := t2.( []*int ); ok {
+				ol := len( t1a )
+				oc := cap( t1a )
+				nl := len( t2a )
+				nc := cap( t2a )
+				if ol != nl  ||  oc != nc {
+					fmt.Fprintf( os.Stderr, "len and caps don't match for %s:  old: %d/%d  new: %d/%d\n", name, ol, oc, nl, nc )
+					return false
+				} else {
+					for j := 0; j < ol; j++ {
+						if t1a[j] == t2a[j] {				// pointers should not be the same
+							fmt.Fprintf( os.Stderr, "pointers at %d  match and they shouldn't for %s\n", name )
+							pass = false
+						} else {
+							if *(t1a[j]) != *(t2a[j]) {
+								fmt.Fprintf( os.Stderr, "element %d does not match: %d != %d\n", j, *t1a[j], *t2a[j] )
+								pass = false
+							}
+						}
+					}
+				}	
+			} else {
+				fmt.Fprintf( os.Stderr, "%s: array types don't match\n" )
+				pass = false
+			}
+		case []int:
+			if t2a, ok := t2.( []int ); ok {
+				ol := len( t1a )
+				oc := cap( t1a )
+				nl := len( t2a )
+				nc := cap( t2a )
+				if ol != nl  ||  oc != nc {
+					fmt.Fprintf( os.Stderr, "len and caps don't match for %s:  old: %d/%d  new: %d/%d\n", name, ol, oc, nl, nc )
+					return false
+				} else {
+					for j := 0; j < ol; j++ {
+						if t1a[j] != t2a[j] {
+							fmt.Fprintf( os.Stderr, "element %d does not match: %d != %d\n", j, t1a[j], t2a[j] )
+							return false
+						}
+					}
+				}	
+			} else {
+				fmt.Fprintf( os.Stderr, "%s: array types don't match\n" )
+				pass = false
+			}
+
+		case []map[string]string:				// we'll only test this one specific case assuming a map is a map :)
+			if t2a, ok := t2.( []map[string]string ); !ok {
+				fmt.Fprintf( os.Stderr, "%s: array types don't match expected map[string]string for %s\n", name )
+				pass = false
+			} else {
+				ol := len( t1a )
+				oc := cap( t1a )
+				nl := len( t2a )
+				nc := cap( t2a )
+				if ol != nl  ||  oc != nc {
+					fmt.Fprintf( os.Stderr, "len and caps don't match for %s:  old: %d/%d  new: %d/%d\n", name, ol, oc, nl, nc )
+					return false
+				}
+
+				for j := 0; j < ol; j++ {
+					if ! map_ck( t1a[j], t2a[j] )  {
+						fmt.Fprintf( os.Stderr, "maps at element %d don't validate, see earlier message(s) name=%s\n", j, name )
+						pass = false
+					}
+				}
+			}
+
+	}
+
+	return pass
 }
 
 /*
@@ -344,14 +523,14 @@ func TestPopulate( t *testing.T ) {
 	} 
 
 	if nfs.Athingp != nil {
-		fmt.Fprintf( os.Stderr, "FAIL: athing in new object is not nil before tranfrorm\n" )
+		fmt.Fprintf( os.Stderr, "FAIL: athing in new object is not nil before transform\n" )
 		t.Fail()
 	}
 
 	transform.Map_to_struct( fm, nfs,  "Foo" )				// fill it in just basedon foo tags
 
 	if nfs.Athingp == nil {
-		fmt.Fprintf( os.Stderr, "FAIL: athing in new object is sitll nil after tranfrorm\n" )
+		fmt.Fprintf( os.Stderr, "FAIL: athing in new object is sitll nil after transform\n" )
 		t.Fail()
 	}
 
@@ -429,4 +608,23 @@ func TestPopulate( t *testing.T ) {
 		t.Fail()
 	}
 
+	// ---------- validate contents of arrays -----------------------------
+	if ! array_ck( ofs.Foo_array, nfs.Foo_array, "foo_array" ) {
+		t.Fail()
+	}
+
+	if ! array_ck( ofs.Foo_arrayp, nfs.Foo_arrayp, "foo_array" ) {
+		t.Fail()
+	}
+
+	// ---------- validate contents of maps --------------------------------
+	if ! imap_ck( ofs.Foo_mapi, nfs.Foo_mapi ) {
+		fmt.Fprintf( os.Stderr, "map foo_mapi doesn't validate; see above messages\n" )
+		t.Fail()
+	}
+
+	if ! tmap_ck( ofs.Foo_mapp, nfs.Foo_mapp ) {
+		fmt.Fprintf( os.Stderr, "map foo_mapp doesn't validate; see above messages\n" )
+		t.Fail()
+	}
 }
