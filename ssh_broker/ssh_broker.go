@@ -41,6 +41,9 @@
 					document this package.  Fixed typos.
 				21 Sep 2015 - Corrected bug preventing the detection and reconnect if the remote host is
 					rebooted or the ssh session is closed from the other end.
+				17 Dec 2015 - Added a second tier lock on the connection to allow that to block during
+					setup and affect only other threads attempting a command to the same host and not 
+					all threads.  Connection setup can take minutes if network is wonky.
 
 	CAUTION:	This package requires go 1.3.3 or later.
 */
@@ -134,6 +137,8 @@ type connection struct {
 	retry_ch	chan *Broker_msg	// retry channel for the host
 	last_cmd	int64				// timestamp of last command to prevent ssh from going stale
 	active		bool				// if an error occurs this flag is marked false forcing a reconnect
+
+	host_lock	sync.Mutex			// must hold the mutex to attempt a session
 }
 
 // ------ public structures -----------------------------------------------------------------------------
@@ -363,7 +368,7 @@ func ( b *Broker ) connect2( host string ) ( c *connection, err error ) {
 
 	if b == nil || b.was_closed {
 		err = fmt.Errorf( "run_cmd: broker pointer was nil, or broker has been closed" )
-		return
+		return nil, err
 	}
 
 	if strings.Index( host, ":" ) < 0  {
@@ -374,7 +379,7 @@ func ( b *Broker ) connect2( host string ) ( c *connection, err error ) {
 	c = b.conns[host]
 	b.conns_lock.RUnlock()
 	if c != nil && c.active {							// we've already connected, just return
-		return
+		return c, nil
 	}
 
 	if b.rsync_src != nil && b.rsync_dir != nil {		// no connection, rsynch if we need to
@@ -382,19 +387,35 @@ func ( b *Broker ) connect2( host string ) ( c *connection, err error ) {
 	}
 
 	b.conns_lock.Lock( )								// get a write lock
-	defer b.conns_lock.Unlock()							// hold until we return
+	// CAUTION: we want to unlock in some cases before we return, so do NOT defer the unlock
+	//          it does mean that care must be taken to unlock at each return if it's still locked.
+	//defer b.conns_lock.Unlock()							// hold until we return
 
 	c = b.conns[host]
+	is_new := false
 	if c != nil {										// created while we were waiting on lock or existed but not active
 		if c.active {
-			return										// if active, then safe to send it back now
+			b.conns_lock.Unlock()
+			return	c, nil								// if active, then safe to send it back now
 		}
 	} else {
 		c = &connection{ host: host }
-		c.retry_ch = make( chan *Broker_msg, 1024 )		// the host retry queue
+		is_new = true									// need to allocate the retry channel once we have a lock
 	}
 
-	c.schan, err = ssh.Dial( "tcp", host, b.config )	// establish the tcp session (ssh channel)
+	b.conns_lock.Unlock()								// safe to release lock on main hash
+	c.host_lock.Lock()									// must have lock before we can do anything to it
+	defer c.host_lock.Unlock()							// this can be deferred as we'll hold til the end
+	if c.active {										// activated while we waited... just go on
+		return c, nil 
+	}
+
+	// we have the lock, and connection isn't active, so let's make it so Mr. Crusher
+	if is_new {
+		c.retry_ch = make( chan *Broker_msg, 1024 )		// new struct, must alloc the host retry queue
+	}
+
+	c.schan, err = ssh.Dial( "tcp", host, b.config )	// establish the tcp session (ssh channel) this can block for minutes!
 	if err != nil {
 		c = nil
 		return
@@ -414,6 +435,7 @@ func ( b *Broker ) connect2( host string ) ( c *connection, err error ) {
 	c.last_cmd = time.Now().Unix()
 	c.active = true
 	b.conns[host] = c									// finally, add to our map (host:port)
+
 	return
 }
 
@@ -644,8 +666,10 @@ func ( b *Broker ) Close( ) {
 
 	for k, c := range b.conns {
 		if c != nil {
+			c.host_lock.Lock()				// there still could be other threads with connection locks so must get this too
 			c.schan.Close()
 			b.conns[k] = nil
+			c.host_lock.Unlock()
 		}
 	}
 
@@ -662,13 +686,15 @@ func ( b *Broker ) Reset( ) {
 	}
 
 	b.conns_lock.Lock( )								// get a write lock
-	defer b.conns_lock.Unlock()							// hold until we return
+	defer b.conns_lock.Unlock()							// hold until we we've finished diddling with everything
 
 	for k, c := range b.conns {
 		if c != nil {
+			c.host_lock.Lock()				// there still could be other threads with connection locks so must get this too
 			c.schan.Close()
 			c.schan = nil
 			b.conns[k] = nil
+			c.host_lock.Unlock()
 		}
 	}
 
@@ -696,8 +722,10 @@ func ( b *Broker ) Close_session( name *string ) ( err error ) {
 		return
 	}
 
+	c.host_lock.Lock()				// must have lock to fiddle it
 	err = c.schan.Close()
 	b.conns[*name] = nil
+	c.host_lock.Unlock()
 
 	return
 }
