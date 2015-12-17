@@ -160,6 +160,26 @@ func (o *Ostack) list_hosts( htype int, all bool ) ( hlist *string, err error ) 
 	}
 
 
+	if  htype & L3 != 0 {							// since networking is a separate request to neutron, make only if user set
+		if o.nhost == nil || *o.nhost == "" {
+			err = fmt.Errorf( "no nhost url for ostack struct: %s", o.To_str( ) )
+			return
+		}
+
+		hlist, seen, err = o.List_net_hosts( seen, true ) 	
+		if *hlist == "" {								// no network hosts, can't be, so we assume it's pre neutron
+			hlist, seen, err = o.List_net_hosts( seen, false ) 	
+		}
+		if htype == NETWORK || err != nil  {			// when only network is requested, we can short out here.
+			return
+		}
+
+		s = *hlist										// seed for the call to nova
+		if len( seen ) > 0 {							// if something found in the list, sep is now space (bug fix 2014.08.30)
+			sep = " "
+		}
+	}
+
 	if  htype & NETWORK != 0 {							// since networking is a separate request to neutron, make only if user set
 		if o.nhost == nil || *o.nhost == "" {
 			err = fmt.Errorf( "no nhost url for ostack struct: %s", o.To_str( ) )
