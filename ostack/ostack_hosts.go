@@ -220,14 +220,20 @@ func (o *Ostack) list_hosts( htype int, all bool ) ( hlist *string, err error ) 
 
 	for k := range resp_data.Services {
 		bin := strings.ToLower( resp_data.Services[k].Binary )
-		if  match_type[bin] & htype != 0 {								// this type requested on call
-			if !seen[resp_data.Services[k].Host] &&
+
+		if match_type[bin] & htype != 0 {								// this type requested on call
+			htokens := strings.Split( resp_data.Services[k].Host, "." )
+
+			//if !seen[resp_data.Services[k].Host] &&
+			if !seen[htokens[0]]  && 
 				(all ||
 				 (strings.ToLower( resp_data.Services[k].State ) == "up" &&
 				  strings.ToLower( resp_data.Services[k].Status ) == "enabled")) {
 
-				seen[resp_data.Services[k].Host] = true
-				s += sep + resp_data.Services[k].Host
+				//seen[resp_data.Services[k].Host] = true
+				seen[htokens[0]] = true
+				//s += sep + resp_data.Services[k].Host
+				s += sep + htokens[0]
 				sep = " "
 			}
 		}
