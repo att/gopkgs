@@ -40,6 +40,7 @@
 				03 Feb 2015 - Correct bad tag in structure def.
 				24 Jun 2015 - Some cleanup.
 				15 Jul 2105 - Emit correct tag in the unpack debugging.
+				17 Dec 2015 - Change to add ability to list only L3 hosts.
 ------------------------------------------------------------------------------------------------
 */
 
@@ -607,11 +608,12 @@ const (
 	ANY			int = 0xff 			// host types for List_hosts() -- list all types
 	COMPUTE		int = 0x01			// include compute hosts
 	SCHEDULE	int = 0x02			// include list of scheduler hosts
-	NETWORK		int = 0x04			// include list of network hosts
+	NETWORK		int = 0x04			// include list of network hosts (ovs and L3)
 	CELLS		int	= 0x08			// include list of cells
 	CONDUCTOR	int = 0x10			// include list of conductor hosts
 	CERT		int = 0x20			// include list of certification hosts
 	AUTH		int = 0x40			// include list of authorisation hosts
+	L3			int = 0x80			// include list of just L3 hosts (no ovs hosts)
 )
 
 const (								// reset iota

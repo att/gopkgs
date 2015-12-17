@@ -27,6 +27,7 @@
 	Date:		7 August 2014
 
 	Mod:		11 Jul 2015 : Changes to support new crack function for v2.
+				17 Dec 2015 : Test L3 network list generation.
 */
 
 package main
@@ -195,12 +196,12 @@ func main( ) {
 			o3 :=  ostack.Mk_ostack_region( url, usr, pwd, &k, region )
 			o3.Insert_token( o2.Get_token() )
 			startt := time.Now().Unix()
-			fetch_type := "compute & network"
+			fetch_type := "compute & L3"
 			if *chost_only {
 				hlist, err = o3.List_hosts( ostack.COMPUTE )
 				fetch_type = "compute only"
 			} else {
-				hlist, err = o3.List_hosts( ostack.COMPUTE | ostack.NETWORK )
+				hlist, err = o3.List_hosts( ostack.COMPUTE | ostack.L3 )
 			}
 			endt := time.Now().Unix()
 			if err == nil {
@@ -240,10 +241,10 @@ func main( ) {
 						fmt.Fprintf( os.Stderr, "[WARN] unable to get compute hosts for %s: %s", k, err )
 					}
 					startt = time.Now().Unix()
-					hlist, err = o3.List_hosts( ostack.NETWORK )
+					hlist, err = o3.List_hosts( ostack.L3 )
 					endt = time.Now().Unix()
 					if err == nil {
-						fmt.Fprintf( os.Stderr, "[OK]   got network hosts for %s: %s  (%d sec)\n", k, *hlist, endt - startt )
+						fmt.Fprintf( os.Stderr, "[OK]   got network (L3) hosts for %s: %s  (%d sec)\n", k, *hlist, endt - startt )
 					} else {
 						fmt.Fprintf( os.Stderr, "[WARN] unable to get network hosts for %s: %s", k, err )
 					}
@@ -334,7 +335,7 @@ invoked.  bloody openstack.
 		}
 	
 		startt = time.Now().Unix()
-		hlist, err = o2.List_hosts( ostack.NETWORK )
+		hlist, err = o2.List_hosts( ostack.L3 )
 		endt = time.Now().Unix()
 		if err != nil {
 			fmt.Fprintf( os.Stderr, "[FAIL] error generating network host list: %s\n", err )
@@ -345,34 +346,36 @@ invoked.  bloody openstack.
 		}
 	
 		startt = time.Now().Unix()
-		hlist, err = o2.List_hosts( ostack.COMPUTE | ostack.NETWORK )
+		hlist, err = o2.List_hosts( ostack.COMPUTE | ostack.L3 )
 		endt = time.Now().Unix()
 		if err != nil {
 			fmt.Fprintf( os.Stderr, "[FAIL] error generating combined compute and network host list: %s\n", err )
 			err_count++
 		} else {
-			fmt.Fprintf( os.Stderr, "[OK]   comp & net host list: %s (%d sec)\n", *hlist, endt - startt )
+			fmt.Fprintf( os.Stderr, "[OK]   comp & net (L3) host list: %s (%d sec)\n", *hlist, endt - startt )
 			find_in_list( hlist, host2find )
 		}
 	
 		startt = time.Now().Unix()
-		hlist, err = o2.List_enabled_hosts( ostack.COMPUTE | ostack.NETWORK )
+		hlist, err = o2.List_enabled_hosts( ostack.COMPUTE | ostack.L3 )
 		endt = time.Now().Unix()
 		if err != nil {
 			fmt.Fprintf( os.Stderr, "[FAIL] error generating enabled combined compute and network host list: %s\n", err )
 			err_count++
 		} else {
-			fmt.Fprintf( os.Stderr, "[OK]   enabled comp & net host list: %s (%d sec)\n", *hlist, endt - startt )
+			fmt.Fprintf( os.Stderr, "[OK]   enabled comp & net (L3) host  list: %s (%d sec)\n", *hlist, endt - startt )
 			find_in_list( hlist, host2find )
 		}
 
 	}
 
 	if *run_all || *run_endpt {
-		eplist, err := o2.Map_endpoints( nil )
+		eplist, err := o2.Map_gw_endpoints( nil )
+		/*
 		if err == nil {
-			eplist, err = o2.Map_gw_endpoints( eplist )
+			eplist, err = o2.Map_endpoints( eplist )
 		}
+		*/
 		if err != nil {
 			fmt.Fprintf( os.Stderr, "[FAIL] unable to generate an enpoint list: %s\n", err )
 		} else {

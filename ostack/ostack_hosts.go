@@ -120,77 +120,6 @@ func gen_svc_match_map( ) ( match_type map[string]int ) {
 	return
 }
 
-/*
-	deprecated
-*/
-func (o *Ostack) xx_list_hosts( htype int ) ( hlist *string, err error ) {
-	var (
-		host_data	generic_response	// "root" of the response goo after pulling out of json format
-		//jdata	[]byte					// raw json response data
-		seen	map[string]bool			// used to weed duplicates
-	)
-
-	hlist = nil						// if we error, ensure nil list returned
-	err = nil;
-	s := ""							// tmp string to build list in
-	sep := ""						// separater between list elements, nothing for first
-
-	seen = make( map[string]bool )
-	match_type := gen_svc_match_map()	// make matching matrix based on expected ostack strings
-
-	err = o.Validate_auth()						// reauthorise if needed
-	if err != nil {
-		return
-	}
-
-	if o.chost == nil || *o.chost == "" {
-		err = fmt.Errorf( "no chost url for ostack struct: %s", o.To_str( ) )
-		return
-	}
-
-
-	if  htype & NETWORK != 0 {							// since networking is a separate request to neutron, make only if user set
-		if o.nhost == nil || *o.nhost == "" {
-			err = fmt.Errorf( "no nhost url for ostack struct: %s", o.To_str( ) )
-			return
-		}
-
-		hlist, seen, err = o.List_net_hosts( seen, true ) 	
-		if *hlist == "" {								// no network hosts, can't be, so we assume it's pre neutron
-			hlist, seen, err = o.List_net_hosts( seen, false ) 	
-		}
-		if htype == NETWORK || err != nil  {			// when only network is requested, we can short out here.
-			return
-		}
-
-		s = *hlist										// seed for the call to nova
-		if len( seen ) > 0 {							// if something found in the list, sep is now space (bug fix 2014.08.30)
-			sep = " "
-		}
-	}
-
-	body := bytes.NewBufferString( "" )
-
-	url := fmt.Sprintf( "%s/os-hosts", *o.chost )		// tennant id is built into chost
-	err = o.get_unpacked( url, body, &host_data, "list_hosts:" )
-	if err != nil {
-		return
-	}
-
-
-	for k := range host_data.Hosts {
-		if  match_type[host_data.Hosts[k].Service] & htype != 0 {				// this type requested on call
-			if !seen[host_data.Hosts[k].Host_name] {
-				seen[host_data.Hosts[k].Host_name] = true
-				s += sep + host_data.Hosts[k].Host_name
-				sep = " "
-			}
-		}
-	}
-
-	hlist = &s
-	return
-}
 
 /*
 	This is the real list_hosts/list_enabled_hosts work horse.
@@ -251,25 +180,9 @@ func (o *Ostack) list_hosts( htype int, all bool ) ( hlist *string, err error ) 
 		}
 	}
 
-	//jdata = nil
 	body := bytes.NewBufferString( "" )
 
 	url := fmt.Sprintf( "%s/os-services", *o.chost )		// tennant id is built into chost
-/*
-    dump_url( "os-svcs", 10, url )
-	jdata, _, err = o.Send_req( "GET",  &url, body );
-
-	if err != nil {
-		return
-	}
-	dump_json( "os-svcs", 10, jdata )
-
-	err = json.Unmarshal( jdata, &resp_data )			// unpack the json into response struct
-	if err != nil {
-		dump_json(  fmt.Sprintf( "list_hosts: unpack err: %s\n", err ), 30, jdata )
-		return
-	}
-*/
 	err = o.get_unpacked( url, body, &resp_data, "list_hosts:" )
 	if err != nil {
 		return
@@ -310,7 +223,7 @@ func (o *Ostack) list_hosts( htype int, all bool ) ( hlist *string, err error ) 
 	Generates a pointer to a string containing a space separated list of physical host names
 	that are associated with the type(s) passed in. Htype is one or more of the following
 	types OR'd together if desired:
-		NETWORK, COMPUTE, SCHEDULE, AUTH, CONDUCTOR, CELLS, and CERT
+		L3, NETWORK, COMPUTE, SCHEDULE, AUTH, CONDUCTOR, CELLS, and CERT
 
 	Duplicates host names, hosts that might have different functions, are removed from the
 	list. The credentials associated with the object must have admin privlidges or odd results
@@ -334,7 +247,6 @@ func (o *Ostack) List_enabled_hosts( htype int ) ( hlist *string, err error ) {
 */
 func (o *Ostack) Mk_hyp2host(  ) ( hmap map[int]*string, err error ) {
 	var (
-		//jdata	[]byte				// raw json response data
 		hyp_data	ost_hypervisor_resp
 	)
 
@@ -350,19 +262,6 @@ func (o *Ostack) Mk_hyp2host(  ) ( hmap map[int]*string, err error ) {
 	body := bytes.NewBufferString( "" )
 
 	url := fmt.Sprintf( "%s/os-hypervisors", *o.chost )		// tennant id is built into chost
-/*
-	jdata, _, err = o.Send_req( "GET",  &url, body );
-
-	if err != nil {
-		return
-	}
-
-	err = json.Unmarshal( jdata, &hyp_data )			// unpack the json into response struct
-	if err != nil {
-		dump_json(  fmt.Sprintf( "Mk_hyp2host: unpack err: %s\n", err ), 30, jdata )
-		return
-	}
-*/
 	err = o.get_unpacked( url, body, &hyp_data, "list_hosts:" )
 	if err != nil {
 		return
