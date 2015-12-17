@@ -62,6 +62,8 @@
 				28 Jun 2015 - General cleanup and some dissection of duplicated code.
 				21 Sep 2015 - Added FetchPortInfo()/FetchHostInfo()
 				30 Sep 2015 - Added FetchAllPorts()
+				17 Dec 2015 - Added an l3 list generator to list only those nodes marked as l3. Using
+					a full list (with openvswitch) was giving too much.
 ------------------------------------------------------------------------------------------------
 */
 
@@ -326,6 +328,71 @@ func (o *Ostack) List_net_hosts( udup_list map[string]bool, limit2neutron bool )
 			*rdata.Agents[i].Binary == "neutron-openvswitch-agent"  ||
 			*rdata.Agents[i].Binary == "quantum-l3-agent"  ||
 			*rdata.Agents[i].Binary == "quantum-openvswitch-agent") &&
+			rdata.Agents[i].Alive {									// list only if service is alive (assume host is also up)
+
+			tokens := strings.SplitN( *rdata.Agents[i].Host, ".", 2 )	// ostack isn't consistent, these might come back fully qualified with domain; strip
+			tokens = strings.SplitN( tokens[0], ":", 2 )				// and it sometimes adds :uuid to the name so trash that too
+
+			if ! dup_map[tokens[0]] {
+				wstr += sep + tokens[0]
+				sep = " "
+				dup_map[tokens[0]]  = true
+			}
+		}
+	}
+
+	hlist = &wstr
+	return
+}
+
+/*
+	Generate a string containing a space separated list of physical host names which
+	are associated with only L3 hosts.
+
+	Udup_list is a map of host names that have already been encountered (dups) and should be
+	ignored; it can be nil.  The dup map generated is returned.
+*/
+func (o *Ostack) List_l3_hosts( udup_list map[string]bool, limit2neutron bool ) ( hlist *string, dup_map map[string]bool, err error ) {
+	var (
+		rdata generic_response		// stuff back from openstack
+	)
+
+	empty_str := ""
+	hlist = &empty_str
+	dup_map = udup_list				// ensure it goes back even on error
+
+	if o == nil {
+		err = fmt.Errorf( "net_netinfo: openstack creds were nil" )
+		return
+	}
+
+	err = o.Validate_auth()						// reauthorise if needed
+	if err != nil {
+		return
+	}
+
+	if o.nhost == nil || *o.nhost == "" {
+		err = fmt.Errorf( "no network host url to query in %s", o.To_str() )
+		return
+	}
+
+	if dup_map == nil {
+		dup_map = make( map[string]bool, 24 )
+	}
+
+	body := bytes.NewBufferString( "" )
+	url := fmt.Sprintf( "%s/v2.0/agents", *o.nhost )				// nhost is the host where the network service is running
+	err = o.get_unpacked( url, body, &rdata, "mk_net_phost:" )
+	if err != nil {
+		return
+	}
+
+	wstr := ""
+	sep := ""
+	for i := range rdata.Agents {
+		if (limit2neutron == false ||
+			*rdata.Agents[i].Binary == "neutron-l3-agent"  ||
+			*rdata.Agents[i].Binary == "quantum-l3-agent"  ) &&
 			rdata.Agents[i].Alive {									// list only if service is alive (assume host is also up)
 
 			tokens := strings.SplitN( *rdata.Agents[i].Host, ".", 2 )	// ostack isn't consistent, these might come back fully qualified with domain; strip
