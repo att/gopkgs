@@ -166,11 +166,11 @@ func (o *Ostack) list_hosts( htype int, all bool ) ( hlist *string, err error ) 
 			return
 		}
 
-		hlist, seen, err = o.List_net_hosts( seen, true ) 	
+		hlist, seen, err = o.List_l3_hosts( seen, true ) 	
 		if *hlist == "" {								// no network hosts, can't be, so we assume it's pre neutron
-			hlist, seen, err = o.List_net_hosts( seen, false ) 	
+			hlist, seen, err = o.List_l3_hosts( seen, false ) 	
 		}
-		if htype == NETWORK || err != nil  {			// when only network is requested, we can short out here.
+		if htype == L3 || err != nil  {			// when only network is requested, we can short out here.
 			return
 		}
 
