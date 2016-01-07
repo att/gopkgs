@@ -69,7 +69,7 @@ type Foo_bar struct {
 										// 12 foo things at outer level (9 here and 2 in adjunct)
 
 	Foo_array []int					`Foo:"_"`
-	Foo_arrayp []*int					`Foo:"_"`
+	Foo_arrayp []*int				`Foo:"_"`
 	Foo_arraym []map[string]int		`Foo:"_"`
 	Foo_mapp map[string]*Thing		`Foo:"_"`
 	Foo_mapi map[string]int			`Foo:"_"`
@@ -414,6 +414,10 @@ func tmap_ck( m1 map[string]*Thing, m2 map[string]*Thing ) ( pass bool ) {
 		} else {
 			if v.Foo_thing_s != m2[k].Foo_thing_s {
 				fmt.Fprintf( os.Stderr, "values for key %s do not match", k )
+				pass = false
+			}
+			if m2[k].Bar_thing_s != "" {			// bar strings should be empty
+				fmt.Fprintf( os.Stderr, "bar string for key %s was not empty: (%s)\n", k, m2[k].Bar_thing_s )
 				pass = false
 			}
 		}
