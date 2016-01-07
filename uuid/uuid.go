@@ -26,6 +26,8 @@
 
 	Author:		E. Scott Daniels
 	Date:		12 Aug 2015
+
+	Mods:		07 Jan 2015 - Corrected potential nil pointer issue in Plain_string()
 */
 
 package uuid
@@ -94,6 +96,10 @@ func (u *Uuid) String( ) ( string ) {
 	Returns a string representing the UUID without any separating dashes.
 */
 func (u *Uuid) Plain_string( ) ( string ) {
+	if u == nil {
+		return ""
+	}
+
 	return fmt.Sprintf( "%x", u.buf[:16] )
 }
 
