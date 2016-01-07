@@ -44,6 +44,7 @@
 				17 Dec 2015 - Added a second tier lock on the connection to allow that to block during
 					setup and affect only other threads attempting a command to the same host and not 
 					all threads.  Connection setup can take minutes if network is wonky.
+				07 Jan 2016 - Switched crypto/ssh to pull from golang.org since code.google is deprecated.
 
 	CAUTION:	This package requires go 1.3.3 or later.
 */
@@ -124,7 +125,7 @@ import (
 	"sync"
 	"time"
 
-    "code.google.com/p/go.crypto/ssh"
+	"golang.org/x/crypto/ssh"
 )
 
 // ------ private structures -----------------------------------------------------------------------------
