@@ -98,16 +98,16 @@ func insert_value( thing reflect.Value, tkind reflect.Kind, anon bool, tag strin
 					m[tag] = fmt.Sprintf( "%s", p )
 
 				case reflect.Int, reflect.Int64, reflect.Int32, reflect.Int16, reflect.Int8:
-					m[tag] = fmt.Sprintf( "%d", p )
+					m[tag] = fmt.Sprintf( "%d", p.Int() )
 
 				case reflect.Uint, reflect.Uint64, reflect.Uint32, reflect.Uint16, reflect.Uint8:
-					m[tag] = fmt.Sprintf( "%d", p )
+					m[tag] = fmt.Sprintf( "%d", p.Uint() )
 
 				case reflect.Float64, reflect.Float32:
-					m[tag] = fmt.Sprintf( "%f", p )
+					m[tag] = fmt.Sprintf( "%f", p.Float() )
 
 				case reflect.Bool:
-					m[tag] = fmt.Sprintf( "%v", p)
+					m[tag] = fmt.Sprintf( "%v", p.Bool() )
 
 				case reflect.Struct:
 					struct_to_map( p, p.Type(), tag_id, m, pfx + tag + "/"  )	// recurse to process with a prefix which matches the field
@@ -117,19 +117,20 @@ func insert_value( thing reflect.Value, tkind reflect.Kind, anon bool, tag strin
 			}
 			
 		case reflect.Uintptr:
-			m[tag] = fmt.Sprintf( "%d", thing )
+			p := thing.Elem()
+			m[tag] = fmt.Sprintf( "%d", p.Uint() )
 
 		case reflect.Int, reflect.Int64, reflect.Int32, reflect.Int16, reflect.Int8:
-			m[tag] = fmt.Sprintf( "%d", thing )
+			m[tag] = fmt.Sprintf( "%d", thing.Int() )
 
 		case reflect.Uint, reflect.Uint64, reflect.Uint32, reflect.Uint16, reflect.Uint8:
-			m[tag] = fmt.Sprintf( "%d", thing )
+			m[tag] = fmt.Sprintf( "%d", thing.Uint() )
 
 		case reflect.Float64, reflect.Float32:
-			m[tag] = fmt.Sprintf( "%f", thing )
+			m[tag] = fmt.Sprintf( "%f", thing.Float() )
 
 		case reflect.Bool:
-			m[tag] = fmt.Sprintf( "%v", thing )
+			m[tag] = fmt.Sprintf( "%v", thing.Bool() )
 
 		case reflect.Struct:
 			if anon {

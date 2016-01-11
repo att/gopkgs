@@ -449,7 +449,7 @@ func array_ck( t1 interface{}, t2 interface{}, name string ) ( pass bool ) {
 				} else {
 					for j := 0; j < ol; j++ {
 						if t1a[j] == t2a[j] {				// pointers should not be the same
-							fmt.Fprintf( os.Stderr, "pointers at %d  match and they shouldn't for %s\n", name )
+							fmt.Fprintf( os.Stderr, "pointers at %d  match and they shouldn't for %s\n", j, name )
 							pass = false
 						} else {
 							if *(t1a[j]) != *(t2a[j]) {
@@ -460,7 +460,7 @@ func array_ck( t1 interface{}, t2 interface{}, name string ) ( pass bool ) {
 					}
 				}	
 			} else {
-				fmt.Fprintf( os.Stderr, "%s: array types don't match\n" )
+				fmt.Fprintf( os.Stderr, "%s: array types don't match\n", name )
 				pass = false
 			}
 		case []int:
@@ -481,13 +481,13 @@ func array_ck( t1 interface{}, t2 interface{}, name string ) ( pass bool ) {
 					}
 				}	
 			} else {
-				fmt.Fprintf( os.Stderr, "%s: array types don't match\n" )
+				fmt.Fprintf( os.Stderr, "%s: array types don't match\n", name )
 				pass = false
 			}
 
 		case []map[string]string:				// we'll only test this one specific case assuming a map is a map :)
 			if t2a, ok := t2.( []map[string]string ); !ok {
-				fmt.Fprintf( os.Stderr, "%s: array types don't match expected map[string]string for %s\n", name )
+				fmt.Fprintf( os.Stderr, "%s: array types don't match expected map[string]string\n", name )
 				pass = false
 			} else {
 				ol := len( t1a )
