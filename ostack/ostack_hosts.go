@@ -35,6 +35,7 @@
 					with small public facing wrappers.
 				15 Jul 2015 - Corrected the reverse setting of the 'all' boolean in the list
 					enabled hosts function call to list_hosts.
+				10 Feb 2016 - Cleanup of commented out lines.
 ------------------------------------------------------------------------------------------------
 */
 
@@ -137,7 +138,6 @@ func gen_svc_match_map( ) ( match_type map[string]int ) {
 func (o *Ostack) list_hosts( htype int, all bool ) ( hlist *string, err error ) {
 	var (
 		resp_data	generic_response	// "root" of the response goo after pulling out of json format
-		//jdata	[]byte					// raw json response data
 		seen	map[string]bool			// used to weed duplicates
 	)
 
@@ -284,7 +284,6 @@ func (o *Ostack) Mk_hyp2host(  ) ( hmap map[int]*string, err error ) {
 		return
 	}
 
-	//jdata = nil
 	body := bytes.NewBufferString( "" )
 
 	url := fmt.Sprintf( "%s/os-hypervisors", *o.chost )		// tennant id is built into chost
