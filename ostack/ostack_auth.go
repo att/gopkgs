@@ -46,6 +46,9 @@
 				16 Apr 2015 - Added support to suss out things based on region.
 				02 Jul 2015 - Corrected nil pointer potential in insert token.
 				06 Oct 2015 - Corrected return sequence in authorise function.
+				24 Feb 2016 - Correct bug that was causing the endpoints to be rejected if the region
+							was missing from any of the endpoints. Now errors only if the region isn't
+							found at all.
 ------------------------------------------------------------------------------------------------
 */
 
@@ -182,6 +185,7 @@ func (o *Ostack) Authorise_region( region *string ) ( err error ) {
 		region = o.aregion								// use what was seeded on the Mk_ostack() call
 	}
 
+	found := 0											// number we found
 	for i := range auth_data.Access.Servicecatalog {	// find the compute service stuff and pull the url to reach it
 		cat := auth_data.Access.Servicecatalog[i]
 
@@ -195,7 +199,9 @@ func (o *Ostack) Authorise_region( region *string ) ( err error ) {
 			}
 		}
 
-		if r < len( cat.Endpoints ) {
+		if r < len( cat.Endpoints ) {					// found region in this group
+			found++
+
 			switch cat.Type {
 				case "compute":
 					o.chost = &cat.Endpoints[r].Internalurl
@@ -213,11 +219,11 @@ func (o *Ostack) Authorise_region( region *string ) ( err error ) {
 	
 				// note - if we ever need to capture ec2, it has a different admin url as well
 			}
-		}  else {
-			if err == nil {
-				err = fmt.Errorf( "unable to find region in openstack list: %s", region )
-			}
 		}
+	}
+
+	if  len( auth_data.Access.Servicecatalog ) > 0 && found == 0 && err == nil {				// if there is a catalogue error if we didn't see region at all
+		err = fmt.Errorf( "unable to find region in any openstack endpoint in list: %s", *region )
 	}
 
 	if auth_data.Access.User != nil && auth_data.Access.User.Roles != nil  {		// don't fail if not present, but don't crash either
