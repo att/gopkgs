@@ -26,6 +26,7 @@
 	Date:		17 December 2013
 	Author:		E. Scott Daniels
 
+	Mods:		07 Mar 2016 : Added non-blocking and made default.
 */
 
 package ipc
@@ -48,6 +49,7 @@ type Tickler struct {
 	tidx	int;				// current index
 	ok2run	bool;
 	isrunning	bool;			// allows the first add to start the goroutine
+	ok2block 	bool			// we don't normally block if channel fills, but povide a mechanism if user needs
 	mu sync.Mutex;
 }
 
@@ -70,8 +72,9 @@ type tickle_spot struct {
 	If we get a stop we'll return, but that won't happen until after the current sleep
 	ends, but we will guarantee not to tickle anything after stop has been set.
 
-	We will block on a tickle notification if the user's channel isn't buffered. This
-	might delay other tickles, but that's completely in the user control.
+	Tickles will NOT block if the channel cannot be written to. This can be overridden
+	for all spots associated with the tickler. To do this, t.Allow_to_block( true ) must 
+	be called after the tickler (t) has been created.
 
 	If a tickle_spot is added with a shorter delay than the current time remaining in the
 	sleep, the first tickling will happen at the time of wakeup which will be after the
@@ -102,7 +105,11 @@ func (t *Tickler) tickle_loop( ) {
 	
 					if t.tlist[i].nextgo <= now {				// time to drive this one
 						//fmt.Fprintf( os.Stderr, "sending tickle: %d\n",  t.tlist[i].req_type )
-						t.tlist[i].req.Send_req( t.tlist[i].ch, nil, t.tlist[i].req_type, t.tlist[i].req_data, nil );	// no response expected so return channel is nil
+						if t.ok2block {
+							t.tlist[i].req.Send_req( t.tlist[i].ch, nil, t.tlist[i].req_type, t.tlist[i].req_data, nil );	// no response expected so return channel is nil
+						} else {
+							t.tlist[i].req.Send_nbreq( t.tlist[i].ch, nil, t.tlist[i].req_type, t.tlist[i].req_data, nil );	// this will not block if channel is full
+						}
 						t.tlist[i].nextgo = now + t.tlist[i].delay;
 	
 						if t.tlist[i].count > 0 {				// a counter, we dec it and if it reaches 0 then we set ch to nil to stop this spot
@@ -180,6 +187,7 @@ func (t *Tickler) Add_spot( delay int64, ch chan *Chmsg, ttype int, data interfa
 
 	t.mu.Lock();				// we must be synchronous through the add
 	defer t.mu.Unlock();		// unlock on return
+	t.ok2block = false;
 
 	//fmt.Fprintf( os.Stderr, "adding tickle spot delay=%d type=%d count=%d\n", delay, ttype, count )
 	id = -1;
@@ -222,6 +230,15 @@ func (t *Tickler) Add_spot( delay int64, ch chan *Chmsg, ttype int, data interfa
 	}
 
 	return;
+}
+
+/*
+	Allow the user to control blocking mode of all tickle spots.
+*/
+func (t *Tickler) Allow_to_block( v bool ) {
+	if t != nil {
+		t.ok2block = v
+	}
 }
 
 /*

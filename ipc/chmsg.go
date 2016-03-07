@@ -26,6 +26,7 @@
 	Author:		E. Scott Daniels
 
 	Mod:		2015 Nov 06 - Added nil ptr protection.
+				07 Mar 2015 - Added non-blocking send.
 */
 
 /*
@@ -74,11 +75,9 @@ func Mk_chmsg( ) (r *Chmsg) {
 // ---- these are convenience functions that might make the code a bit easier to read ------------------
 
 /*
-	Send the message as a request oriented packet.
-	Data is mapped to request data, while response data and state are set to nil.
-	Pdata is the private requestor data.
+	Real function which accepts a can-block flag sending the message along on the requested channel
 */
-func (r *Chmsg) Send_req( dest_ch chan *Chmsg, resp_ch chan *Chmsg, mtype int, data interface{}, pdata interface{} ) {
+func (r *Chmsg) end_req( dest_ch chan *Chmsg, resp_ch chan *Chmsg, mtype int, data interface{}, pdata interface{}, can_block bool ) {
 	if r == nil {
 		return
 	}
@@ -90,7 +89,33 @@ func (r *Chmsg) Send_req( dest_ch chan *Chmsg, resp_ch chan *Chmsg, mtype int, d
 	r.Response_data = nil;
 	r.State = nil;
 
-	dest_ch <- r;				// this may block until the receiver reads it if the channel is not buffered
+	if can_block {
+		dest_ch <- r;				// this may block until the receiver reads it if the channel is not buffered
+	} else {
+		select {						// this will not block if channel is full or unbuffered; message is dropped
+			case dest_ch <- r:
+						// we don't do anything, it just worked :)
+			default:
+						// we could log this, but we won't
+		}
+	}
+}
+
+/*
+	Send the message as a request oriented packet.
+	Data is mapped to request data, while response data and state are set to nil.
+	Pdata is the private requestor data.
+*/
+func (r *Chmsg) Send_req( dest_ch chan *Chmsg, resp_ch chan *Chmsg, mtype int, data interface{}, pdata interface{} ) {
+	r.end_req( dest_ch, resp_ch, mtype, data, pdata, true )
+}
+
+/*
+	Sends the message as a request to the indicated channel. The no-block flag is set which
+	causes the message to be SILENTLY droped if the reciving channel is blocking.
+*/
+func (r *Chmsg) Send_nbreq( dest_ch chan *Chmsg, resp_ch chan *Chmsg, mtype int, data interface{}, pdata interface{} ) {
+	r.end_req( dest_ch, resp_ch, mtype, data, pdata, false )
 }
 
 /*
