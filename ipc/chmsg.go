@@ -77,7 +77,7 @@ func Mk_chmsg( ) (r *Chmsg) {
 /*
 	Real function which accepts a can-block flag sending the message along on the requested channel
 */
-func (r *Chmsg) end_req( dest_ch chan *Chmsg, resp_ch chan *Chmsg, mtype int, data interface{}, pdata interface{}, can_block bool ) {
+func (r *Chmsg) send_req( dest_ch chan *Chmsg, resp_ch chan *Chmsg, mtype int, data interface{}, pdata interface{}, can_block bool ) {
 	if r == nil {
 		return
 	}
@@ -107,7 +107,7 @@ func (r *Chmsg) end_req( dest_ch chan *Chmsg, resp_ch chan *Chmsg, mtype int, da
 	Pdata is the private requestor data.
 */
 func (r *Chmsg) Send_req( dest_ch chan *Chmsg, resp_ch chan *Chmsg, mtype int, data interface{}, pdata interface{} ) {
-	r.end_req( dest_ch, resp_ch, mtype, data, pdata, true )
+	r.send_req( dest_ch, resp_ch, mtype, data, pdata, true )
 }
 
 /*
@@ -115,7 +115,7 @@ func (r *Chmsg) Send_req( dest_ch chan *Chmsg, resp_ch chan *Chmsg, mtype int, d
 	causes the message to be SILENTLY droped if the reciving channel is blocking.
 */
 func (r *Chmsg) Send_nbreq( dest_ch chan *Chmsg, resp_ch chan *Chmsg, mtype int, data interface{}, pdata interface{} ) {
-	r.end_req( dest_ch, resp_ch, mtype, data, pdata, false )
+	r.send_req( dest_ch, resp_ch, mtype, data, pdata, false )
 }
 
 /*
