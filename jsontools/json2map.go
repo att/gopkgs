@@ -24,6 +24,8 @@
 	Abstract:	Take a bunch of json and construct a map.
 	Date:		16 December 2013
 	Author:		E. Scott Daniels
+
+	Mods:		04 Apr 2016 - comment change
 */
 
 package jsontools
@@ -37,10 +39,12 @@ import (
 // --------------------- public ----------------------------------------------------------------------
 
 /*
-	Builds a map from the interface 'structure', aka jif, (ithing) passed in putting into hashtab. The map names
-	generated for hashtab are dot separated.  For example, the json {foo:"foo-val", bar:["bar1", "bar2"] }
+	Builds a flat map from the interface 'structure', aka jif, (ithing) passed in putting into hashtab. 
+	The map names generated for hashtab are dot separated.  For example, the json {foo:"foo-val", bar:["bar1", "bar2"] }
 	would generate the following names in the map:
 	root.foo, root.bar[0], root.bar[1] where 'root' is the initial tag passed in.
+	
+	Alternateive: see jsontree.go
 */
 func Jif2map( hashtab map[string]interface{}, ithing interface{}, depth int, ptag string, printit bool ) {
 
