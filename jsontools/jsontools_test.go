@@ -225,7 +225,9 @@ func TestJtree( t *testing.T ) {
 				"some_fvalue": 42.34,
 				"array_of_string": [ "hello", "world", "how", "is", "it", "spinning?" ],
 				"array_of_int": [ 1, 2, 3, 4, 5, 6 ,7 ], 
-				"array_of_float": [ 1.1, 2.2, 3.3, 4.4, 5.5 ]
+				"array_of_float": [ 1.1, 2.2, 3.3, 4.4, 5.5 ],
+				"bool_false": false,
+				"bool_true":  true
 		}`
 
 	fmt.Fprintf( os.Stderr, "\n------ jtree testing ---------------------\n" )
@@ -369,6 +371,32 @@ func TestJtree( t *testing.T ) {
 	}
 	if ! loop_state {
 		fmt.Fprintf( os.Stderr, "[FAIL] some elements were not float or could not be converted to float\n" )
+		t.Fail()
+	}
+
+	bv, ok := jtree.Get_bool( "bool_true" )
+	if ok {
+		if bv {
+			fmt.Fprintf( os.Stderr, "[OK]   true boolean returned expected value\n" )
+		} else {
+			fmt.Fprintf( os.Stderr, "[FAIL] true boolean returned false\n" )
+			t.Fail()
+		}
+	} else {
+		fmt.Fprintf( os.Stderr, "[FAIL] true boolean couldn't be located\n" )
+		t.Fail()
+	}
+
+	bv, ok = jtree.Get_bool( "bool_false" )
+	if ok {
+		if !bv {
+			fmt.Fprintf( os.Stderr, "[OK]   false boolean returned expected value\n" )
+		} else {
+			fmt.Fprintf( os.Stderr, "[FAIL] false boolean returned true\n" )
+			t.Fail()
+		}
+	} else {
+		fmt.Fprintf( os.Stderr, "[FAIL] false boolean couldn't be located\n" )
 		t.Fail()
 	}
 

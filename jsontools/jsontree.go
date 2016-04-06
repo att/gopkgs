@@ -1,7 +1,7 @@
 // vi: sw=4 ts=4:
 /*
  ---------------------------------------------------------------------------
-   Copyright (c) 2013-2015 AT&T Intellectual Property
+   Copyright (c) 2013-2016 AT&T Intellectual Property
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -58,14 +58,30 @@ func Json2tree( json_blob []byte ) ( j *Jtree, err error ) {
 	)
 
 	err = json.Unmarshal( json_blob, &jif )			// unpack the json into jif
+	if err != nil {
+		return nil, fmt.Errorf( "unable to unpack json into jif: %s\n", err )
+	}
 
 	if m, ok := jif.( map[string]interface{} ); ok {
 		j = &Jtree{ jmap:	m } 
 	} else {
-			return nil, fmt.Errorf( "pointer to interface wasn't to a mapp[string]interface{}" )
-		}
+			return nil, fmt.Errorf( "pointer to jif map wasn't to a map[string]interface{}" )
+	}
 
 	return j, nil
+}
+
+/*
+	Simple field confirmation function. Returns true if the named field
+	exists in the json mess.
+*/
+func ( j *Jtree ) Has_field( name string ) ( bool ) {
+	if j == nil {
+		return false
+	}
+
+	thing := j.jmap[name]
+	return thing != nil
 }
 
 /*
@@ -77,11 +93,6 @@ func (j *Jtree ) Get_string( name string ) ( *string ) {
 		ok bool
 	)
 
-/*
-for k,_ := range j.jmap {
-	fmt.Fprintf( os.Stderr, ">>>> (%s)\n", k )
-}
-*/
 	thing := j.jmap[name]
 	if thing != nil {
 		if st, ok = thing.( string ); !ok {
@@ -158,6 +169,20 @@ func (j *Jtree ) Get_int( name string ) ( int64, bool ) {
 	return value, ok
 }
 
+/*
+	Return the value associated with a boolean; ok is false if the value
+	isn't booliean or doesn't exist and the value returned is undefined.
+*/
+func ( j *Jtree ) Get_bool( name string ) ( bv bool, ok bool ) {
+	thing := j.jmap[name]
+	if thing == nil {
+		return false, false
+	}
+
+	bv, ok = thing.( bool )
+	return bv, ok					// bv is undefined if !ok
+}
+
 func( j *Jtree ) Get_subtree( name string ) ( *Jtree, bool ) {
 	var (
 		st *Jtree = nil
@@ -213,6 +238,20 @@ func ( j *Jtree ) Get_ele_string( name string, idx int ) ( *string ) {
 	}
 
 	return &st
+}
+
+/*
+	Return the value associated with a boolean; ok is false if the value
+	isn't booliean or doesn't exist or there is a range error.
+*/
+func ( j *Jtree ) Get_ele_bool( name string, idx int ) ( bv bool, ok bool ) {
+	ele := j.Get_ele_if( name, idx )
+	if ele == nil {
+		return false, false
+	}
+
+	bv, ok = (*ele).( bool )
+	return bv, ok					// bv is undefined if !ok
 }
 
 /*
