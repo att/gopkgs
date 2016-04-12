@@ -384,6 +384,9 @@ func ( b *Broker ) connect2( host string ) ( c *connection, err error ) {
 	}
 
 	if b.rsync_src != nil && b.rsync_dir != nil {		// no connection, rsynch if we need to
+		if b.verbose  {
+			fmt.Fprintf( os.Stderr, "ssh_broker: host=%s setting rsync: %s\n",  host, *b.rsync_dir )
+		}
 		need_sync = true								// but wait until we auth the connection to prevent prompt
 	}
 
