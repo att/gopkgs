@@ -87,7 +87,7 @@ func ( b *Broker ) synch_host( host *string ) ( err error ) {
 	
 	verbose := b.verbose
 	if verbose {
-		fmt.Fprintf( os.Stderr, "synch: %s\n", cmd )	
+		fmt.Fprintf( os.Stderr, "synch_host: %s\n", cmd )	
 	}
 
 	stdout, stderr, err := extcmd.Cmd2strings( cmd )
