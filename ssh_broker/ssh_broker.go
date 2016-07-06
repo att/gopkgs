@@ -396,6 +396,9 @@ func ( b *Broker ) connect2( host string ) ( c *connection, err error ) {
 	is_new := false
 	if c != nil {										// created while we were waiting on lock or existed but not active
 		if c.active {
+			if b.verbose {
+				fmt.Fprintf( os.Stderr, "ssh_broker: connection established while waiting on lock\n" )
+			}
 			b.conns_lock.Unlock()
 			return	c, nil								// if active, then safe to send it back now
 		}
@@ -408,9 +411,15 @@ func ( b *Broker ) connect2( host string ) ( c *connection, err error ) {
 	c.host_lock.Lock()									// must have lock before we can do anything to it
 	defer c.host_lock.Unlock()							// this can be deferred as we'll hold til the end
 	if c.active {										// activated while we waited... just go on
+		if b.verbose {
+			fmt.Fprintf( os.Stderr, "ssh_broker: connection established while waiting on second lock\n" )
+		}
 		return c, nil 
 	}
 
+	if b.verbose {
+		fmt.Fprintf( os.Stderr, "have lock, going on\n" )
+	}
 	// we have the lock, and connection isn't active, so let's make it so Mr. Crusher
 	if is_new {
 		c.retry_ch = make( chan *Broker_msg, 1024 )		// new struct, must alloc the host retry queue
@@ -419,10 +428,16 @@ func ( b *Broker ) connect2( host string ) ( c *connection, err error ) {
 	c.schan, err = ssh.Dial( "tcp", host, b.config )	// establish the tcp session (ssh channel) this can block for minutes!
 	if err != nil {
 		c = nil
+		if b.verbose {
+			fmt.Fprintf( os.Stderr, "ssh_broker: couldn't establishe tcp session to %s: %s\n", host, err )
+		}
 		return
 	}
 
 	if need_sync {
+		if b.verbose  {
+			fmt.Fprintf( os.Stderr, "ssh_broker: sync with host=%s  d=%s\n",  host, *b.rsync_dir )
+		}
 		toks := strings.Split( host, ":" )				// must split off port for rsynch
 		err = b.synch_host( &toks[0] )
 		if err != nil {

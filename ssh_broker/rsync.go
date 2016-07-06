@@ -77,6 +77,9 @@ func ( b *Broker ) Rm_rsync( ) {
 func ( b *Broker ) synch_host( host *string ) ( err error ) {
 
 	if b == nil || b.rsync_src == nil || b.rsync_dir == nil  || host == nil {
+		if b.verbose {
+			fmt.Fprintf( os.Stderr, "ssh_broker: synch_host giving up b is nil: %v; src is nil %s dir is nil %v; host is nil %v\n", b == nil, b.rsync_src == nil, b.rsync_dir == nil , host == nil )
+		}
 		return
 	}
 
@@ -84,7 +87,7 @@ func ( b *Broker ) synch_host( host *string ) ( err error ) {
 	
 	verbose := b.verbose
 	if verbose {
-		fmt.Fprintf( os.Stderr, "synch: %s\n", cmd )	
+		fmt.Fprintf( os.Stderr, "synch_host: %s\n", cmd )	
 	}
 
 	stdout, stderr, err := extcmd.Cmd2strings( cmd )

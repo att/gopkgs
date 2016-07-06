@@ -61,14 +61,20 @@ func Jif2map( hashtab map[string]interface{}, ithing interface{}, depth int, pta
 				if printit { fmt.Printf( "%s = %d\n", alen, len(a) ) }
 				for i := range a {
 					switch a[i].( type ) {
+						case nil:
+							// ignore 
+
 						case map[string]interface{}:
 							Jif2map( hashtab, a[i], depth, fmt.Sprintf( "%s[%d]", ptag, i ), printit )
 
 						case interface{}:
 							Jif2map( hashtab, a[i], depth, fmt.Sprintf( "%s[%d]", ptag, i ), printit )
 
+						case []interface{}:
+							Jif2map( hashtab, a[i], depth, fmt.Sprintf( "%s[%d]", ptag, i ), printit )
+
 						default:
-							fmt.Fprintf( os.Stderr, "ERR: Jif2map: unhandled type of interface array; not added to the hashtable.\n" )
+							fmt.Fprintf( os.Stderr, "ERR: Jif2map: unsupported type of interface array @ %s (%t); not added to the hashtable.\n", ptag, a[i] )
 					}
 				}
 
