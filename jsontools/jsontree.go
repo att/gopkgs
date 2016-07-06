@@ -36,6 +36,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 )
 
 /*
@@ -376,6 +377,23 @@ func ( j *Jtree ) Get_ele_if( name string, idx int ) ( *interface{} ) {
 	}
 
 	return &a[idx]
+}
+
+/*
+	Generate a list of fields in the current tree.
+*/
+func (j *Jtree ) List_fields() ( flist string ) {
+	flist = ""
+
+	if j == nil {
+		return flist
+	}
+
+	for key := range j.jmap {
+		flist += key + " "
+	}
+	
+	return strings.Trim( flist, " " )
 }
 
 // -------------------------------------------------------------------------

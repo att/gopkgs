@@ -240,6 +240,15 @@ func TestJtree( t *testing.T ) {
 	}
 
 	fmt.Fprintf( os.Stderr, "[OK]    Json blob converted to tree\n" )
+
+	flist := jtree.List_fields()
+	if flist == ""  {
+		t.Fail()
+		fmt.Fprintf( os.Stderr, "[FAIL] field list was empty" )
+	} else {
+		fmt.Fprintf( os.Stderr, "[OK]   field list non-empty: (%s)\n", flist )
+	}
+
 	s := jtree.Get_string( "hostId" )
 	if s != nil {
 		fmt.Fprintf( os.Stderr, "[OK]   string fetch: %s\n", *s )
