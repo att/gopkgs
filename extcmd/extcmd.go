@@ -28,6 +28,12 @@
 							array (failing to limit it if the command could not be run).
 */
 
+/*
+	The extcmd package provides a simple interface which allows an external command to
+	be invoked with the resulting stdout/err placed into a json formatted structure
+	for the caller. The current limitation is 8192 output lines; if more are generated
+	by the executed command they are truncated.
+*/
 package extcmd
 
 import (
@@ -53,10 +59,7 @@ type Response struct {
 	If a caller needs more, then it should redirect the output and parse the
 	file rather than reading it all into core.
 */
-	
 func Cmd2strings( cbuf string ) ( rdata []string, edata []string, err error ) {
-
-
 	ntokens, tokens := token.Tokenise_qpopulated( cbuf, " " )
 	if ntokens < 1 {
 		return
