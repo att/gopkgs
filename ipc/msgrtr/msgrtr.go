@@ -21,60 +21,7 @@
 /*
 
 	Mnemonic:	msgrtr
-	Abstract:	Provides a message routing interface.  The user application invokes
-				the Start() function to begin listening using http on the given port.
-				Messages received are 'unpacked' and then routed to the user application's
-				threads.
-
-				The 'url' passed on the start call is the only one which is supported.
-				Threads in the application can register and provide a channel on which
-				event structures are delivered for matching events.  The registration
-				defines the 'path' which match messages (e.g. network/router/add). Paths
-				may be 'short' (e.g. network/router) to receive all messages which match
-				to that depth.  Multiple listeners can register for the same path; all 
-				messages are 'broadcast' to all listeners; there is no concept of 
-				bubble up or handling which prevent the event from being delivered to 
-				some of the listeners.
-
-				The listening thread can respond (reply) to an event, and at least one
-				listener must reply if the ack field is set to true. If no listeners
-				reply the sending application will hang until timeout. Only one reply 
-				per event is sent, the first, all others are silently discarded. Replys
-				are sent by using the event's reply function.
-
-				Event messages are expected to be posted to the url as a json object
-				with some known set of fields, and optionally some meta information 
-				which the listener(s) may need.   The 'band' field describes the 
-				'path' (e.g. network/router) and the action type will be appended to 
-				the path provided that the action is not empty or missing.
-
-				When an event is received it is written on the channel of all listeners
-				which have registered for the event type.  The contents pushed on the 
-				channel is a *msgrtr.Event which has public fields so that they are 
-				easily accessed by the user programme. Speifically, the event type
-				and paylod are probably what is of the most interest. The payload is
-				is a map, indexed by string, which references interface{} elements. 
-				The event type is the _complete_ type; not just the portion of the 
-				type that the listener registered.  For example, if the listener
-				registered network.swtich (wanting all events for network switches)
-				the event types generated would include:  network.switch.add, network.switch.del
-				network.switch.mod, etc.  If a listener registers only for a specific type,
-				then that will be the only type delivered.  
-
-				The third  field of interest, and to which the user process must pay attention
-				to, is the Ack field.  If true, one of the listeners _must_ call event.Reply()
-				to send a reply to the sender.  
-
-				Event types are determined by the message generator, the process sending
-				the http request to this process, and are _not_ controlled by this package.
-				Same goes for the payload map.  The keys are up to the message generator.
-
-				The user programme may specify an optional data item (probably a pointer to struct,
-				but it can be anything) when an event registration is made.  This data item
-				is then included when the event is sent to the listener allowing the listener
-				to avoid having to depend on global data whenever possible. To support this, 
-				the struct passed to a listener for an event is actually of tyep *Envelope
-				which is stuffed with the even and data item. 
+	Abstract:	See package doc below.
 
 	Date:		30 Oct 2015
 	Author:		E. Scott Daniels
@@ -83,6 +30,62 @@
 					when events are sent out.
 */
 
+/*
+	Provides a message routing interface.  The user application invokes
+	the Start() function to begin listening using http on the given port.
+	Messages received are 'unpacked' and then routed to the user application's
+	threads.
+
+	The 'url' passed on the start call is the only one which is supported.
+	Threads in the application can register and provide a channel on which
+	event structures are delivered for matching events.  The registration
+	defines the 'path' which match messages (e.g. network/router/add). Paths
+	may be 'short' (e.g. network/router) to receive all messages which match
+	to that depth.  Multiple listeners can register for the same path; all 
+	messages are 'broadcast' to all listeners; there is no concept of 
+	bubble up or handling which prevent the event from being delivered to 
+	some of the listeners.
+
+	The listening thread can respond (reply) to an event, and at least one
+	listener must reply if the ack field is set to true. If no listeners
+	reply the sending application will hang until timeout. Only one reply 
+	per event is sent, the first, all others are silently discarded. Replys
+	are sent by using the event's reply function.
+
+	Event messages are expected to be posted to the url as a json object
+	with some known set of fields, and optionally some meta information 
+	which the listener(s) may need.   The 'band' field describes the 
+	'path' (e.g. network/router) and the action type will be appended to 
+	the path provided that the action is not empty or missing.
+
+	When an event is received it is written on the channel of all listeners
+	which have registered for the event type.  The contents pushed on the 
+	channel is a *msgrtr.Event which has public fields so that they are 
+	easily accessed by the user programme. Speifically, the event type
+	and paylod are probably what is of the most interest. The payload is
+	is a map, indexed by string, which references interface{} elements. 
+	The event type is the _complete_ type; not just the portion of the 
+	type that the listener registered.  For example, if the listener
+	registered network.swtich (wanting all events for network switches)
+	the event types generated would include:  network.switch.add, network.switch.del
+	network.switch.mod, etc.  If a listener registers only for a specific type,
+	then that will be the only type delivered.  
+
+	The third  field of interest, and to which the user process must pay attention
+	to, is the Ack field.  If true, one of the listeners _must_ call event.Reply()
+	to send a reply to the sender.  
+
+	Event types are determined by the message generator, the process sending
+	the http request to this process, and are _not_ controlled by this package.
+	Same goes for the payload map.  The keys are up to the message generator.
+
+	The user programme may specify an optional data item (probably a pointer to struct,
+	but it can be anything) when an event registration is made.  This data item
+	is then included when the event is sent to the listener allowing the listener
+	to avoid having to depend on global data whenever possible. To support this, 
+	the struct passed to a listener for an event is actually of tyep *Envelope
+	which is stuffed with the even and data item. 
+*/
 package msgrtr
 
 import (

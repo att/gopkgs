@@ -19,27 +19,7 @@
 
 /*
  Mnemonic:	connman.go
- Abstract:	Implements a connection manager that listens for TCP connections, accepts them and then
-			manages the sessions.
-
-			Creates and manages a connection environment that allows the user to establish TCP connections
-			(outgoing) and listens/accepts connection requests from remote processes.
-
-			The connection manager object is created with NewManager which accepts a listen port and a
-			channel on which Sess_data objects are written.  The listener is invoked and when a connection is
-			accepted a connection reader is started and a ST_NEW Sess_data object is written on the user's
-			channel. The reader sends all data via the channel (ST_DATA) and if the session is disconnected
-			a Sess_data object with the ST_DISC state is written and the connection is cleaned up (no need for user to
-			invoke the Close function in a disconnect case.
-
-			When a user establishes a connection the remote IP address and a session id (name) are supplied along
-			with a communication channel. The channel may be the same channel supplied when the connection manager
-			object was created or it may be a different channel.
-		
-			Data received from either a UDP listener, or on a connected TCP session is bundled into a Sess_data
-			struct and placed onto the appropriate channel.  The struct contains, in addition to the received
-			buffer, the ID of the session that can be used on a generic Write command to, the current state of
-			the session (ST_ constants), and a string indicating some useful (humanised) data about the session.
+ Abstract:	See package description below.
 
  Date:		15 November 2009
  Author: 	E. Scott Daniels
@@ -55,6 +35,28 @@
 			06 Jan 2014 - Ensure goroutine exits when session is lost.
 */
 
+/*
+	Connman implements a connection manager that listens for TCP connections, accepts them and then
+	manages the sessions providing received buffers on a channel to the application. In addition to 
+	providing a TCP listener, the manager can also provide a UDP listener, and allow the user 
+	application to create TCP connections and to send buffers on those connections and via UDP.
+
+	The connection manager sturct is created with NewManager() which accepts a listen port and a
+	channel on which Sess_data objects are written.  The listener is invoked and when a connection is
+	accepted a connection reader is started and a ST_NEW Sess_data object is written on the user's
+	channel. The reader sends all data via the channel (ST_DATA) and if the session is disconnected
+	a Sess_data object with the ST_DISC state is written and the connection is cleaned up (no need for user to
+	invoke the Close function in a disconnect case.
+
+	When a user establishes a connection the remote IP address and a session id (name) are supplied along
+	with a communication channel. The channel may be the same channel supplied when the connection manager
+	object was created or it may be a different channel.
+		
+	Data received from either a UDP listener, or on a connected TCP session is bundled into a Sess_data
+	struct and placed onto the appropriate channel.  The struct contains, in addition to the received
+	buffer, the ID of the session that can be used on a generic Write command to, the current state of
+	the session (ST_ constants), and a string indicating some useful (humanised) data about the session.
+*/
 package connman
 
 import (
@@ -255,7 +257,8 @@ func (this *Cmgr) Listen( kind string, port string,  iface string, data2usr chan
 /*
 	Starts a UDP listener which will forward received data back to the application using
 	the supplied channel.  The listener ID is returned along with a boolean indication
-	of success (true) or failure.
+	of success (true) or failure. The uid is the user created session id string that is 
+	used to send buffers that are not related to a session_data struct.
 */
 func (this *Cmgr) Listen_udp( port int, data2usr chan *Sess_data ) ( uid string, err error) {
 	var addr	net.UDPAddr
