@@ -33,6 +33,8 @@
 			03 Dec 2014 - Session struct now implements true Writer interface.
 						  Added direct UDP writing via Writer interface.
 			06 Jan 2014 - Ensure goroutine exits when session is lost.
+			04 Aug 2016 - Correct potential core dump.
+							Add connection pointer to session data passed to caller on accept.
 */
 
 /*
@@ -134,6 +136,7 @@ func (this *Cmgr) listener(  l net.Listener, data2usr chan *Sess_data ) {
 			sdp.From = conn.RemoteAddr().String()
 			sdp.State = ST_ACCEPTED
 			sdp.Data = fmt.Sprintf( "connection [%s] accepted from: %s", conn_data.id, sdp.From )
+			sdp.sender = conn_data
 			data2usr <- sdp
 
 			go this.conn_reader( conn_data )
@@ -575,6 +578,9 @@ func (s *Sess_data) Unbind_sender( ) {
 	Allows session data to be used as a Writer interface for connection oriented sessions.
 */
 func (s *Sess_data) Write( buf []byte ) ( nw int, err error ) {
+	if s == nil || s.sender == nil {
+		return 0, fmt.Errorf( "no struct" )
+	}
 	return s.sender.Write( buf )
 }
 
@@ -616,6 +622,10 @@ func (this *Sess_data ) Write_n( buf []byte, n int ) ( err error ) {
 	Writes the string to the process that sent the data represented by Sess_data
 */
 func (this *Sess_data ) Write_str( buf string ) ( n int, err error ) {
+	if this == nil {
+		return 0, fmt.Errorf( "no struct" )
+	}
+
 	return this.Write( []byte( buf ) )
 }
 
@@ -702,4 +712,3 @@ func NewManager( port string, data2usr chan *Sess_data  ) ( *Cmgr ) {
 	
 	return this
 }
-
