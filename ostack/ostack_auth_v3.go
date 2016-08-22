@@ -24,7 +24,7 @@
 	Abstract:	Interface to ostack to do authorisation and authorisation (endpoint) related
 				things for version 3.
 	Date:		16 August 2016
-	Authors:	E. Scott Daniels, Pradeep Gondu
+	Authors:	Pradeep Gondu, E. Scott Daniels
 
 ------------------------------------------------------------------------------------------------
 */
