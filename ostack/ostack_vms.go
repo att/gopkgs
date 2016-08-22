@@ -123,7 +123,7 @@ func (o *Ostack) Get_interfaces( vmid *string ) ( err error ) {
 
 	body := bytes.NewBufferString( "" )
 
-	url := fmt.Sprintf( "%s/servers/%s/os-virtual-interfaces", o.chost, *vmid  )
+	url := fmt.Sprintf( "%s/servers/%s/os-virtual-interfaces", *o.chost, *vmid  )
 	err = o.get_unpacked( url, body, &vm_data, "get_interfaces:" )
 	if err != nil {
 		return

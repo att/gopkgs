@@ -52,6 +52,19 @@ func find_in_list( list *string, target *string ) {
 	}
 }
 
+func identity_auth( o *ostack.Ostack, identity_ver *int ) ( err error ){
+	switch *identity_ver {
+	case 2:
+		err = o.Authorise(  )
+	case 3:
+		err = o.Authorise_v3(  )
+	default:
+		fmt.Println("The identity version should be either 2 or 3")
+		os.Exit(1)
+	}
+	return
+}
+
 func main( ) {
 	var (
 		o2 *ostack.Ostack = nil
@@ -62,7 +75,6 @@ func main( ) {
 		usr *string
 		url *string
 	)
-
 	fmt.Fprintf( os.Stderr, "api debugger: v1.11/19235\n" )
 	err_count := 0
 
@@ -70,8 +82,9 @@ func main( ) {
 	{	p := os.Getenv( "OS_USERNAME" ); usr = &p }			// defaults from environment (NOT project!)
 	{	p := os.Getenv( "OS_AUTH_URL" ); url = &p }
 	{	p := os.Getenv( "OS_PASSWORD" ); pwd = &p }
-	
+
 															// tests are -<capital> except -P
+	identity_ver := flag.Int("version", 0, "default version is v2")
 	chost_only := flag.Bool( "c", false, "list only compute hosts" )
 	dump_stuff := flag.Bool( "d", false, "dump stuff" )
 	host2find := flag.String( "h", "", "host search (if -L)" )
@@ -107,7 +120,6 @@ func main( ) {
 		token = nil
 	}
 
-
 	if *dump_stuff {
 		ostack.Set_debugging( -100 )					// resets debugging counts to 0
 	}
@@ -136,11 +148,12 @@ func main( ) {
 		region_str = *region
 	}
 
-	err := o.Authorise(  ) 			// generic auth without region since we don't give a project on the default creds
+	err := identity_auth(o, identity_ver)
 	if err != nil {
 		fmt.Fprintf( os.Stderr, "[FAIL] aborting: authorisation failed: region=%s:  %s\n", region_str, err )
 		os.Exit( 1 )
-	}	
+	}
+
 
 	fmt.Fprintf( os.Stderr, "\n[OK]   authorisation for %s (default creds) successful admin flag: %v\n", *usr, o.Isadmin()  )
 
@@ -152,7 +165,7 @@ func main( ) {
 			os.Exit( 1 )
 		}
 		project_map = m1
-	
+
 		if * run_projects {								// only announce if specific project test is on
 			if *verbose {
 				fmt.Fprintf( os.Stderr, "\n[OK]   project list generation ok:\n" )
@@ -170,7 +183,7 @@ func main( ) {
 			fmt.Fprintf( os.Stderr, "\t\tproject: %s --> %s\n", k, *v )
 		}
 	}
-	
+
 	if *project != "" {
 		fmt.Fprintf( os.Stderr, "[OK]   getting project creds for remaining tests: %s\n", *project )
 		o2 = ostack.Mk_ostack_region( url, usr, pwd, project, region )			// project specific creds
@@ -178,11 +191,14 @@ func main( ) {
 			fmt.Fprintf( os.Stderr, "\n[FAIL] unable to alloc creds for specific project; %s\n", *project )
 			os.Exit( 1 )
 		}
-		err = o2.Authorise( )
+
+		err := identity_auth(o, identity_ver)
 		if err != nil {
-			fmt.Fprintf( os.Stderr, "\n[FAIL] unable to authorise creds for specific project; %s\n", *project )
+			fmt.Fprintf( os.Stderr, "[FAIL] aborting: authorisation failed: region=%s:  %s\n", region_str, err )
 			os.Exit( 1 )
 		}
+
+
 	} else {
 		fmt.Fprintf( os.Stderr, "[FAIL] did not capture a project name and -P not supplied on command line; cannot attempt any other tests\n" )
 		os.Exit( 1 )
@@ -248,7 +264,7 @@ func main( ) {
 					} else {
 						fmt.Fprintf( os.Stderr, "[WARN] unable to get network hosts for %s: %s", k, err )
 					}
-	
+
 				}
 			} else {
 				fmt.Fprintf( os.Stderr, "[SKIP]  did not suss host list for all known project (use -T -v to do this)\n" )
@@ -261,7 +277,7 @@ func main( ) {
 		if err == nil {
 			fmt.Fprintf( os.Stderr, "[OK]   Roles found: %d\n", len( rm ) )
 			for k, v := range( rm ) {
-				fmt.Fprintf( os.Stderr, "\trole: %s = %s\n", k, *v );	
+				fmt.Fprintf( os.Stderr, "\trole: %s = %s\n", k, *v );
 			}
 		} else {
 			fmt.Fprintf( os.Stderr, "[FAIL] unable to generate a role map from keystone: %s\n", err )
@@ -276,7 +292,7 @@ invoked.  bloody openstack.
 		if err == nil {
 			fmt.Fprintf( os.Stderr, "[OK]   Global roles found: %d\n", len( rm ) )
 			for k, v := range( rm ) {
-				fmt.Fprintf( os.Stderr, "\trole: %s = %s\n", k, *v );	
+				fmt.Fprintf( os.Stderr, "\trole: %s = %s\n", k, *v );
 			}
 		} else {
 			fmt.Fprintf( os.Stderr, "[FAIL] unable to generate a global role map from keystone: %s\n", err )
@@ -288,7 +304,7 @@ invoked.  bloody openstack.
 		if err == nil {
 			fmt.Fprintf( os.Stderr, "[OK]   Project Roles for the user: %d\n", len( rm ) )
 			for k, v := range( rm ) {
-				fmt.Fprintf( os.Stderr, "\trole: %s = %s\n", k, *v );	
+				fmt.Fprintf( os.Stderr, "\trole: %s = %s\n", k, *v );
 			}
 		} else {
 			fmt.Fprintf( os.Stderr, "[FAIL] unable to generate a role map from keystone: %s\n", err )
@@ -333,7 +349,7 @@ invoked.  bloody openstack.
 			fmt.Fprintf( os.Stderr, "[OK]   compute host list: %s  (%d sec)\n", *hlist, endt - startt )
 			find_in_list( hlist, host2find )
 		}
-	
+
 		startt = time.Now().Unix()
 		hlist, err = o2.List_hosts( ostack.L3 )
 		endt = time.Now().Unix()
@@ -344,7 +360,7 @@ invoked.  bloody openstack.
 			fmt.Fprintf( os.Stderr, "[OK]   network host list: %s  (%d sec)\n", *hlist, endt - startt )
 			find_in_list( hlist, host2find )
 		}
-	
+
 		startt = time.Now().Unix()
 		hlist, err = o2.List_hosts( ostack.COMPUTE | ostack.L3 )
 		endt = time.Now().Unix()
@@ -355,7 +371,7 @@ invoked.  bloody openstack.
 			fmt.Fprintf( os.Stderr, "[OK]   comp & net (L3) host list: %s (%d sec)\n", *hlist, endt - startt )
 			find_in_list( hlist, host2find )
 		}
-	
+
 		startt = time.Now().Unix()
 		hlist, err = o2.List_enabled_hosts( ostack.COMPUTE | ostack.L3 )
 		endt = time.Now().Unix()
@@ -383,7 +399,7 @@ invoked.  bloody openstack.
 			if *verbose {
 				for k, v := range eplist {
 					fmt.Fprintf( os.Stderr, "\tep: %s %s\n", k, v )
-		
+
 				}
 			}
 		}
@@ -485,7 +501,7 @@ invoked.  bloody openstack.
 			fmt.Fprintf( os.Stderr, "\n[OK]  network info map contains %d entries\n", len( m ) )
 			if *verbose {
 				for k,v := range m {
-					fmt.Fprintf( os.Stderr, "\t net_info: %s --> %s\n", k, *v )	
+					fmt.Fprintf( os.Stderr, "\t net_info: %s --> %s\n", k, *v )
 				}
 			}
 		} else {
@@ -496,7 +512,7 @@ invoked.  bloody openstack.
 
 	if  *run_all || *run_maps {
 		m1, m2, m3, m4, m5, err := o2.Mk_vm_maps( nil, nil, nil, nil, nil, *inc_project )
-	
+
 		if err != nil {
 			fmt.Fprintf( os.Stderr, "[FAIL] error generating maps: %s\n", err )
 		} else {
@@ -508,17 +524,17 @@ invoked.  bloody openstack.
 					fmt.Fprintf( os.Stderr, "\n[FAIL] unable to alloc map m1 for projet %s\n", *project )
 					os.Exit( 1 )
 				}
-			
+
 				if m2 == nil {
 					fmt.Fprintf( os.Stderr, "\n[FAIL] unable to alloc map m2 for projet %s\n", *project )
 					os.Exit( 1 )
 				}
-			
+
 				if m3 == nil {
 					fmt.Fprintf( os.Stderr, "\n[FAIL] unable to alloc map m3 for projet %s\n", *project )
 					os.Exit( 1 )
 				}
-			
+
 				if m4 == nil {
 					fmt.Fprintf( os.Stderr, "\n[FAIL] unable to alloc map m4 for projet %s\n", *project )
 					os.Exit( 1 )
@@ -540,17 +556,17 @@ invoked.  bloody openstack.
 						fmt.Fprintf( os.Stderr, "\tm1: %s --> %s\n", k, *v )
 					}
 					fmt.Fprintf( os.Stderr, "\n" )
-				
+
 					for k, v := range( m2 ) {
 						fmt.Fprintf( os.Stderr, "\tm2: %s --> %s\n", k, *v )
 					}
 					fmt.Fprintf( os.Stderr, "\n" )
-				
+
 					for k, v := range( m3 ) {
 						fmt.Fprintf( os.Stderr, "\tm3: %s --> %s\n", k, *v )
 					}
 					fmt.Fprintf( os.Stderr, "\n" )
-				
+
 					for k, v := range( m4 ) {
 						fmt.Fprintf( os.Stderr, "\tm4: %s --> %s\n", k, *v )
 					}
@@ -592,7 +608,7 @@ invoked.  bloody openstack.
 			os.Exit( 1 )
 		}
 
-	
+
 		if *verbose {
 			fmt.Fprintf( os.Stderr, "\n[OK]   mac2tip address info fetched\n" )
 			for mac, ip := range mac2tip {
@@ -633,7 +649,7 @@ invoked.  bloody openstack.
 				err_count++
 			} else {
 				fmt.Fprintf( os.Stderr, "[OK]   token was cracked with unknown project: %s\n", stuff )
-			}	
+			}
 
 			stuff, err = o.Crack_ptoken( token, project, true  )
 			if err != nil {
@@ -641,7 +657,7 @@ invoked.  bloody openstack.
 				err_count++
 			} else {
 				fmt.Fprintf( os.Stderr, "[OK]   token was cracked with V2: %s\n", stuff )
-			}	
+			}
 
 			stuff, err = o.Crack_ptoken( token, project, false  )
 			if err != nil {
@@ -649,7 +665,7 @@ invoked.  bloody openstack.
 				err_count++
 			} else {
 				fmt.Fprintf( os.Stderr, "[OK]   token was cracked with V2: %s\n", stuff )
-			}	
+			}
 
 		} else {
 			fmt.Fprintf( os.Stderr, "[SKIP] did not run crack test, no token provided\n" )
@@ -697,7 +713,7 @@ invoked.  bloody openstack.
 		}
 	} else {
 		if  *run_vfp  && token == nil {
-			fmt.Fprintf( os.Stderr, "\n[INFO]     no token supplied with -V option; test skipped\n" )	
+			fmt.Fprintf( os.Stderr, "\n[INFO]     no token supplied with -V option; test skipped\n" )
 		}
 	}
 
@@ -729,7 +745,7 @@ invoked.  bloody openstack.
 			err_count++
 		}
 	}
-	
+
 	// ----------------------------------------------------------------------------------------------------
 	if err_count == 0 {
 		fmt.Fprintf( os.Stderr, "\n[OK]     all tests passed\n" )
@@ -738,4 +754,3 @@ invoked.  bloody openstack.
 	}
 
 }
-
