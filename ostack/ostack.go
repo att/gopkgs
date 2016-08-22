@@ -41,6 +41,7 @@
 				24 Jun 2015 - Some cleanup.
 				15 Jul 2105 - Emit correct tag in the unpack debugging.
 				17 Dec 2015 - Change to add ability to list only L3 hosts.
+				16 Aug 2016 - Add new structs to handle version 3
 ------------------------------------------------------------------------------------------------
 */
 
@@ -71,24 +72,24 @@ import (
 	to the json will likely not break things here, but if a field name that we are interested
 	in changes we'll fall over. (I see this as a problem regardless of the language that
 	is used to implement this code and not a downfall of Go.)
-	
+
 	The json parser will insert data only for fields that are externally visible in these
 	structs (capitalised first character).  The remainder of the field names match those
 	in the json data.  We can also insert non-exported fields which are unaffected by
 	the parser.
-	
+
 	Openstack unfortunately uses field names which cannot be converted into legitimate
 	variable names (e.g. dst-port, or foo:bar).  We are forced to handle these special
-	cases by adding a tag to the struct's field which the marshalling process uses to 
-	convert what is found in the json, into a legitimate field name in the struture. 
+	cases by adding a tag to the struct's field which the marshalling process uses to
+	convert what is found in the json, into a legitimate field name in the struture.
 
-	It is quite possible that each module in this package could have it's own set of 
+	It is quite possible that each module in this package could have it's own set of
 	structure definitions, however an effort has been made to collect and manage all of
-	the structs in one place (here) with the hopes that they can be generic enough to 
+	the structs in one place (here) with the hopes that they can be generic enough to
 	be used by all modules.
 
 	The doc at http://developer.openstack.org/api-ref.html is the starting point for
-	the structures coded here. 
+	the structures coded here.
 */
 
 
@@ -125,7 +126,7 @@ type ost_auth_endp struct {
 	Region		string;
 	Version		string;
 	Versioninfo	string;
-	Versionlist	string;	
+	Versionlist	string;
 }
 
 type ost_auth_svccat struct {
@@ -134,9 +135,24 @@ type ost_auth_svccat struct {
 	Endpoints	[]ost_auth_endp;
 }
 
+type ost_auth_svccat_v3 struct { // To handle the new JSON format for Catalogs
+	Name	string;
+	Type	string;
+	Id    string;
+	Endpoints	[]ost_auth_endp_v3;
+}
+
+type ost_auth_endp_v3 struct { // to handle the new JSON format for Endpoints
+	Region_id  string;
+	Url 			 string;
+	Region		 string;
+	Interface  string;
+	Id 				 string;
+}
+
 type ost_auth_user struct {
 	Id		string;
-	Name	string;	
+	Name	string;
 	//Roles []ost_role		// unused by tegu so not defined
 }
 
@@ -160,6 +176,15 @@ type ost_token struct {
 	Tenant	*ost_tenant
 }
 
+type ost_token_v3 struct { // Struct to accomdate the new identity version 3
+	Expires_at string
+	Issued_at string
+	User *ost_user				// User now can be retrieved directly from Token
+	Roles []*ost_role
+	Catalog []ost_auth_svccat_v3
+	Project *ost_project
+}
+
 type ost_role struct {
 	Name	string
 	Id 		string
@@ -171,11 +196,11 @@ type ost_user struct {
 	Username string				// human readable name
 	Roles	[]*ost_role
 	Id		string;				// jibberish uuid
-	Name	string;	
+	Name	string;
 }
 
 type ost_project struct {
-	Description	string
+	Description	*string
 	Enabled		bool
 	Id			string
 	Name		string
@@ -447,6 +472,7 @@ type ost_aggregate struct {
 	as a receiver for unbundling any json response.
 */
 type generic_response struct {
+	Token    *ost_token_v3			// new identity version 3 doesn't have Access so using Token directly
 	Access		*ost_access
 	Aggregates	[]ost_aggregate
 	Error		*error_obj
@@ -491,6 +517,7 @@ type Ostack struct {
 	user_id *string
 	tok_isadmin	map[string]bool	// maps token to whether or not it was identified as an admin
 	isadmin	bool				// true if the authorised user associated with the struct is an admin
+	version int				// to differentiate between identity version 2.0 and 3
 }
 
 /*
@@ -633,12 +660,13 @@ const (								// reset iota
 func (o *Ostack) Send_req( method string, url *string, data *bytes.Buffer ) (jdata []byte, headers map[string][]string, err error) {
 	var (
 		req 	*http.Request
-		rsrc	*http.Client		// request source	
+		rsrc	*http.Client		// request source
 		stime	int64
 	)
-	
+
 	jdata = nil;
 	headers = nil
+
 	req, err = http.NewRequest( method, *url, data )
 	if err != nil {
 		fmt.Fprintf( os.Stderr, "error making request for %s to %s\n", method, *url )
@@ -669,6 +697,10 @@ func (o *Ostack) Send_req( method string, url *string, data *bytes.Buffer ) (jda
 		resp.Body.Close( )
 
 		headers = resp.Header
+		if headers != nil && o.token == nil && len( headers["X-Subject-Token"] ) > 0 {   // identity version 3 displays the token in the Header itself
+			o.token = &headers["X-Subject-Token"][0]  // assigning the token directly from response header
+			o.version = 3
+		}
 
 		err = scanj4gook( jdata )				// quick scan to see if there are bad things in the json
 	} else {
@@ -803,7 +835,7 @@ func (o *Ostack) String( ) ( s string ) {
 		if o.cahost != nil {
 			ch = *o.cahost
 		}
-			
+
 		s = fmt.Sprintf( "ostack=<%s %s %s %s %s %d ch=%s cah=%s>", *o.user, host, nhost, project, region, o.expiry, ch, cah );
 	}
 	return;
@@ -837,5 +869,5 @@ func (o *Ostack) Get_token( ) ( *string ) {
 	if o != nil {
 		return o.token
 	}
-	return nil	
+	return nil
 }
