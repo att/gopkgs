@@ -261,7 +261,7 @@ func TestBarOnly( t *testing.T ) {
 		if strings.Index( k, "Bar" ) != 0 {
 			if strings.Index( k, "Athingp/Bar_" ) != 0 {
 				if strings.Index( k, "Athing/Bar_" ) != 0 {
-					fmt.Fprintf( os.Stderr, "BAD: unexpected key found in 'bar' map: %s (%v)\n", k, v )
+					fmt.Fprintf( os.Stderr, "BAD: unexpected key found in 'bar' map: key=%s val=(%v)\n", k, v )
 					t.Fail()
 				} else {
 					acount++
@@ -564,7 +564,7 @@ func TestPopulate( t *testing.T ) {
 	} 
 
 	if ofs.Foo_str != nfs.Foo_str {
-		fmt.Fprintf( os.Stderr, "FAIL: old foo_str did not match new: (%s) != (%s)\n", ofs.Foo_str, nfs.Foo_str )
+		fmt.Fprintf( os.Stderr, "FAIL: old Foo_str did not match new: (%s) != (%s)\n", ofs.Foo_str, nfs.Foo_str )
 		t.Fail()
 	} 
 	if ofs.Foo_int != nfs.Foo_int {
