@@ -193,24 +193,7 @@ func (this *Cmgr) conn_reader( cp *connection )   {
 			}
 		}
 
-/*
-		--- in original go this logic was needed, though it seems that with the evolution it's not any longer ----
 		if err != nil {
-			//if e2common( err ) !=  os.EAGAIN {	// we can ignore this if we assume all errors mean close
-			if e, ok := err.(os.PathError); ok && e.Error != os.EAGAIN {		//e is null if err isn't os.Error
-				cp.data2usr <- newdata( nil, cp.id, ST_DISC, nil, "" ) 	// disco to the user programme	
-				cp.data2usr = nil
-				this.Close( cp.id ) 		// drop our side and stop
-				return
-			}
-		} else {
-			if cp.data2usr != nil {
-				cp.bytes_in += int64( nread )
-				cp.data2usr <- newdata( buf[0:nread], cp.id, ST_DATA, cp, from, "" )
-			}
-		}
-*/
-		if err != nil {					// assume that eagain has been implemented out
 			cp.data2usr <- newdata( nil, cp.id, ST_DISC, nil, nil, "" ) 	// disco to the user programme	
 			cp.data2usr = nil
 			this.Close( cp.id ) 		// drop our side and stop
