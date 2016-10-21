@@ -1,4 +1,4 @@
-// vi: sw=4 ts=4:
+// vi: sw=4 ts=4 noet:
 /*
  ---------------------------------------------------------------------------
    Copyright (c) 2013-2015 AT&T Intellectual Property
@@ -32,6 +32,9 @@
 	Mods:		30 Nov 2014 - allows for comments on key = value lines.
 				11 Nov 2015 - Added ability to use += 
 				21 Oct 2016 - Added Configure struct and related extract functions.
+								Fixed bug that allowed "123" to be captured as a float
+								rather than a string.
+
 */
 
 /*
@@ -143,7 +146,8 @@ func Parse( sectmap map[string]map[string]interface{}, fname string, all_str boo
 
 				default:							// assume key value pair
 					append := false
-					first_tok := 1					// first token of var is 1, but could be later
+					first_tok := 1										// first token of var is 1, but could be later
+					force_str := strings.Index( rec, "\"" ) != -1		// if a quote in the buffer, we force it to be a string
 
 					ntokens, tokens := token.Tokenise_qpopulated( rec, " \t=" )
 					if ntokens >= 2 {				// if key = "value" # [comment],  n will be 3 or more
@@ -164,7 +168,7 @@ func Parse( sectmap map[string]map[string]interface{}, fname string, all_str boo
 							tokens[first_tok] = " "
 						}
 						fc := tokens[first_tok][0:1]
-						if ! all_str && ((fc >= "0"  && fc <= "9") || fc == "+" || fc == "-") {		// allowed to convert numbers to float
+						if !force_str && !all_str && ((fc >= "0"  && fc <= "9") || fc == "+" || fc == "-") {		// allowed to convert numbers to float
 							sect[key] = clike.Atof( tokens[first_tok] );
 						} else {
 							dup := ""
