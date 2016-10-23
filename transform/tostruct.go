@@ -37,7 +37,7 @@ import (
 )
 
 /*
-	Accepts a map of [string]string and attempts to populate the fields in the 
+	Accepts a map of [string]string, or [string]interface{}, and attempts to populate the fields in the 
 	user struct (pointer) from the values in the map. Only the fields in the 
 	struct which are tagged with the given tag ID are given are affected. If the 
 	tag ID is '_' (underbar), then all fields which are external/exported are 
@@ -49,10 +49,10 @@ import (
 
 	This function supports transferring the simple types (bool, int, float, etc.) and 
 	pointers to those types from the map.  It also supports structures, anonymous
-	structures and pointers to structures. It does not support maps or arrays.
+	structures and pointers to structures, slices and maps.
 */
 func Map_to_struct( m map[string]string, ustructp interface{}, tag_id string ) ( ) {
-	
+
 	thing := reflect.ValueOf( ustructp ).Elem() // get a reference to the struct
 	tmeta := thing.Type()						// meta data for the struct
 	
@@ -72,6 +72,9 @@ func set_value( thing reflect.Value, kind reflect.Kind, key string, tag_id strin
 	switch kind {
 		default:
 			fmt.Fprintf( os.Stderr, "transform.mts: tagged sturct member cannot be converted from map: tag=%s kind=%v\n", key, thing.Kind() )
+
+		case reflect.Interface:
+				thing.Set( reflect.ValueOf( m[key] ) )
 
 		case reflect.String:
 				thing.SetString( m[key] )
