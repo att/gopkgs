@@ -632,3 +632,111 @@ func TestPopulate( t *testing.T ) {
 		t.Fail()
 	}
 }
+
+
+
+/*
+	Struct for the imap test
+*/
+type istruct struct {
+	Bvarf	bool	`dc:"_"`
+	Bvart	bool	`dc:"_"`
+	Ivar	int		`dc:"_"`
+	I16var	int16	`dc:"_"`
+	Uivar	uint	`dc:"_"`
+	Fvar	float64	`dc:"_"`
+	Svar	string	`dc:"_"`
+	Psvar	*string `dc:"_"`
+
+	avoid1	int					// should not be touched
+	Avoid2 	int		`foo:"_"`
+}
+/*
+	Generate an interface map and populate a struct.
+*/
+func TestIPopulate( t *testing.T ) {
+	fmt.Fprintf( os.Stderr, "\n----------\ntest: populate struct from interface map\n" )
+
+	i := int( 10 )
+	i16 := int16( 16 )
+	ui := uint( 255 )
+	bf := false
+	bt := true
+	f := float64( 3.14159 )
+	s := "This is a test string"
+	
+	m := make( map[string]interface{} )
+
+	m["Bvarf"] = bf				// initialise the map
+	m["Bvart"] = bt
+	m["Ivar"] = i
+	m["Uivar"] = ui
+	m["I16var"] = i16
+	m["Fvar"] = f
+	m["Svar"] = s
+	m["Psvar"] = &s
+	m["Avoid1"] = 222			// these should NOT overlay values in targe (different tag)
+	m["avoid2"] = 222
+	
+	target := &istruct{}
+	target.avoid1 = 999
+	target.Avoid2 = 888
+
+	transform.Imap_to_struct( m, target, "dc" )				// generate foo map
+
+	state := "OK"
+	if target.Bvart != m["Bvart"] {
+		t.Fail()
+		state = "FAIL"
+	}
+	fmt.Fprintf( os.Stderr, "[%s]  target bt = %v\n", state, target.Bvart )
+
+	state = "OK"
+	if target.Bvarf != m["Bvarf"] {
+		t.Fail()
+		state = "FAIL"
+	}
+	fmt.Fprintf( os.Stderr, "[%s] target bf = %v\n", state, target.Bvarf )
+
+	state = "OK"
+	if target.Ivar != m["Ivar"] {
+		t.Fail()
+		state = "FAIL"
+	}
+	fmt.Fprintf( os.Stderr, "[%s] target i = %d\n", state,  target.Ivar )
+
+	state = "OK"
+	if target.I16var != m["I16var"] {
+		t.Fail()
+		state = "FAIL"
+	}
+	fmt.Fprintf( os.Stderr, "[%s] target i16 = %d\n", state,  target.I16var )
+
+	state = "OK"
+	if target.Uivar != m["Uivar"] {
+		t.Fail()
+		state = "FAIL"
+	}
+	fmt.Fprintf( os.Stderr, "[%s] target ui = %d\n", state,  target.Uivar )
+
+	state = "OK"
+	if target.Fvar != m["Fvar"] {
+		t.Fail()
+		state = "FAIL"
+	}
+	fmt.Fprintf( os.Stderr, "[%s] target f = %f\n", state,  target.Fvar )
+
+	state = "OK"
+	if target.Svar != m["Svar"] {
+		t.Fail()
+		state = "FAIL"
+	}
+	fmt.Fprintf( os.Stderr, "[%s] target s = %s\n", state,  target.Svar )
+
+	state = "OK"
+	if target.Psvar != m["Psvar"] {
+		t.Fail()
+		state = "FAIL"
+	}
+	fmt.Fprintf( os.Stderr, "[%s] target ps = %s\n", state, *target.Psvar )
+}
