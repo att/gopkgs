@@ -113,7 +113,7 @@ func insert_value( thing reflect.Value, tkind reflect.Kind, anon bool, tag strin
 					struct_to_map( p, p.Type(), tag_id, m, pfx + tag + "/"  )	// recurse to process with a prefix which matches the field
 
 				default:
-					//fmt.Fprintf( os.Stderr, "ptr not handled: %s\n", p.Kind() )
+					fmt.Fprintf( os.Stderr, "transform: ptr of this kind is not handled: %s\n", p.Kind() )
 			}
 			
 		case reflect.Uintptr:
@@ -161,8 +161,12 @@ func insert_value( thing reflect.Value, tkind reflect.Kind, anon bool, tag strin
 				insert_value(  thing.MapIndex( key ), vk, false, new_tag, tag_id, m, pfx  )					// prefix stays the same, just gets a new tag
 			}
 
+		case reflect.Interface:
+			p := thing.Elem()
+			insert_value( p, p.Kind(), anon, tag, tag_id, m, pfx )
+
 		default:
-			fmt.Fprintf( os.Stderr, "transform:stm: field cannot be captured in a map: tag=%s type=%s val=%s\n", tag, thing.Kind(), reflect.ValueOf( thing ) )
+			//fmt.Fprintf( os.Stderr, "transform: stm: field cannot be captured in a map: tag=%s type=%s val=%s\n", tag, thing.Kind(), reflect.ValueOf( thing ) )
 	}	
 }
 
