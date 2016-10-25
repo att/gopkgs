@@ -23,6 +23,8 @@
         Absrtract:      Various functions which transform something into a map.
 		Date:			25 November 2015
 		Author:			E. Scott Daniels
+
+		Mods:			24 Oct 2016 - Fix bug when inserting an interface.
 */
 
 package transform
@@ -163,7 +165,7 @@ func insert_value( thing reflect.Value, tkind reflect.Kind, anon bool, tag strin
 
 		case reflect.Interface:
 			p := thing.Elem()
-			insert_value( p, p.Kind(), anon, tag, tag_id, m, pfx )
+			insert_value( p, p.Kind(), anon, tag, tag_id, m, "" )			// tag stays the same, so pfx is empty
 
 		default:
 			//fmt.Fprintf( os.Stderr, "transform: stm: field cannot be captured in a map: tag=%s type=%s val=%s\n", tag, thing.Kind(), reflect.ValueOf( thing ) )
