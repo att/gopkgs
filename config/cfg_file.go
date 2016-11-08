@@ -56,6 +56,7 @@ import (
 
 const (
 	ET_INT	int = iota
+	ET_INT64
 	ET_FLOAT
 	ET_STRING
 	ET_STRINGP
@@ -182,6 +183,7 @@ func Parse( sectmap map[string]map[string]interface{}, fname string, all_str boo
 									dup = *old_str + " " + dup
 								}
 							}
+
 							sect[key] = &dup
 						}		
 					}								// silently discard token that is just a key, allowing the default to override
@@ -260,6 +262,7 @@ func cvt2desired( v interface{}, desired int ) ( interface{} ) {
 				case ET_STRING:		return v
 				case ET_STRINGP: 	return &v
 				case ET_INT:		return v.(int)
+				case ET_INT64:		return v.(int64)
 				case ET_FLOAT:		return v.(float64)
 			}
 
@@ -268,6 +271,7 @@ func cvt2desired( v interface{}, desired int ) ( interface{} ) {
 				case ET_STRING:		return *(v.(*string))
 				case ET_STRINGP: 	return v
 				case ET_INT:		return clike.Atoi( *(v.(*string)) )
+				case ET_INT64:		return clike.Atoll( *(v.(*string)) )
 				case ET_FLOAT:		return clike.Atof( *(v.(*string)) )
 			}
 
@@ -277,6 +281,7 @@ func cvt2desired( v interface{}, desired int ) ( interface{} ) {
 				case ET_STRINGP: 	s := fmt.Sprintf( "%.2f", v )
 									return &s
 				case ET_INT:		return int( v.(float64) )
+				case ET_INT64:		return int64( v.(float64) )
 				case ET_FLOAT:		return v
 			}
 
@@ -286,9 +291,41 @@ func cvt2desired( v interface{}, desired int ) ( interface{} ) {
 				case ET_STRINGP: 	s := fmt.Sprintf( "%d", v )
 									return &s
 				case ET_INT:		return v
+				case ET_INT64:		return int64( v.(int) )
 				case ET_FLOAT:		return float64( v.(int) )
 			}
 
+		case int64:
+			switch desired {
+				case ET_STRING:		return fmt.Sprintf( "%d", v )
+				case ET_STRINGP: 	s := fmt.Sprintf( "%d", v )
+									return &s
+				case ET_INT:		return int( v.(int64) )
+				case ET_INT64:		return v
+				case ET_FLOAT:		return float64( v.(int64) )
+			}
+
+		case bool:
+			switch desired {
+				case ET_STRING:		return fmt.Sprintf( "%v", v )
+				case ET_STRINGP: 	s := fmt.Sprintf( "%v", v )
+									return &s
+				case ET_INT:		if v.( bool ) { 
+										return int( 1 )
+									} else {
+										return int( 0 )
+									}
+				case ET_INT64:		if v.( bool ) { 
+										return int64( 1 )
+									} else {
+										return int64( 0 )
+									}
+				case ET_FLOAT:		if v.( bool ) {
+										return 1.0
+									} else {
+										return 0.0
+									}
+			}
 	}
 
 	return nil
@@ -328,7 +365,7 @@ func ( cfg *Config ) extract_something( sect_list string, key string, def_value 
 	make the invoking code more straight forward. The default value may be a nil pointer.
 */
 func ( cfg *Config ) Extract_p2str( sect_list string, key string, def_value interface{} ) ( val *string ) {
-	v := cfg.extract_something( sect_list, key, def_value, ET_STRING )
+	v := cfg.extract_something( sect_list, key, def_value, ET_STRING )	// yes we want a string back
 	if v == nil {
 		return nil
 	}
@@ -345,6 +382,16 @@ func ( cfg *Config ) Extract_p2str( sect_list string, key string, def_value inte
 func ( cfg *Config ) Extract_float( sect_list string, key string, def_value interface{} ) ( val float64 ) {
 	v := cfg.extract_something( sect_list, key, def_value, ET_FLOAT )
 	return v.( float64 )
+}
+
+/*
+	Extract_int64 will search the configuration in sect_list order for the given key string.
+	The value associated with the key is converted to a 64 bit integer value and returned to the caller.
+	If the key is not found in any named section, then the default value is returned.
+*/
+func ( cfg *Config ) Extract_int64( sect_list string, key string, def_value interface{} ) ( val int64 ) {
+	v := cfg.extract_something( sect_list, key, def_value, ET_INT64 )
+	return v.( int64 )
 }
 
 /*
@@ -365,4 +412,22 @@ func ( cfg *Config ) Extract_int( sect_list string, key string, def_value interf
 func ( cfg *Config ) Extract_str( sect_list string, key string, def_value interface{} ) ( val string ) {
 	v := cfg.extract_something( sect_list, key, def_value, ET_STRING )
 	return v.( string )
+}
+
+/*
+	Dump will spit the hashes to stder.
+*/
+func ( cfg *Config ) Dump() {
+	for s, h := range cfg.data  {
+		fmt.Fprintf( os.Stderr, "\n:%s\n", s )
+		for k, v := range h {
+			switch av := v.(type) {
+				case *string:
+					fmt.Fprintf( os.Stderr, "  %s = %s\n", k, *av )
+
+				case float64:
+					fmt.Fprintf( os.Stderr, "  %s = %.2f\n", k, av )
+			}
+		}
+	}
 }
