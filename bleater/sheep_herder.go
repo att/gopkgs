@@ -37,8 +37,6 @@ package bleater
 import (
 	"fmt"
 	"time"
-
-	//"forge.research.att.com/gopkgs/bleater"
 )
 
 /*
