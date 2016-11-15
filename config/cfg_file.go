@@ -57,6 +57,7 @@ import (
 const (
 	ET_INT	int = iota
 	ET_INT64
+	ET_UINT
 	ET_FLOAT
 	ET_STRING
 	ET_STRINGP
@@ -262,6 +263,7 @@ func cvt2desired( v interface{}, desired int ) ( interface{} ) {
 				case ET_STRING:		return v
 				case ET_STRINGP: 	return &v
 				case ET_INT:		return v.(int)
+				case ET_UINT:		return v.(uint)
 				case ET_INT64:		return v.(int64)
 				case ET_FLOAT:		return v.(float64)
 			}
@@ -271,6 +273,7 @@ func cvt2desired( v interface{}, desired int ) ( interface{} ) {
 				case ET_STRING:		return *(v.(*string))
 				case ET_STRINGP: 	return v
 				case ET_INT:		return clike.Atoi( *(v.(*string)) )
+				case ET_UINT:		return clike.Atou( *(v.(*string)) )
 				case ET_INT64:		return clike.Atoll( *(v.(*string)) )
 				case ET_FLOAT:		return clike.Atof( *(v.(*string)) )
 			}
@@ -281,6 +284,7 @@ func cvt2desired( v interface{}, desired int ) ( interface{} ) {
 				case ET_STRINGP: 	s := fmt.Sprintf( "%.2f", v )
 									return &s
 				case ET_INT:		return int( v.(float64) )
+				case ET_UINT:		return uint( v.(float64) )
 				case ET_INT64:		return int64( v.(float64) )
 				case ET_FLOAT:		return v
 			}
@@ -291,6 +295,7 @@ func cvt2desired( v interface{}, desired int ) ( interface{} ) {
 				case ET_STRINGP: 	s := fmt.Sprintf( "%d", v )
 									return &s
 				case ET_INT:		return v
+				case ET_UINT:		return uint( v.(int)  )
 				case ET_INT64:		return int64( v.(int) )
 				case ET_FLOAT:		return float64( v.(int) )
 			}
@@ -301,6 +306,7 @@ func cvt2desired( v interface{}, desired int ) ( interface{} ) {
 				case ET_STRINGP: 	s := fmt.Sprintf( "%d", v )
 									return &s
 				case ET_INT:		return int( v.(int64) )
+				case ET_UINT:		return uint( v.(int64) )
 				case ET_INT64:		return v
 				case ET_FLOAT:		return float64( v.(int64) )
 			}
@@ -314,6 +320,11 @@ func cvt2desired( v interface{}, desired int ) ( interface{} ) {
 										return int( 1 )
 									} else {
 										return int( 0 )
+									}
+				case ET_UINT:		if v.( bool ) { 
+										return uint( 1 )
+									} else {
+										return uint( 0 )
 									}
 				case ET_INT64:		if v.( bool ) { 
 										return int64( 1 )
@@ -402,6 +413,16 @@ func ( cfg *Config ) Extract_int64( sect_list string, key string, def_value inte
 func ( cfg *Config ) Extract_int( sect_list string, key string, def_value interface{} ) ( val int ) {
 	v := cfg.extract_something( sect_list, key, def_value, ET_INT )
 	return v.( int )
+}
+
+/*
+	Extract_uint will search the configuration in sect_list order for the given key string.
+	The value associated with the key is converted to an unsigned integerinteger value and returned to the caller.
+	If the key is not found in any named section, then the default value is returned.
+*/
+func ( cfg *Config ) Extract_uint( sect_list string, key string, def_value interface{} ) ( val uint ) {
+	v := cfg.extract_something( sect_list, key, def_value, ET_UINT )
+	return v.( uint )
 }
 
 /*
