@@ -26,6 +26,8 @@
 	Author:		E. Scott Daniels
 
 	Mods:		30 Apr 2014 (sd) : Added ability to change the target.
+				08 Nov 2016 (sd) : Add ability to push existing target down.
+				15 Nov 2016 (sd) : Add nil checks to functions without.
 */
 
 
@@ -84,6 +86,10 @@ type Bleater struct {
 	Set our copy of the parent's level. Called only by parent.
 */
 func ( b *Bleater ) set_plevel( l uint ) {
+	if b == nil {
+		return
+	}
+
 	b.mtx.Lock()
 	defer b.mtx.Unlock()
 	b.plevel = l
@@ -177,6 +183,10 @@ func ( b *Bleater ) Baa_some_reset( class string ) {
 	(child) to be set differently (louder) than the rest.
 */
 func ( b *Bleater ) Add_child( cb *Bleater ) {
+	if b == nil {
+		return
+	}
+
 	b.mtx.Lock()
 	defer b.mtx.Unlock()
 
@@ -197,6 +207,10 @@ func ( b *Bleater ) Add_child( cb *Bleater ) {
 	Any format string that is supported by the Go time package may be used.
 */
 func ( b *Bleater ) Set_tsformat( fmt string ) {
+	if b == nil {
+		return
+	}
+
 	b.tsfmt = fmt
 }
 
@@ -204,19 +218,27 @@ func ( b *Bleater ) Set_tsformat( fmt string ) {
 	Set_target changes the output target and pushes the target to children.
 	If close_old is set, the old target is closed (if possible), otherwise it is left
 	alone.  (it is not possible to close standard error, or any target that was
-	not opened by al call to bleater.Create_target()
+	not opened by al call to bleater.Create_target(). If new_target is nil, this 
+	just pushes the current target down.
 */
 func ( b *Bleater ) Set_target( new_target io.Writer, close_old bool ) {
+	if b == nil {
+		return
+	}
+
 
 	b.mtx.Lock()
 	defer b.mtx.Unlock()
 
-	if close_old  && b.tfile != nil {
-		b.tfile.Close( )
-	}
-	b.tfile = nil
+	if new_target != nil {
+		if close_old  && b.tfile != nil {
+			b.tfile.Close( )
+		}
+		b.tfile = nil
 
-	b.target = new_target
+		b.target = new_target
+	}
+
 	for i := 0; i < b.cidx; i++ {
 		b.children[i].Set_target( new_target, false )			// propigate the target, but we might've closed it so they shouldn't
 	}
@@ -226,12 +248,16 @@ func ( b *Bleater ) Set_target( new_target io.Writer, close_old bool ) {
 	Creates a new file and truncates it. All subsequent Baa() calls will write to this file.
 */
 func ( b *Bleater ) Create_target( target_fname string, close_old bool ) ( err error ) {
+	if b == nil {
+		return
+	}
+
 	f, err := os.Create( target_fname )
 	if err != nil {
 		return
 	}
 
-	b.Set_target( f, close_old )			// add it in
+	b.Set_target( f, close_old )			// push to all child bleaters
 
 	b.mtx.Lock()
 	b.tfile = f								// now safe to capture this
@@ -244,13 +270,17 @@ func ( b *Bleater ) Create_target( target_fname string, close_old bool ) ( err e
 	Opens the target file and appends to it. If the file doesn't exist, it creates it.
 */
 func ( b *Bleater ) Append_target( target_fname string, close_old bool ) ( err error ) {
+	if b == nil {
+		return
+	}
+
 	f, err := os.OpenFile( target_fname, os.O_CREATE|os.O_WRONLY, 0664 )
 	if err != nil {
 		return
 	}
 
 	f.Seek( 0, os.SEEK_END )				// to end of file before we write anything
-	b.Set_target( f, close_old )			// add it in
+	b.Set_target( f, close_old )			// push to all children
 
 	b.mtx.Lock()
 	b.tfile = f								// now safe to capture this
@@ -263,6 +293,10 @@ func ( b *Bleater ) Append_target( target_fname string, close_old bool ) ( err e
 	Set_level changes the volume for the object, and pushes it to any child bleaters.
 */
 func ( b *Bleater ) Set_level( l uint ) {
+	if b == nil {
+		return
+	}
+
 	if l < 0 {
 		l = 0
 	}
@@ -280,6 +314,10 @@ func ( b *Bleater ) Set_level( l uint ) {
 	Get_level returns the bleater's current level.
 */
 func ( b *Bleater ) Get_level( ) ( uint ) {
+	if b == nil {
+		return 0
+	}
+
 	return b.level;					// yes, we'll risk not locking here too
 }
 
@@ -290,6 +328,10 @@ func ( b *Bleater ) Get_level( ) ( uint ) {
 	it is sure that it will be written.
 */
 func ( b *Bleater ) Would_baa( lvl uint ) ( bool ) {
+	if b == nil {
+		return false
+	}
+
 	return lvl <= b.level || lvl <= b.plevel
 }
 
@@ -298,6 +340,10 @@ func ( b *Bleater ) Would_baa( lvl uint ) ( bool ) {
 	of the message that is written after the timestamp.
 */
 func ( b *Bleater ) Set_prefix( pfx string ) {
+	if b == nil {
+		return
+	}
+
 	b.mtx.Lock()
 	defer b.mtx.Unlock()
 	b.pfx = pfx
@@ -307,6 +353,10 @@ func ( b *Bleater ) Set_prefix( pfx string ) {
 	Inc_level is a convenient way to increase the volume by one.
 */
 func ( b *Bleater ) Inc_level( ) {
+	if b == nil {
+		return
+	}
+
 	b.level++
 }
 
@@ -314,6 +364,10 @@ func ( b *Bleater ) Inc_level( ) {
 	Dec_level is a convenient way to decrease the volume by one.
 */
 func ( b *Bleater ) Dec_level( ) {
+	if b == nil {
+		return
+	}
+
 	if b.level > 0 {
 		b.level--
 	}
