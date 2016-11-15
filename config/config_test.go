@@ -119,6 +119,14 @@ func TestConfigStruct( t *testing.T ) {
 		return
 	}
 
+	i64 := cfg.Extract_int64( "template", "i64", int64( 1234567890 ) )
+	if i64 <= 1234567890 {
+		fmt.Fprintf( os.Stderr, "[FAIL] did not return the correct int 64 value for template:i64: expected >1234567890 got %d\n", i64 )
+		t.Fail()
+	} else {
+		fmt.Fprintf( os.Stderr, "[OK] correct value for int 64 value returned\n" )
+	}
+
 	f1 := cfg.Extract_float( "template laser-spec", "default_size", 99.0 )
 	if ! is_type( "f1", f1, "float64" )  {
 		t.Fail()
@@ -131,7 +139,7 @@ func TestConfigStruct( t *testing.T ) {
 		fmt.Fprintf( os.Stderr, "[FAIL] expected different values from same key in different sections, got same falue: %.2f %.2f\n", f1, f2 )
 		t.Fail()
 	} else {
-		fmt.Fprintf( os.Stderr, "[PASS] expected different values from same key in different sections, got different: %.2f %.2f\n", f1, f2 )
+		fmt.Fprintf( os.Stderr, "[OK] expected different values from same key in different sections, got different: %.2f %.2f\n", f1, f2 )
 	}
 
 	f3s := cfg.Extract_str( "laser-spec template", "default_size", "99.0" )
@@ -141,7 +149,7 @@ func TestConfigStruct( t *testing.T ) {
 
 	cfg, err = config.Mk_config( "/dev/null" )
 	if err == nil {
-		fmt.Fprintf( os.Stderr, "[PASS] parsed a nul file\n" )
+		fmt.Fprintf( os.Stderr, "[OK] parsed a nul file\n" )
 	} else {
 		fmt.Fprintf( os.Stderr, "[FAIL] did not parse a nul file: %s\n", err )
 		t.Fail()
@@ -153,7 +161,7 @@ func TestConfigStruct( t *testing.T ) {
 		t.Fail()
 	}
 	if s1 == "missing-key" {
-		fmt.Fprintf( os.Stderr, "[PASS] missing key did return the default\n" )
+		fmt.Fprintf( os.Stderr, "[OK] missing key did return the default\n" )
 	} else {
 		fmt.Fprintf( os.Stderr, "[FAIL] missing key did not return the default: %s\n", s1 )
 		t.Fail()
@@ -161,7 +169,7 @@ func TestConfigStruct( t *testing.T ) {
 
 	sp1 := cfg.Extract_p2str( "template lower default", "not-a-key", nil )
 	if sp1 == nil {
-		fmt.Fprintf( os.Stderr, "[PASS] missing key did return the default pointer\n" )
+		fmt.Fprintf( os.Stderr, "[OK] missing key did return the default pointer\n" )
 	} else {
 		fmt.Fprintf( os.Stderr, "[FAIL] missing key did not return the default pointer: %v\n", sp1 )
 		t.Fail()
@@ -172,7 +180,7 @@ func TestConfigStruct( t *testing.T ) {
 		fmt.Fprintf( os.Stderr, "[FAIL] missing key did not return the default pointer: %v\n", sp2 )
 		t.Fail()
 	} else {
-		fmt.Fprintf( os.Stderr, "[PASS] missing key did return the default pointer given a string as default: %s\n", *sp2 )
+		fmt.Fprintf( os.Stderr, "[OK] missing key did return the default pointer given a string as default: %s\n", *sp2 )
 	}
 
 	def := "foobar"
@@ -181,7 +189,7 @@ func TestConfigStruct( t *testing.T ) {
 		fmt.Fprintf( os.Stderr, "[FAIL] missing key did not return the default pointer: %v\n", sp3 )
 		t.Fail()
 	} else {
-		fmt.Fprintf( os.Stderr, "[PASS] missing key did return the default pointer given a string as default: %s\n", *sp3 )
+		fmt.Fprintf( os.Stderr, "[OK] missing key did return the default pointer given a string as default: %s\n", *sp3 )
 	}
 
 }
