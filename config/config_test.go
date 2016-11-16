@@ -110,7 +110,7 @@ func TestStrings( t *testing.T ) {
 }
 
 func TestConfigStruct( t *testing.T ) {
-	fmt.Fprintf( os.Stderr, "\nTesting config struct functions....\n" )
+	fmt.Fprintf( os.Stderr, "\nTesting config struct functions with test.cfg\n" )
 
 	cfg, err := config.Mk_config( "test.cfg" )
 	if 	err != nil {
@@ -146,7 +146,39 @@ func TestConfigStruct( t *testing.T ) {
 	if ! is_type( "f3s", f3s, "string" )  {
 		t.Fail()
 	}
+	
+	//---- boolean tests -----------------------------------------------------
+	bv := cfg.Extract_bool( "bool-test", "istrue", false )
+	if bv {
+		fmt.Fprintf( os.Stderr, "[OK] is true returned true\n" )
+	} else {
+		fmt.Fprintf( os.Stderr, "[FAIL] is true returned false\n" )
+		t.Fail()
+	}
+	bv = cfg.Extract_bool( "bool-test", "isfalse", true )
+	if !bv {
+		fmt.Fprintf( os.Stderr, "[OK] is false returned false\n" )
+	} else {
+		fmt.Fprintf( os.Stderr, "[FAIL] is false returned true\n" )
+		t.Fail()
+	}
 
+	bv = cfg.Extract_bool( "bool-test", "inttrue", false )
+	if bv {
+		fmt.Fprintf( os.Stderr, "[OK] int true returned true\n" )
+	} else {
+		fmt.Fprintf( os.Stderr, "[FAIL] int true returned false\n" )
+		t.Fail()
+	}
+	bv = cfg.Extract_bool( "bool-test", "intfalse", true )
+	if !bv {
+		fmt.Fprintf( os.Stderr, "[OK] int false returned false\n" )
+	} else {
+		fmt.Fprintf( os.Stderr, "[FAIL] int false returned ture\n" )
+		t.Fail()
+	}
+
+	// ---- pull in empty config ---------------------------------------------------------------------------------
 	cfg, err = config.Mk_config( "/dev/null" )
 	if err == nil {
 		fmt.Fprintf( os.Stderr, "[OK] parsed a nul file\n" )

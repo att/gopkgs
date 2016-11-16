@@ -61,6 +61,7 @@ const (
 	ET_FLOAT
 	ET_STRING
 	ET_STRINGP
+	ET_BOOL
 )
 
 /*
@@ -266,6 +267,7 @@ func cvt2desired( v interface{}, desired int ) ( interface{} ) {
 				case ET_UINT:		return v.(uint)
 				case ET_INT64:		return v.(int64)
 				case ET_FLOAT:		return v.(float64)
+				case ET_BOOL:		return v == "true"
 			}
 
 		case *string:
@@ -276,6 +278,7 @@ func cvt2desired( v interface{}, desired int ) ( interface{} ) {
 				case ET_UINT:		return clike.Atou( *(v.(*string)) )
 				case ET_INT64:		return clike.Atoll( *(v.(*string)) )
 				case ET_FLOAT:		return clike.Atof( *(v.(*string)) )
+				case ET_BOOL:		return *(v.(*string)) == "true"
 			}
 
 		case float64:
@@ -287,6 +290,7 @@ func cvt2desired( v interface{}, desired int ) ( interface{} ) {
 				case ET_UINT:		return uint( v.(float64) )
 				case ET_INT64:		return int64( v.(float64) )
 				case ET_FLOAT:		return v
+				case ET_BOOL:		return v.(float64) != 0.0
 			}
 
 		case int:
@@ -298,6 +302,7 @@ func cvt2desired( v interface{}, desired int ) ( interface{} ) {
 				case ET_UINT:		return uint( v.(int)  )
 				case ET_INT64:		return int64( v.(int) )
 				case ET_FLOAT:		return float64( v.(int) )
+				case ET_BOOL:		return v.(int) != 0
 			}
 
 		case int64:
@@ -309,6 +314,7 @@ func cvt2desired( v interface{}, desired int ) ( interface{} ) {
 				case ET_UINT:		return uint( v.(int64) )
 				case ET_INT64:		return v
 				case ET_FLOAT:		return float64( v.(int64) )
+				case ET_BOOL:		return v.(int64) != 0
 			}
 
 		case bool:
@@ -336,6 +342,7 @@ func cvt2desired( v interface{}, desired int ) ( interface{} ) {
 									} else {
 										return 0.0
 									}
+				case ET_BOOL:		return v
 			}
 	}
 
@@ -351,13 +358,14 @@ func cvt2desired( v interface{}, desired int ) ( interface{} ) {
 /*
 	The work horse behind any of the Extract_* functions
 */
-func ( cfg *Config ) extract_something( sect_list string, key string, def_value interface{},  desired int ) ( val interface{} ) {
+func ( cfg *Config ) extract_something( sect_list string, key string, def_value interface{}, desired int ) ( val interface{} ) {
 	if cfg == nil {
 		return cvt2desired( def_value, desired )
 	}
 
 	stokens := strings.Split( sect_list, " " )
 	for _, sect := range stokens {
+//fmt.Fprintf( os.Stderr, ">>>section: (%s) %d elements\n", sect, len( cfg.data[sect] ) )
 		v := cfg.data[sect][key]
 		if v != nil {
 			return cvt2desired( v, desired )
@@ -436,6 +444,23 @@ func ( cfg *Config ) Extract_str( sect_list string, key string, def_value interf
 }
 
 /*
+	Extract_bool will search the configuration in sect_list order for the given key string.
+	The value associated with the key is converted to a boolean and returned to the caller.
+	If the key is not found in any named section, then the default value is returned.
+	The following shows what is considered 'true' if the value in the map is not a boolean:
+			string 'true'
+			*string *'true'
+			float  != 0.0
+			int		!= 0
+
+	Case matters for the string types.
+*/
+func ( cfg *Config ) Extract_bool( sect_list string, key string, def_value interface{} ) ( val bool ) {
+	v := cfg.extract_something( sect_list, key, def_value, ET_BOOL )
+	return v.( bool )
+}
+
+/*
 	Dump will spit the hashes to stder.
 */
 func ( cfg *Config ) Dump() {
@@ -444,7 +469,7 @@ func ( cfg *Config ) Dump() {
 		for k, v := range h {
 			switch av := v.(type) {
 				case *string:
-					fmt.Fprintf( os.Stderr, "  %s = %s\n", k, *av )
+					fmt.Fprintf( os.Stderr, "  %s = %q\n", k, *av )
 
 				case float64:
 					fmt.Fprintf( os.Stderr, "  %s = %.2f\n", k, av )
