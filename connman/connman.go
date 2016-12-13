@@ -436,10 +436,29 @@ func (this *Cmgr) Write_str( id string, buf string ) ( err error ) {
 	return this.Write( id,  []byte( buf ) )
 }
 
+//func (this *Cmgr) Write_udp( id string, to string, buf []byte ) ( err error ) {
+
 /*
 	Writes the byte array to the udp address given in 'to'.  The address is expected to be host:port format.
+	Ibuf may be either an array of bytes, string or pointer to string.
 */
-func (this *Cmgr) Write_udp( id string, to string, buf []byte ) ( err error ) {
+func (this *Cmgr) Write_udp( id string, to string, ibuf interface{}) ( err error ) {
+	var buf []byte
+
+	switch ibuf.(type) {
+		case []byte:
+			buf = ibuf.( []byte )
+
+		case string:
+			buf = []byte( ibuf.( string ) )
+
+		case *string:
+			buf = []byte( *(ibuf.( *string )) )
+
+		default:
+			return fmt.Errorf( "unknown buffer type for ibuf:  must be []byte, string or *string" )
+	}
+
 	err = nil
 
 	if cp, ok := this.clist[id]; ok {
