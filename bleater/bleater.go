@@ -28,6 +28,7 @@
 	Mods:		30 Apr 2014 (sd) : Added ability to change the target.
 				08 Nov 2016 (sd) : Add ability to push existing target down.
 				15 Nov 2016 (sd) : Add nil checks to functions without.
+				03 Jan 2017 (sd) : Fix bug in Set_target.
 */
 
 
@@ -240,12 +241,13 @@ func ( b *Bleater ) Set_target( new_target io.Writer, close_old bool ) {
 	}
 
 	for i := 0; i < b.cidx; i++ {
-		b.children[i].Set_target( new_target, false )			// propigate the target, but we might've closed it so they shouldn't
+		b.children[i].Set_target( b.target, true )			// propigate our target, child should close theirs if they opened one
 	}
 }
 
 /*
 	Creates a new file and truncates it. All subsequent Baa() calls will write to this file.
+	The newly created file will be 'pushed' down into all child bleaters.
 */
 func ( b *Bleater ) Create_target( target_fname string, close_old bool ) ( err error ) {
 	if b == nil {
@@ -268,6 +270,7 @@ func ( b *Bleater ) Create_target( target_fname string, close_old bool ) ( err e
 
 /*
 	Opens the target file and appends to it. If the file doesn't exist, it creates it.
+	The new file is pushed down into all child bleaters if they exist.
 */
 func ( b *Bleater ) Append_target( target_fname string, close_old bool ) ( err error ) {
 	if b == nil {
