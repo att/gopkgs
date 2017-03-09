@@ -23,6 +23,10 @@
         Absrtract:      Various functions which transform something into a struct.
 		Date:			25 November 2015
 		Author:			E. Scott Daniels
+
+		Mods:			2017 08 Mar - Add ability to extract into an interface which was 
+							saved, or exists, in the map as an array rather than a 
+							simple value.
 */
 
 package transform
@@ -72,9 +76,6 @@ func set_value( thing reflect.Value, kind reflect.Kind, key string, tag_id strin
 	switch kind {
 		default:
 			fmt.Fprintf( os.Stderr, "transform.mts: tagged sturct member cannot be converted from map: tag=%s kind=%v\n", key, thing.Kind() )
-
-		case reflect.Interface:
-				thing.Set( reflect.ValueOf( m[key] ) )
 
 		case reflect.String:
 				thing.SetString( m[key] )
@@ -158,8 +159,25 @@ func set_value( thing reflect.Value, kind reflect.Kind, key string, tag_id strin
 		case reflect.Bool:
 			thing.SetBool(  m[key] == "true" )
 
+		case reflect.Interface:							// tricky; could be xxx/yyyy 'flat' element, or xxx/yyy/0-n array element
+			if m[key + ".len"] != "" {					// if it was an array on 'export'  jump some hoops
+				c := clike.Atoi( m[key + ".cap"] )
+				l := clike.Atoi( m[key + ".len"] )
+	
+				a := make( []string, l, c ) 			// we can't tell what type it was, so we just save the strings that are in the map
+				for j := 0; j < l; j++ {
+					idx := fmt.Sprintf( "%s/%d", key, j )
+					a[j] = m[idx]						// populate it
+				}
+
+				athing := reflect.ValueOf( a )						// get a reference and then assign it to the interface in the struct
+				thing.Set( athing )
+			} else {
+				thing.Set( reflect.ValueOf( m[key] ) )			// not an array, should be able to save it as is
+			}
+
 		case reflect.Map:
-			new_map := reflect.MakeMap( thing.Type() ) 					// create the map
+			new_map := reflect.MakeMap( thing.Type() )			// create the map
 			thing.Set( new_map )								// put it in the struct
 
 			idx := key + "/"									// now populate the map

@@ -144,15 +144,18 @@ func insert_value( thing reflect.Value, tkind reflect.Kind, anon bool, tag strin
 		case reflect.Slice:
 			length := thing.Len()
 			capacity := thing.Cap()
+
+			mtag := fmt.Sprintf( "%s.cap", tag )				// set capacity and length of the slice
+			m[mtag] = fmt.Sprintf( "%d", capacity )
+			mtag = fmt.Sprintf( "%s.len", tag )
+			m[mtag] = fmt.Sprintf( "%d", length )
+
 			for j := 0; j <  length; j++ {
-				v := thing.Slice( j, j+1 )								// value struct for the jth element (which will be a slice too :(
-				vk := v.Type().Elem().Kind()							// must drill down for the kind
-				mtag := fmt.Sprintf( "%s%s.cap", pfx, tag )
-				m[mtag] = fmt.Sprintf( "%d", capacity )
-				mtag = fmt.Sprintf( "%s%s.len", pfx, tag )
-				m[mtag] = fmt.Sprintf( "%d", length )
+				v := thing.Slice( j, j+1 )													// value struct for the jth element (which will be a slice too :(
+				vk := v.Type().Elem().Kind()												// must drill down for the kind
+
 				new_tag := fmt.Sprintf( "%s/%d", tag, j )
-				insert_value(  thing.Index( j ), vk, false, new_tag, tag_id, m, pfx  )		// prefix remains the same, the 'index' changes as we go through the slice
+				insert_value(  thing.Index( j ), vk, false, new_tag, tag_id, m, ""  )		// prefix already on the tag, the 'index' changes as we go through the slice
 			}
 
 		case reflect.Map:
