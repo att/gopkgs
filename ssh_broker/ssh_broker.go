@@ -45,6 +45,8 @@
 					setup and affect only other threads attempting a command to the same host and not 
 					all threads.  Connection setup can take minutes if network is wonky.
 				07 Jan 2016 - Switched crypto/ssh to pull from golang.org since code.google is deprecated.
+				28 Apr 2017 - Deal with new crypto/ssh requirement that host key callback be supplied in 
+					the connection configuration.
 
 	CAUTION:	This package requires go 1.3.3 or later.
 */
@@ -119,6 +121,7 @@ import (
 	"bufio"
     "fmt"
 	"io"
+	"net"
 	"os"
 	"os/exec"
 	"strings"
@@ -180,6 +183,17 @@ type Broker_msg struct {
 	stderr	bytes.Buffer
 	err		error					// any resulting error
 	resp_ch chan *Broker_msg		// channel used to send back results
+}
+
+// --------------------------------------------------------------------------------------------------
+
+/*
+	Called during the key exchange to validate the remote host key. Because there are times
+	when host keys change and nobody ever cleans up/modifies authorised key files, this
+	funciton is used to always accept a host key.
+*/
+func allow_any_hk( hostname string, addr net.Addr, key ssh.PublicKey ) error {
+	return nil
 }
 
 // --------------------------------------------------------------------------------------------------
@@ -619,6 +633,7 @@ func Mk_broker( user string, keys []string ) ( broker *Broker ) {
 	broker = &Broker { }
 	broker.conns = make( map[string]*connection, 100 )		// value is a hint, not limit
 	broker.was_closed = false
+	//broker.verbose = true
 
 	auth_list := make( []ssh.AuthMethod, len( keys ) )
 
@@ -641,12 +656,14 @@ func Mk_broker( user string, keys []string ) ( broker *Broker ) {
 		User: user,
 		Auth: auth_list[0:j],								// drop nil entries (ssh crashes if they are there)
 		ClientVersion: "",
+		HostKeyCallback: allow_any_hk,						// ignore host key changes
 	}
 
 	broker.init_ch = make( chan *Broker_msg, 2048 )
 	broker.retry_ch = make( chan *Broker_msg, 2048 )
 	go broker.initiator( 0 )									// by default single threaded
 	broker.ninitiators = 1
+broker.verbose = true
 	return
 }
 
