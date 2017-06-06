@@ -41,7 +41,6 @@ package jsontools
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 	"reflect"
 )
 
@@ -100,7 +99,13 @@ func Defrock_2_jif( iblob interface{} ) ( jif interface{}, err error ) {
 		for k, v := range m {
 			switch thing := v.(type) {
 				case string:
-					sjif, err := Defrock_2_jif( thing )		// attempt to defrock json; if successful then we save the interface
+					sjif, err := Defrock_2_jif( rm_esc( thing ) )		// attempt to defrock json; if successful then we save the interface
+					if err == nil {
+						m[k] = sjif
+					}
+
+				case map[string]interface{}:
+					sjif, err := Defrock_2_jif( thing )		// attempt to defrock embedded json strings; if successful then we save the interface
 					if err == nil {
 						m[k] = sjif
 					}
@@ -109,7 +114,7 @@ func Defrock_2_jif( iblob interface{} ) ( jif interface{}, err error ) {
 					for e, ele := range thing {
 						switch ele.(type) {
 							case string:
-								sjif, err := Defrock_2_jif( ele )	// if it's json, defrock and save the interface
+								sjif, err := Defrock_2_jif( rm_esc( ele.(string) ) )	// if it's json, defrock and save the interface
 								if err == nil {
 									thing[e] = sjif
 								}	
@@ -171,7 +176,7 @@ func frock_if( jif interface{} ) ( string ) {
 			return "null"
 
 		default: 
-			fmt.Fprintf( os.Stderr, "frock_if: unknown type: %s\n", reflect.TypeOf( thing ) )
+			//fmt.Fprintf( os.Stderr, "frock_if: unknown type: %s\n", reflect.TypeOf( thing ) )
 	}	
 
 	return ""
@@ -216,6 +221,32 @@ func add_esc( unq string ) ( quoted string ) {
 			bi++
 		}
 		b[bi] = byte( c )
+		bi++
+	}
+
+	return string( b[0:bi] )
+}
+
+/*
+	Remove a layer of escapes from a string.
+*/
+func rm_esc( esc string ) ( string ) {
+	b := make( []byte, len( esc ) )
+	s := []byte( esc )
+
+	bi := 0
+	si := 0
+	for ; si < len( esc )-1; {
+		if s[si] == '\\' {
+			si++
+		}
+		b[bi] = s[si]
+		bi++
+		si++
+	}
+
+	if si < len( esc ) {
+		b[bi] = s[si]
 		bi++
 	}
 

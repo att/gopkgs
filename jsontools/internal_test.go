@@ -45,9 +45,25 @@ func TestEscString( t *testing.T ) {
 	if gs != es {
 		fmt.Fprintf( os.Stderr, "[FAIL] escaped string not what we expected\n   got (%s)\nexpect (%s)\n", gs, es )
 		t.Fail()
-	} else { 
+	} else {
 		fmt.Fprintf( os.Stderr, "[OK]   escaped string is what we expected\n   got (%s)\nexpect (%s)\n", gs, es )
 	}
 
 	fmt.Fprintf( os.Stderr, "------ testing escape addition complete -----\n" )
+}
+
+func TestRmEsc( t *testing.T ) {
+	s := "now is the \"time\" for all good \"boys\" to get \\real\\"			// expected string after escapes stripped
+	es := "now is the \\\"time\\\" for all good \\\"boys\\\" to get \\\\real\\\\"		// escaped string
+
+	fmt.Fprintf( os.Stderr, "------ testing escape removal starts ----- \n" )
+	gs := rm_esc( es )
+	if gs != s {
+		fmt.Fprintf( os.Stderr, "[FAIL] escaped string not what we expected\n   got (%s)\nexpect (%s)\n", gs, s )
+		t.Fail()
+	} else {
+		fmt.Fprintf( os.Stderr, "[OK]   escaped string is what we expected\n   got (%s)\nexpect (%s)\n", gs, s )
+	}
+
+	fmt.Fprintf( os.Stderr, "------ testing escape removal complete -----\n" )
 }
