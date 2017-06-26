@@ -26,6 +26,8 @@
 	Author:		E. Scott Daniels
 
 	Mods:		04 Apr 2016 - comment change
+				18 May 2017 - Capture 'raw' interface for arrays in Jif2map.
+					
 */
 
 package jsontools
@@ -42,7 +44,15 @@ import (
 	Builds a flat map from the interface 'structure', aka jif, (ithing) passed in putting into hashtab. 
 	The map names generated for hashtab are dot separated.  For example, the json {foo:"foo-val", bar:["bar1", "bar2"] }
 	would generate the following names in the map:
-	root.foo, root.bar[0], root.bar[1] where 'root' is the initial tag passed in.
+		root.foo, root.bar[0], root.bar[1] root.bar
+		where 'root' is the initial ptag passed in.
+
+	If an array element is an object, e.g. bar:[ {a:valuea,b:valueb}, "bar2" ], then the following keys in the map
+	are generated:
+		root.bar[0], root.bar[0].a, root.bar[0].b, root.bar[1]
+	The root.bar[0] key references the actual interface for the element which is an object allowing that 
+	element to be teased out by the caller if needed (it can be passed to Jif2map() to generate a map
+	just of that object.
 	
 	Alternateive: see jsontree.go
 */
@@ -60,6 +70,9 @@ func Jif2map( hashtab map[string]interface{}, ithing interface{}, depth int, pta
 				hashtab[alen] = len( a );
 				if printit { fmt.Printf( "%s = %d\n", alen, len(a) ) }
 				for i := range a {
+					aidx := fmt.Sprintf( "%s[%d]", ptag, i )	
+					hashtab[aidx] = a[i]							// give a direct reference to the raw interface
+
 					switch a[i].( type ) {
 						case nil:
 							// ignore 
