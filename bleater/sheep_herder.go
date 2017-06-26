@@ -81,8 +81,6 @@ func (b *Bleater) Sheep_herder(  ldir *string, period int64 ) {
 	}
 
 	for {
-		now := time.Now().Unix()
-		time.Sleep(  time.Duration( (period - (now % period )) ) * time.Second )	// should wake us at midnight
 		lfn := b.Mk_logfile_nm( ldir, period )
 		b.Baa( 0, "herder is rolling the log into: %s", *lfn )
 		
@@ -90,10 +88,12 @@ func (b *Bleater) Sheep_herder(  ldir *string, period int64 ) {
 		if err != nil {
 			b.Baa( 0, "ERR: unable to roll the log to %s: %s", lfn, err )
 		} else {
-			b.Baa( 0, "herder rolled the log" )
+			b.Baa( 0, "herder rolled the log, writing starts to this log" )
 		}
 
 		time.Sleep( 5 * time.Second )				// let some time pass before we recalc midnight so as to not loop during the same second
+		now := time.Now().Unix()
+		time.Sleep(  time.Duration( (period - (now % period )) ) * time.Second )	// should wake us at midnight
 	}
 }
 
