@@ -73,6 +73,17 @@ func Json2tree( json_blob []byte ) ( j *Jtree, err error ) {
 }
 
 /*
+	Take the jtree and put it back into a json string (frock it).
+*/
+func ( j *Jtree ) Frock( ) ( jstr string ) {
+	if j == nil {
+		return ""
+	}
+
+	return Frock_jmap( j.jmap )
+}
+
+/*
 	Simple field confirmation function. Returns true if the named field
 	exists in the json mess.
 */
@@ -379,6 +390,7 @@ func ( j *Jtree ) Get_ele_if( name string, idx int ) ( *interface{} ) {
 	return &a[idx]
 }
 
+// ----  debugging ---------------------------------------------------------
 /*
 	Generate a list of fields in the current tree.
 */
@@ -396,7 +408,6 @@ func (j *Jtree ) List_fields() ( flist string ) {
 	return strings.Trim( flist, " " )
 }
 
-// -------------------------------------------------------------------------
 /*
 	Spill our guts for debugging
 */
@@ -409,3 +420,4 @@ func (j *Jtree ) Dump() {
 		fmt.Fprintf( os.Stderr, "dump: key=%s\n", k )
 	}
 }
+
