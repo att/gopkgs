@@ -416,8 +416,24 @@ func (j *Jtree ) Dump() {
 		return
 	}
 
-	for k,_ := range j.jmap {
-		fmt.Fprintf( os.Stderr, "dump: key=%s\n", k )
+	for k,v := range j.jmap {
+		fmt.Fprintf( os.Stderr, "dump: key=%s ", k )
+		switch val := v.(type) {
+			case string:
+				fmt.Fprintf( os.Stderr, " <string> %s\n", val )
+
+			case *string:
+				fmt.Fprintf( os.Stderr, " <*string> %s\n", *val )
+
+			case float64:
+				fmt.Fprintf( os.Stderr, " <value> %.3f\n", val )
+
+			case bool:
+				fmt.Fprintf( os.Stderr, " <bool> %v\n", val )
+
+			default:
+				fmt.Fprintf( os.Stderr, " <???>\n" )
+		}
 	}
 }
 
