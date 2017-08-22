@@ -25,6 +25,7 @@
 	Author:		E. Scott Daniels
 
 	Mods:		19 Nov 2016 - Adde reonnect logic when session for read or write is lost.
+				22 Aug 2017 - Allow for multiple keys on a reader
 
 	Useful links:
 			https://godoc.org/github.com/streadway/amqp#example-Channel-Consume
@@ -54,6 +55,7 @@ package rabbit_hole
 import (
 	"fmt"
 	"os"
+	"reflect"
 	"strings"
 	"time"
 
@@ -66,7 +68,7 @@ const (
 	INTERNAL	bool = true
 	WAIT		bool = false
 	EXCLUSIVE	bool = true
-	AUTO_ACK	bool = true
+	AUTO_ACK	bool = true				// automatically ack messages so we/user does not have to
 	LOCAL		bool = true
 	MANDITORY	bool = true
 	IMMED		bool = true
@@ -245,7 +247,7 @@ func (wrtr *Mq_writer) Driver( ) {
 			case iblob := <- wrtr.Port:			// something to send
 				if wrtr.alive {
 					msg = nil
-					key := wrtr.key
+					key := wrtr.key				// default key, buffer may be an Mq_msg with overriding key
 
 					switch blob := iblob.(type) {
 						case string:
@@ -266,7 +268,7 @@ func (wrtr *Mq_writer) Driver( ) {
           							Body:        blob,
   								}
 	
-						case Mq_msg:									// a struct with the desired write key
+						case *Mq_msg:									// a struct with the desired write key
   							msg = &amqp.Publishing {
           							ContentType: "text/plain",
           							Body:        blob.Data,
@@ -275,7 +277,8 @@ func (wrtr *Mq_writer) Driver( ) {
 			
 						default:
 							if !wrtr.quiet && mcount < 50 {
-								fmt.Fprintf( os.Stderr, "rabbit_hole: blob passed to writer is not string, *string, or []byte; not sent\n" )
+								t := reflect.TypeOf( iblob ).Elem()
+								fmt.Fprintf( os.Stderr, "rabbit_hole: blob (%s) passed to writer is not Mq_msg, string, *string, or []byte; not sent\n", t )
 								mcount++
 								if mcount == 50 {
 									fmt.Fprintf( os.Stderr, "rabbit_hole: squelching all future blob type messages until a good one received\n" )
@@ -481,6 +484,10 @@ func (rdr *Mq_reader) mk_queue( ) ( err error ) {
 		return fmt.Errorf( "channel is nil, unable to alloc queue" )
 	}
 
+	if rdr.qu != nil {			// one alreeady exists, just get out
+		return nil
+	}
+
 	if rdr.qname == "random" {
 		rdr.qname = ""
 	}
@@ -565,19 +572,35 @@ func (rdr *Mq_reader) connect2url( ) ( err error ) {
 */
 func ( rdr *Mq_reader ) connect( ) ( err error ) {
 
+	if rdr == nil {
+		return fmt.Errorf( "no struct given" )
+	}
+
 	if rdr.ch!= nil {
 		rdr.Close( )
 	}
+
+	ktoks := strings.Split( rdr.key, "," )
 
 	err = rdr.connect2url( ); 			// attempt a reconnect using prebuilt url
 	if err == nil {
 		err = rdr.ch.ExchangeDeclare( rdr.ex, rdr.etype, rdr.durable, rdr.auto_del, rdr.internal, true, nil )
 		if err == nil {
-			err = rdr.bind_q2ex( &rdr.key ) 
+			for _, kt := range ktoks {
+				err = rdr.bind_q2ex( &kt ) 
+				if err != nil {
+					err = fmt.Errorf( "unable to bind key %s to exchange %s: %s", kt, rdr.ex, err )
+					break;
+				}
+			}
 			if err == nil {
 				rdr.Port, err = rdr.ch.Consume( rdr.qu.Name, "", AUTO_ACK, !EXCLUSIVE, !LOCAL, WAIT, nil )
 			}
+		} else {
+			err = fmt.Errorf( "unable to declare exchange  %s: %err", rdr.ex, err )
 		}
+	} else {
+		err = fmt.Errorf( "unable to connect: %err", err )
 	}
 
 	if err != nil {
@@ -613,6 +636,10 @@ func ( rdr *Mq_reader ) connect( ) ( err error ) {
 	The queue type must match the exchange type (durable or !durable) and setting the
 	type for the exchage will also set the type for the queue, and thus setting
 	du or !du in the queue is optional.
+
+	The key is a string of one or more comma separated keys which will be asscoiated
+	with the queue when bound to the exchange. For a direct exchange, this allows the
+	same queue to be used to receive multiple message types based on key.
 */
 func Mk_mqreader( host string, port string, user string, pw string, ex string, ex_type string, key *string ) ( rdr *Mq_reader, err error ) {
 	rdr = &Mq_reader { 
@@ -700,6 +727,11 @@ func (rdr *Mq_reader) eat( usr_ch chan amqp.Delivery ) {
 		}
 
 		//TODO: check for stop and stop :)
+
+
+		if rdr.stop {
+			return
+		}
 
 		if !rdr.quiet {
 			fmt.Fprintf( os.Stderr, "rabbit_hole: read session disconnected, reconnection in progress: %s\n", rdr.ex )
