@@ -151,7 +151,7 @@ func Json2map( json_blob []byte, root_tag *string, printit bool ) ( symtab map[s
 		root_tag = &def_root_tag;
 	}
 
-	symtab = make( map[string]interface{} );
+	symtab = make( map[string]interface{}, 1024 );
 	Jif2map( symtab, jif, 0, *root_tag, printit )			// unpack the jif into the symtab
 
 	return;
