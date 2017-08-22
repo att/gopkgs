@@ -36,6 +36,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"reflect"
 	"strings"
 )
 
@@ -432,7 +433,8 @@ func (j *Jtree ) Dump() {
 				fmt.Fprintf( os.Stderr, " <bool> %v\n", val )
 
 			default:
-				fmt.Fprintf( os.Stderr, " <???>\n" )
+				t := reflect.TypeOf( val ).Elem()					// not recognised; give type
+				fmt.Fprintf( os.Stderr, " type: %s\n", t )
 		}
 	}
 }
