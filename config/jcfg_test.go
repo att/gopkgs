@@ -6,20 +6,21 @@ import (
 	"os"
 	"testing"
 
-	//"forge.research.att.com/switchboard/src/golib/cfg"
 	"github.com/att/gopkgs/config"
 )
 
 /*
-These should all be tested
+	These should all be tested:
 	func ( cfg *Jconfig ) Extract_section( parent string, sname string, subsections string ) ( sect *Jconfig, err error ) {
 	func ( cfg *Jconfig ) Extract_string( sects string, name string, def string ) ( string ) {
-func ( cfg *Jconfig ) Extract_stringptr( sects string, name string, def interface{} ) ( *string ) {
-func ( cfg *Jconfig ) Extract_posint( sects string, name string, def int ) ( int ) {
 	func ( cfg *Jconfig ) Extract_int64( sects string, name string, def int64 ) ( int64 ) {
 	func ( cfg *Jconfig ) Extract_int( sects string, name string, def int ) ( int ) {
-func ( cfg *Jconfig ) Extract_int32( sects string, name string, def int32 ) ( int32 ) {
 	func ( cfg *Jconfig ) Extract_bool( sects string, name string, def bool ) ( bool ) {
+	
+	These need to be added:
+	func ( cfg *Jconfig ) Extract_stringptr( sects string, name string, def interface{} ) ( *string ) {
+	func ( cfg *Jconfig ) Extract_posint( sects string, name string, def int ) ( int ) {
+	func ( cfg *Jconfig ) Extract_int32( sects string, name string, def int32 ) ( int32 ) {
 
 */
 
