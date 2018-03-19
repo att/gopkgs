@@ -244,9 +244,28 @@ func TestJtree( t *testing.T ) {
 	flist := jtree.List_fields()
 	if flist == ""  {
 		t.Fail()
-		fmt.Fprintf( os.Stderr, "[FAIL] field list was empty" )
+		fmt.Fprintf( os.Stderr, "[FAIL] field list was empty\n" )
 	} else {
 		fmt.Fprintf( os.Stderr, "[OK]   field list non-empty: (%s)\n", flist )
+	}
+
+	fnames := jtree.Get_fnames( )			// get array of field names at top level
+	if len( fnames ) != 23 {
+		fmt.Fprintf( os.Stderr, "[FAIL] field names array was too short. expeected 24 got %d\n", len( fnames ) )
+		t.Fail()
+	}
+	found_fname := false
+	for _,v := range fnames {
+		if v == "bool_true" {
+			found_fname = true
+			break
+		}
+	}
+	if ! found_fname {
+		fmt.Fprintf( os.Stderr, "[FAIL] did not find expected field name in array\n" )
+		t.Fail()
+	} else {
+		fmt.Fprintf( os.Stderr, "[OK]   field name tests pass\n" )
 	}
 
 	s := jtree.Get_string( "hostId" )
