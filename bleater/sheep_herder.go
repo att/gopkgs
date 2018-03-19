@@ -86,7 +86,7 @@ func (b *Bleater) Sheep_herder(  ldir *string, period int64 ) {
 		
 		err := b.Append_target( *lfn, true )			// create the next directory
 		if err != nil {
-			b.Baa( 0, "ERR: unable to roll the log to %s: %s", lfn, err )
+			b.Baa( 0, "ERR: unable to roll the log to %s: %s", *lfn, err )
 		} else {
 			b.Baa( 0, "herder rolled the log, writing starts to this log" )
 		}
