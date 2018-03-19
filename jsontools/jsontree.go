@@ -391,6 +391,26 @@ func ( j *Jtree ) Get_ele_if( name string, idx int ) ( *interface{} ) {
 	return &a[idx]
 }
 
+
+/*
+	Get_keys returns an array of field names which are available at the current 
+	top level of the tree.
+*/
+func( j *Jtree ) Get_fnames( ) ( fnames []string ) {
+	if j == nil || j.jmap == nil {
+		return nil 
+	}
+
+	fnames = make( []string, len( j.jmap ) )
+	i := 0
+	for k,_ := range j.jmap {
+		fnames[i] = k
+		i++
+	}
+
+	return fnames
+}
+
 // ----  debugging ---------------------------------------------------------
 /*
 	Generate a list of fields in the current tree.
