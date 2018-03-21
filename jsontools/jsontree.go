@@ -27,7 +27,7 @@
 	Date:		04 April 2016
 	Author:		E. Scott Daniels
 
-	Mods:
+	Mods:		21 March 2018 - Added pretty print function
 */
 
 package jsontools
@@ -35,6 +35,7 @@ package jsontools
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"reflect"
 	"strings"
@@ -180,6 +181,27 @@ func (j *Jtree ) Get_int( name string ) ( int64, bool ) {
 	}
 
 	return value, ok
+}
+
+/*
+	Generic getvalue -- returns the value as an interface; caller 
+	must figure out type.
+*/
+func ( j *Jtree ) Get_field_if( ifname interface{} ) ( interface{} ) {
+	if j == nil {
+		return nil
+	}
+
+	switch fname := ifname.(type) {
+		case string:
+			return j.jmap[fname]
+
+		case *string:
+			return j.jmap[*fname]
+
+		default:
+			return nil;
+	}	
 }
 
 /*
@@ -410,6 +432,65 @@ func( j *Jtree ) Get_fnames( ) ( fnames []string ) {
 
 	return fnames
 }
+
+/*
+	Pretty print the interface recusring to handle array and nested interface things
+	which we assume are jtrees.
+*/
+func print_if( target io.Writer, root string, stuff interface{} ) {
+	if stuff == nil {
+		return
+	}
+
+	switch val := (stuff).(type) {
+		case int:
+			fmt.Fprintf( target, "%s = %d\n", root, val )
+
+		case float64:
+			fmt.Fprintf( target, "%s = %.2f\n", root, val )
+
+		case bool:
+			fmt.Fprintf( target, "%s = %v\n", root, val )
+
+		case string:
+			fmt.Fprintf( target, "%s = %s\n", root, val )
+
+		case *string:
+			fmt.Fprintf( target, "%s = %s\n", root, *val )
+
+		case []interface{}:
+			nele := len( val )
+			for j := 0; j < nele; j += 1 {
+				aroot := fmt.Sprintf( "%s[%02d]", root, j )
+				print_if( target, aroot, val[j] )
+			}
+
+		case map[string]interface{}:			// subtree
+			for k, v := range val {
+				sroot := fmt.Sprintf( "%s.%s", root, k )
+				print_if( target, sroot, v )
+			}
+
+		default:
+			fmt.Fprintf( target, "%s = unknown-type\n", root )
+	}
+}
+
+/*
+	Pretty print the json tree. Arrays printed in order, rest is up to the whim of
+	the hash function that delivers things from the map.
+*/
+func ( jt *Jtree ) Pretty_print( target io.Writer  ) {
+	if jt == nil {
+		return
+	}
+
+	fields := jt.Get_fnames()
+	for i := 0; i < len( fields ); i += 1 {
+		print_if( target, fields[i], jt.Get_field_if( fields[i] ) )
+	}
+}
+
 
 // ----  debugging ---------------------------------------------------------
 /*
