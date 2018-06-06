@@ -36,7 +36,7 @@ import (
 */
 
 /*
-	Takes a string and slices it into tokens using the characters in sepchrs
+	Tokensise_keep takes a string and slices it into tokens using the characters in sepchrs
 	as the breaking points.  The separation characters are returned as
 	individual tokens in the list.  Separater characters escaped with a backslant
 	are NOT treated like separators.
