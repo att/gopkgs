@@ -202,7 +202,6 @@ func TestMultiKey( t *testing.T ) {
 	}
 	ex_type := "direct+!du+ad"
 
-	fmt.Fprintf( os.Stderr, "\n---- testing multikey listening on exchange: %s\n", ex_name )
 	
 	if host == "" || pw == "" || uname == ""  {
 		fmt.Fprintf( os.Stderr, "host (%s), username (%s)  and password (%s) must be defined in the environment (RHT_{HOST|USER|PW})\n", host, uname, pw )
@@ -212,6 +211,7 @@ func TestMultiKey( t *testing.T ) {
 
 	fmt.Fprintf( os.Stderr, "[INFO] connecting to exchanges\n" )
 	ex_name := "rhtest_mk"					// different name so it can run in parallel
+	fmt.Fprintf( os.Stderr, "\n---- testing multikey listening on exchange: %s\n", ex_name )
 	key := "rhtest_k2,rhtest_k1"			// keys we will expect to receive msg for
 	wkey := "rhtest"						// default write key
 
@@ -255,6 +255,6 @@ func TestMultiKey( t *testing.T ) {
 	w.Stop()
 	err = w.Delete( true )			// force delete
 	if err != nil {
-		fmt.Fprintf( os.Stderr, "[WARN] mmulti key test: failed to delete the exchange: %s", err )
+		fmt.Fprintf( os.Stderr, "[WARN] mmulti key test: failed to delete the exchange: %s\n", err )
 	}
 }
