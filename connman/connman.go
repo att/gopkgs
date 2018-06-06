@@ -211,7 +211,7 @@ func (this *Cmgr) conn_reader( cp *connection )   {
 /* ------ public ---------------------------------------------------- */
 
 /*
-	Starts a TCP listener, allowing the caller to supply type (tcp, tcp4, tcp6) and interface (0.0.0.0 for any)
+	Listen starts a TCP listener, allowing the caller to supply type (tcp, tcp4, tcp6) and interface (0.0.0.0 for any)
 	then opens and binds to the socket. A goroutine is started to actually do the listening and will
 	accept sessions that connect. Generally the listen method will be driven during the construction of
 	a cmgr object, though I user can use this if more than one listen port is required.
@@ -241,7 +241,7 @@ func (this *Cmgr) Listen( kind string, port string,  iface string, data2usr chan
 }
 
 /*
-	Starts a UDP listener which will forward received data back to the application using
+	Listen_udp starts a UDP listener which will forward received data back to the application using
 	the supplied channel.  The listener ID is returned along with a boolean indication
 	of success (true) or failure. The uid is the user created session id string that is 
 	used to send buffers that are not related to a session_data struct.
@@ -274,7 +274,7 @@ func (this *Cmgr) Listen_udp( port int, data2usr chan *Sess_data ) ( uid string,
 }
 
 /*
-	Joins a multicast group as a listener on the named interface
+	Listen_mc joins a multicast group as a listener on the named interface
 */
 func (this *Cmgr) Listen_mc( ifname string, addr string, data2usr chan *Sess_data ) ( sessid string, err error ) {
 
@@ -320,7 +320,7 @@ func (this *Cmgr) Listen_tcp( port string, data2usr chan *Sess_data ) ( string, 
 }
 
 /*
-	Lists the current statistics about connections to the standard output device.
+	List_stats lists the current statistics about connections to the standard output device.
 */
 func (this *Cmgr) List_stats(  ) {
 	var ucount int = 0 		// count of udp 'listeners' to dec conn count by
@@ -349,7 +349,7 @@ func (this *Cmgr) List_stats(  ) {
 }
 
 /*
-	Establishes a connection to the target process (ip:port) and starts a reader listening
+	Connect establishes a connection to the target process (ip:port) and starts a reader listening
 	for data on the session.  Any received data will be forwarded to the user application
 	via the channel provided.
 */
@@ -379,7 +379,7 @@ func (this *Cmgr) Connect( target string, uid string, data2usr chan *Sess_data )
 // ----------- generic write functions allowing writes to a named session ---------------------------------------
 
 /*
-	Writes the byte array to the named connection.
+	Write writes the byte array to the named connection.
 */
 func (this *Cmgr) Write( id string, buf []byte ) ( err error ) {
 	var (
@@ -405,7 +405,7 @@ func (this *Cmgr) Write( id string, buf []byte ) ( err error ) {
 }
 
 /*
-	Writes n bytes from the byte array to the named session.
+	Write_n writes n bytes from the byte array to the named session.
 */
 func (this *Cmgr) Write_n( id string, buf []byte, n int ) ( err error ){
 	var (
@@ -430,7 +430,7 @@ func (this *Cmgr) Write_n( id string, buf []byte, n int ) ( err error ){
 }
 
 /*
-	Writes the string to the named session.
+	Write_str writes the string to the named session.
 */
 func (this *Cmgr) Write_str( id string, buf string ) ( err error ) {
 	return this.Write( id,  []byte( buf ) )
@@ -439,7 +439,7 @@ func (this *Cmgr) Write_str( id string, buf string ) ( err error ) {
 //func (this *Cmgr) Write_udp( id string, to string, buf []byte ) ( err error ) {
 
 /*
-	Writes the byte array to the udp address given in 'to'.  The address is expected to be host:port format.
+	Write_udp writes the byte array to the udp address given in 'to'.  The address is expected to be host:port format.
 	Ibuf may be either an array of bytes, string or pointer to string.
 */
 func (this *Cmgr) Write_udp( id string, to string, ibuf interface{}) ( err error ) {
@@ -479,7 +479,7 @@ func (this *Cmgr) Write_udp( id string, to string, ibuf interface{}) ( err error
 // -------------------------- writes to a specific connection (faster than named writes) --------------------------------------------------------
 
 /*
-	Given a connection name, or UDP listener name, return the struct that can be used as the direct
+	Get_writer accepts a connection name, or UDP listener name, return the struct that can be used as the direct
 	writer.
 */
 func ( c *Cmgr ) Get_writer( id string ) ( *connection ) {
@@ -487,7 +487,7 @@ func ( c *Cmgr ) Get_writer( id string ) ( *connection ) {
 }
 
 /*
-	Return a writer that can be used to write directly to the address. Faster than the generic
+	Get_udp_writer returns a writer that can be used to write directly to the address. Faster than the generic
 	id oriented writes because there is no need for id lookup to find the writer, and the address
 	is already constructed.
 */
@@ -515,7 +515,7 @@ func ( c *Cmgr ) Get_udp_writer( id string, addr string ) ( newcp *connection, e
 */
 
 /*
-	Writes the contents of buf (bytes) to the process that sent the data represented by Sess_data.
+	Write writes the contents of buf (bytes) to the process that sent the data represented by Sess_data.
 	This implements the writer interface so things like fmt.Fprintf( ) can use the struct.
 
 	Returns actual number written and error if underlying environment had issues.
@@ -554,7 +554,7 @@ func (this *connection) Write( buf []byte ) ( nw int, err error ) {
 }
 
 /*
-	Allow udp from address to be captured for fast replies -- users should avoid doing
+	Bind2sender allow udp from address to be captured for fast replies -- users should avoid doing
 	this as all writes will go to the bound address rather than to the sender if
 	sess_data.Write() is used after this.
 */
@@ -570,14 +570,14 @@ func (s *Sess_data) Bind2sender( ) ( err error ) {
 }
 
 /*
-	Allows a previously bound sender to be dropped.
+	Unbind_sender allows a previously bound sender to be dropped.
 */
 func (s *Sess_data) Unbind_sender( ) {
 	s.sender.uaddr = nil
 }
 
 /*
-	Allows session data to be used as a Writer interface for connection oriented sessions.
+	Write allows session data to be used as a Writer interface for connection oriented sessions.
 */
 func (s *Sess_data) Write( buf []byte ) ( nw int, err error ) {
 	if s == nil || s.sender == nil {
@@ -587,7 +587,7 @@ func (s *Sess_data) Write( buf []byte ) ( nw int, err error ) {
 }
 
 /*
-	Writes n bytes to the process that sent the data represented by Sess_data
+	Write_n writes n bytes to the process that sent the data represented by Sess_data
 */
 func (this *Sess_data ) Write_n( buf []byte, n int ) ( err error ) {
 	var (
@@ -621,7 +621,7 @@ func (this *Sess_data ) Write_n( buf []byte, n int ) ( err error ) {
 }
 
 /*
-	Writes the string to the process that sent the data represented by Sess_data
+	Write_str writes the string to the process that sent the data represented by Sess_data
 */
 func (this *Sess_data ) Write_str( buf string ) ( n int, err error ) {
 	if this == nil {
@@ -632,7 +632,7 @@ func (this *Sess_data ) Write_str( buf string ) ( n int, err error ) {
 }
 
 /*
-    Writes the buffer to the address associated with id.
+    Write_udp_addr writes the buffer to the address associated with id.
 */
 func (this *Cmgr) Write_udp_addr( id string, addr *net.UDPAddr, buf []byte ) {
 	if cp, ok := this.clist[id]; ok {
@@ -642,7 +642,7 @@ func (this *Cmgr) Write_udp_addr( id string, addr *net.UDPAddr, buf []byte ) {
 }
 
 /*
-   Build an address from the IP addres:port string passed in; for use with Write_udp_addr().
+   String2udp_addr builds an address from the IP address:port string passed in; for use with Write_udp_addr().
 */
 func (this *Cmgr) String2udp_addr ( astr string ) ( addr *net.UDPAddr, err error ) {
 	addr, err = net.ResolveUDPAddr( "udp", astr )
@@ -652,6 +652,9 @@ func (this *Cmgr) String2udp_addr ( astr string ) ( addr *net.UDPAddr, err error
 
 
 // -------------------------------------------------------------------------------------------------------------------
+/*
+	Get_conn returns the connection given the connection id.
+*/
 func ( cm *Cmgr ) Get_conn( id string ) ( conn *connection ) {
 	conn = cm.clist[id]
 	return
@@ -667,7 +670,7 @@ func ( conn *connection ) Direct_udp_send( addr *net.UDPAddr, buf []byte ) {
 
 
 /*
-	Closes the named connection.
+	Close closess the named connection.
 */
 func (this *Cmgr) Close( id string ) {
 	
@@ -691,7 +694,7 @@ func (this *Cmgr) Close( id string ) {
 }
 
 /*
-	Creates a new connection manager object. Normally the establishment of a TCP listener is a two step process (create
+	NewManager creates a new connection manager object. Normally the establishment of a TCP listener is a two step process (create
 	the manager, and then allocate a TCP listener), however this can be reduced to a single call if the port is greater
 	than zero. In this case a TCP listener will be started on the port and "attached" to the manager with any data
 	received by sessions connected to the port sent to the user application using the channel provided.  If the listener
