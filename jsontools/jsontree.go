@@ -52,7 +52,7 @@ type Jtree struct {
 // --------------------- public ----------------------------------------------------------------------
 
 /*
-	Given the 'raw' json interface created by unmarshal, convert it into our base 
+	Json2tree accepts the 'raw' json interface created by unmarshal, convert it into our base 
 	struct and return a pointer to the struct.
 */
 func Json2tree( json_blob []byte ) ( j *Jtree, err error ) {
@@ -75,7 +75,7 @@ func Json2tree( json_blob []byte ) ( j *Jtree, err error ) {
 }
 
 /*
-	Take the jtree and put it back into a json string (frock it).
+	Frock takes the jtree and put it back into a json string (frock it).
 */
 func ( j *Jtree ) Frock( ) ( jstr string ) {
 	if j == nil {
@@ -86,7 +86,7 @@ func ( j *Jtree ) Frock( ) ( jstr string ) {
 }
 
 /*
-	Simple field confirmation function. Returns true if the named field
+	Has_field confirms that the field exists. Returns true if the named field
 	exists in the json mess.
 */
 func ( j *Jtree ) Has_field( name string ) ( bool ) {
@@ -120,7 +120,7 @@ func (j *Jtree ) Get_string( name string ) ( *string ) {
 }
 
 /*
-	Look up the name and if it's a float return the value. bool in return 
+	Get_float looks up the name and if it's a float return the value. bool in return 
 	is set to true if found.
 */
 func (j *Jtree ) Get_float( name string ) ( float64, bool ) {
@@ -151,7 +151,7 @@ func (j *Jtree ) Get_float( name string ) ( float64, bool ) {
 }
 
 /*
-	Look up name and return integer value. We assume unmarshall saves all
+	Get_int looks up name and return integer value. We assume unmarshall saves all
 	values as float.
 */
 func (j *Jtree ) Get_int( name string ) ( int64, bool ) {
@@ -184,7 +184,7 @@ func (j *Jtree ) Get_int( name string ) ( int64, bool ) {
 }
 
 /*
-	Generic getvalue -- returns the value as an interface; caller 
+	Get_field_if is a generic getvalue -- it returns the value as an interface; caller 
 	must figure out type.
 */
 func ( j *Jtree ) Get_field_if( ifname interface{} ) ( interface{} ) {
@@ -205,7 +205,7 @@ func ( j *Jtree ) Get_field_if( ifname interface{} ) ( interface{} ) {
 }
 
 /*
-	Return the value associated with a boolean; ok is false if the value
+	Get_bool returns  the value associated with a boolean; ok is false if the value
 	isn't booliean or doesn't exist and the value returned is undefined.
 */
 func ( j *Jtree ) Get_bool( name string ) ( bv bool, ok bool ) {
@@ -218,6 +218,9 @@ func ( j *Jtree ) Get_bool( name string ) ( bv bool, ok bool ) {
 	return bv, ok					// bv is undefined if !ok
 }
 
+/*
+	Get_subtree returns the Jtree associated with the named field.
+*/
 func( j *Jtree ) Get_subtree( name string ) ( *Jtree, bool ) {
 	var (
 		st *Jtree = nil
@@ -237,7 +240,7 @@ func( j *Jtree ) Get_subtree( name string ) ( *Jtree, bool ) {
 }
 
 /*
-	Return the number of elements in the array name or -1 if not an array.
+	Get_ele_count returns the number of elements in the array name or -1 if not an array.
 */
 func ( j *Jtree ) Get_ele_count( name string ) ( int ) {
 	
@@ -255,7 +258,7 @@ func ( j *Jtree ) Get_ele_count( name string ) ( int ) {
 }
 
 /*
-	Return the *string element from the array. Nil is returned if:
+	Get_ele_string returns  the *string element from the array. Nil is returned if:
 		name isn't defined in the tree OR
 		name isn't an array OR
 		idx is out of range for name OR
@@ -276,7 +279,7 @@ func ( j *Jtree ) Get_ele_string( name string, idx int ) ( *string ) {
 }
 
 /*
-	Return the value associated with a boolean; ok is false if the value
+	Get_ele_bool returns the value associated with a boolean; ok is false if the value
 	isn't booliean or doesn't exist or there is a range error.
 */
 func ( j *Jtree ) Get_ele_bool( name string, idx int ) ( bv bool, ok bool ) {
@@ -290,7 +293,7 @@ func ( j *Jtree ) Get_ele_bool( name string, idx int ) ( bv bool, ok bool ) {
 }
 
 /*
-	Return the int element from the array. ok is false if:
+	Get_ele_int returns the int element from the array. ok is false if:
 		name isn't defined in the tree OR
 		name isn't an array OR
 		idx is out of range for name OR
@@ -325,7 +328,7 @@ func ( j *Jtree ) Get_ele_int( name string, idx int ) ( int64, bool ) {
 }
 
 /*
-	Return the float element from the array. ok is false if:
+	Get_ele_float returns the float element from the array. ok is false if:
 		name isn't defined in the tree OR
 		name isn't an array OR
 		idx is out of range for name OR
@@ -360,7 +363,7 @@ func ( j *Jtree ) Get_ele_float( name string, idx int ) ( float64, bool ) {
 }
 
 /*
-	Return the element of an array as a pointer to a subtree.
+	Get_ele_subtree returns the element of an array as a pointer to a subtree.
 	Returns nil and !ok if:
 		name is not known OR
 		name is not an array OR
@@ -388,8 +391,8 @@ func ( j *Jtree ) Get_ele_subtree( name string, idx int ) ( *Jtree, bool ) {
 }
 
 /*
-	Get the element in the named array if not out of range.
-	Retuns nil if:
+	Get_ele_if fetches the element in the named array if not out of range.
+	Returns nil if:
 		name is not in the tree OR
 		name is not an array OR
 		idx is out of range
@@ -434,7 +437,7 @@ func( j *Jtree ) Get_fnames( ) ( fnames []string ) {
 }
 
 /*
-	Pretty print the interface recusring to handle array and nested interface things
+	print_if will pretty print the interface recusring to handle array and nested interface things
 	which we assume are jtrees.
 */
 func print_if( target io.Writer, root string, stuff interface{} ) {
@@ -477,7 +480,7 @@ func print_if( target io.Writer, root string, stuff interface{} ) {
 }
 
 /*
-	Pretty print the json tree. Arrays printed in order, rest is up to the whim of
+	Pretty_print will pretty print the json tree. Arrays printed in order, rest is up to the whim of
 	the hash function that delivers things from the map.
 */
 func ( jt *Jtree ) Pretty_print( target io.Writer  ) {
