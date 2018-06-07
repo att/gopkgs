@@ -268,7 +268,7 @@ func deal_with( out http.ResponseWriter, in *http.Request ) {
 			sequential distribution should an event contain multiple 
 			messages.
 
-	The dispatcher is single threaded and thus guarentees that the events
+	The dispatcher is single threaded and thus guarantees that the events
 	received in a single message are distributed in the order received. The
 	number of acks needed is recorded, and if none are asked for, then we 
 	release the http deal with function straight away, otherwise we hold it
@@ -441,7 +441,7 @@ func Unregister( band string, ch chan *Envelope ) {
 
 	If interface is supplied, then the listener will be started only on that interface/port
 	combination. If interface is omitted, then the listener will listen on all interfaces.
-	This funciton may be invoked multiple times, with different ports, but be advised that 
+	This function may be invoked multiple times, with different ports, but be advised that 
 	all messages are funneled to the same handler.  Multiple invocations only serve to 
 	establish different interfaces and/or ports.
 */

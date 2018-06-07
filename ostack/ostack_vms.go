@@ -76,7 +76,7 @@ type port struct {
 	Network_id string
 	Tenant_id string
 	Device_owner string
-	//binding:capabilities  // what idiot created a name with a colon in it -- completely unusuable here (unless tagged I guess)
+	//binding:capabilities  // what idiot created a name with a colon in it -- completely unusable here (unless tagged I guess)
 	//Binding:vif_type string	// must have been the same idiot who decided on this name too.
 	Mac_address string
 	Fixed_ips []ip_address
@@ -442,7 +442,7 @@ func (o *Ostack) vmname2vmid( deftab map[string]*string, inc_tenant bool, usr_jd
 		dup_name := vmname
 		
 		if reverse {
-			symtab[dup_id] = &dup_name			// generatin id->name map
+			symtab[dup_id] = &dup_name			// generating id->name map
 		} else {
 			symtab[dup_name] = &dup_id			// generating name->id map
 		}
@@ -638,7 +638,7 @@ func (o *Ostack) Mk_tip2mac( def_table map[string]*string ) ( table map[string]*
 }
 
 
-// ------------- physcial host mapping --------------------------------------------------------------------------------------
+// ------------- physical host mapping --------------------------------------------------------------------------------------
 
 /*
 	Generate a map that allows the vmid to be used to map to the physical host.

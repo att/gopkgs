@@ -41,7 +41,7 @@ const (
 )
 
 /*
-	Accept a human readable string from openstack (presumed to be in the format
+	Unix_time accepts a human readable string from openstack (presumed to be in the format
     2014-08-18T02:34:48Z) and convert it into a usable, unix timestamp.
 
 	If there is an error, err is set and the returned time will be 0.

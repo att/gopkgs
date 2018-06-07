@@ -176,7 +176,7 @@ type ost_token struct {
 	Tenant	*ost_tenant
 }
 
-type ost_token_v3 struct { // Struct to accomdate the new identity version 3
+type ost_token_v3 struct { // Struct to accomodate the new identity version 3
 	Expires_at string
 	Issued_at string
 	User *ost_user				// User now can be retrieved directly from Token

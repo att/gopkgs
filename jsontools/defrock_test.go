@@ -80,7 +80,7 @@ func TestDefrock( t *testing.T ) {
 		t.Fail( )
 	}
 
-	s, err = jsontools.Refrock( jstring )		// does the same thing as above via the Refrock() funciton
+	s, err = jsontools.Refrock( jstring )		// does the same thing as above via the Refrock() function
 	if err != nil {
 		fmt.Fprintf( os.Stderr, "[FAIL] refrock attempt failed: %s", err )
 		t.Fail()
