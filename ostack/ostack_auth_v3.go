@@ -262,7 +262,7 @@ func (o *Ostack) Token_validation_v3( token *string, usr_match *string ) ( expir
 	}
 
 	if len( *token ) > 100 {
-		fmt.Println("str2md5_str is working no need of seperate func")						// ostack cannot handle its own large tokens, so compress before sending
+		fmt.Println("str2md5_str is working no need of separate func")						// ostack cannot handle its own large tokens, so compress before sending
 		token = str2md5_str( *token )
 	}
 	o.Validate_auth_v3()							// ensure we're still auth to make requests

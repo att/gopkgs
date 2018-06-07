@@ -190,7 +190,7 @@ type Broker_msg struct {
 /*
 	Called during the key exchange to validate the remote host key. Because there are times
 	when host keys change and nobody ever cleans up/modifies authorised key files, this
-	funciton is used to always accept a host key.
+	function is used to always accept a host key.
 */
 func allow_any_hk( hostname string, addr net.Addr, key ssh.PublicKey ) error {
 	return nil
@@ -602,7 +602,7 @@ func ( b *Broker ) initiator( id int ) {
 
 // ----- public msg functions ------------------------------------------------------------------------------
 /*
-	Returns the standard out, standard error elapsed time (sec) and the overall error state contained in
+	Get_results returns the standard out, standard error elapsed time (sec) and the overall error state contained in
 	the message.
 */
 func (m *Broker_msg) Get_results( ) ( stdout bytes.Buffer, stderr bytes.Buffer, elapsed int64, err error ) {
@@ -620,7 +620,7 @@ func (m *Broker_msg) Get_info( ) ( host string, sname string, id int ) {
 // ------------ public broker functions ---------------------------------------------------------------------
 
 /*
-	Create a broker for the given user and with the given key files.
+	Mk_broker creates a broker for the given user and with the given key files.
 	If keys are given, then the assumption is that there should _not_ be any prompt for
 	password. If keys is nil, then prompting will be allowed.
 */
@@ -668,7 +668,7 @@ broker.verbose = true
 }
 
 /*
-	Start n initiators which allow n scripts to be executed in parallel.
+	Start_initiators starts n initiators which allow n scripts to be executed in parallel.
 */
 func ( b *Broker ) Start_initiators( n int ) {
 	if n <= 0 {
@@ -687,7 +687,7 @@ func ( b *Broker ) Start_initiators( n int ) {
 }
 
 /*
-	Clean up things that need to be closed when the user makes us go away.
+	Close cleans up things that need to be closed when the user makes us go away.
 */
 func ( b *Broker ) Close( ) {
 	if b == nil {
@@ -713,6 +713,9 @@ func ( b *Broker ) Close( ) {
 	b.ninitiators = 0
 }
 
+/*
+	Reset causes the session to be reset.
+*/
 func ( b *Broker ) Reset( ) {
 	if b == nil {
 		return
@@ -737,7 +740,7 @@ func ( b *Broker ) Reset( ) {
 }
 
 /*
-	Close a session to the named host.
+	Close_session closes a session to the named host.
 */
 func ( b *Broker ) Close_session( name *string ) ( err error ) {
 	err = nil
@@ -765,7 +768,7 @@ func ( b *Broker ) Close_session( name *string ) ( err error ) {
 
 
 /*
-	Execute the script (a local shell/python script) on the remote host.
+	Run_on_host executes the script (a local shell/python script) on the remote host.
 	This is done by creating a request and putting it on the initiator queue and
 	waiting for the response on the dedicated channel allocated here.
 
@@ -802,7 +805,7 @@ func ( b *Broker ) Run_on_host( host string, script string, parms string, env_fi
 }
 
 /*
-	Put the execution request onto the initiator queue, but do not block. The response
+	NBRun_on_host runs the execution request onto the initiator queue, but do not block. The response
 	is put onto the channel provided by the user. If the channel is nil, the request
 	is still queued with the assumption that the caller does not want the results.
 */
@@ -827,7 +830,7 @@ fmt.Fprintf( os.Stderr, "creating request: %d\n", uid )
 }
 
 /*
-	Execute the command on the named host. The cmd string is expected to be the
+	Run_cmd executes the command on the named host. The cmd string is expected to be the
 	complete command line.
 */
 func ( b *Broker ) Run_cmd( host string, cmd string ) ( stdout *bytes.Buffer, stderr *bytes.Buffer, err error ) {
@@ -856,7 +859,7 @@ func ( b *Broker ) Run_cmd( host string, cmd string ) ( stdout *bytes.Buffer, st
 }
 
 /*
-	Run a command on the remote host, non-blocking. The cmd string is expected to
+	NBRun_cmd runs a command on the remote host, non-blocking. The cmd string is expected to
 	be the complete command line.
 */
 func ( b *Broker ) NBRun_cmd( host string, cmd string,  uid int, uch chan *Broker_msg  ) ( err error ) {

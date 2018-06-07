@@ -169,7 +169,7 @@ func Mk_aristaif( usr *string, pw *string, host *string, port *string ) (aif * A
 	Submit_req sends a command set to the switch and returns the raw result.
 	If text request is true, we change the format to text in the request. (There are some
 	Arista commands that do not support returning json output and thus the text_req
-	paramter must be set to true in order for the command to work.  Err will be non-nil
+	parameter must be set to true in order for the command to work.  Err will be non-nil
 	if any error was detected.
 
 	The cmds parameter is a chain of commands to be executed by the switch API.  Each command

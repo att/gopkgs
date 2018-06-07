@@ -171,7 +171,7 @@ func TestToken_qsep_pop( t *testing.T ) {
 
 
 /*
-	Test qsep which should return null tokens when multiple separaters exist (e.g. foo,,,bar)
+	Test qsep which should return null tokens when multiple separators exist (e.g. foo,,,bar)
 */
 func TestToken_qsep( t *testing.T ) {
 	str := `hello "world this is" a test where token 2 was quoted`
