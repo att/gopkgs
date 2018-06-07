@@ -24,7 +24,7 @@
 	Date: 		17 January 2014
 	Author: 	E. Scott Daniels
 
-	Mods:
+	Mods:		07 Jun 2018 - Fix return bug (line 240)
 
 */
 
@@ -169,7 +169,7 @@ func Mk_aristaif( usr *string, pw *string, host *string, port *string ) (aif * A
 	Submit_req sends a command set to the switch and returns the raw result.
 	If text request is true, we change the format to text in the request. (There are some
 	Arista commands that do not support returning json output and thus the text_req
-	paramter must be set to true in order for the command to work.  Err will be non-nil
+	parameter must be set to true in order for the command to work.  Err will be non-nil
 	if any error was detected.
 
 	The cmds parameter is a chain of commands to be executed by the switch API.  Each command
@@ -237,7 +237,7 @@ func (aif *Arista_api) Get_interfaces( ifstate string ) ( ifmap map[string]*Swif
 	for ik, _ := range ifaces {										// ifaces should be an array of struct
 		sif, ok := ifaces[ik].( map[string]interface{} )			// single interface data
 		if !ok {
-			fmt.Errorf( "single interface %s was not expected type", ik )
+			err = fmt.Errorf( "single interface %s was not expected type", ik )
 			return
 		}
 

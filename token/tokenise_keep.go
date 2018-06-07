@@ -32,11 +32,12 @@ import (
 	Author: 	E. Scott Daniels
 	Mods:		01 May 2012 : Added escape character support
 				03 Feb 2015 : Removed unreachable code.
+				07 Jun 2018 : Remove unreachable code (keep vet happy)
 ---------------------------------------------------------------------------------------
 */
 
 /*
-	Takes a string and slices it into tokens using the characters in sepchrs
+	Tokensise_keep takes a string and slices it into tokens using the characters in sepchrs
 	as the breaking points.  The separation characters are returned as
 	individual tokens in the list.  Separater characters escaped with a backslant
 	are NOT treated like separators.
@@ -89,6 +90,4 @@ func Tokenise_keep(  buf string, sepchrs string ) (int, []string) {
 		}
 	
 	}	
-
-	return 0, nil
 }

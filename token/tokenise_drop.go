@@ -32,6 +32,7 @@ import (
 	Date:		22 Apr 2012
 	Author: 	E. Scott Daniels
 	Mod:		03 Feb 2015 - Removed unreachable code
+				07 Jun 2018 : Remove unreachable code (keep vet happy)
 ---------------------------------------------------------------------------------------
 */
 
@@ -76,6 +77,4 @@ func Tokenise_drop(  buf string, sepchrs string ) ( ntokens int, tokens []string
 			return
 		}
 	}	
-
-	return
 }

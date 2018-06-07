@@ -25,7 +25,7 @@
 
 				If the environment variable RHT_PAUSE is non-empty (e.g. RHT_PAUSE=true) then
 				the writer will pause after wirting a few messages.  During the pause, the 
-				rabbitMQ process can e cycled to force a disconnect and test the ability to 
+				rabbitMQ process can be cycled to force a disconnect and test the ability to 
 				reconnect both reader and writer. The expected message losss of one is considered
 				a pass; missing more messages would be a failure.  The underlying rabbit_hole does
 				_not_ preserve messagess written during session outage; a singl message loss is
@@ -196,13 +196,8 @@ func TestMultiKey( t *testing.T ) {
 	pw := os.Getenv( "RHT_PW" )				// user name and password must come from environment
 	uname := os.Getenv( "RHT_USER" )
 	host := os.Getenv( "RHT_HOST" )
-	pause  := os.Getenv( "RHT_PAUSE" )
-	if pause == "0" {
-		pause = ""
-	}
 	ex_type := "direct+!du+ad"
 
-	fmt.Fprintf( os.Stderr, "\n---- testing multikey listening on exchange: %s\n", ex_name )
 	
 	if host == "" || pw == "" || uname == ""  {
 		fmt.Fprintf( os.Stderr, "host (%s), username (%s)  and password (%s) must be defined in the environment (RHT_{HOST|USER|PW})\n", host, uname, pw )
@@ -212,6 +207,7 @@ func TestMultiKey( t *testing.T ) {
 
 	fmt.Fprintf( os.Stderr, "[INFO] connecting to exchanges\n" )
 	ex_name := "rhtest_mk"					// different name so it can run in parallel
+	fmt.Fprintf( os.Stderr, "\n---- testing multikey listening on exchange: %s\n", ex_name )
 	key := "rhtest_k2,rhtest_k1"			// keys we will expect to receive msg for
 	wkey := "rhtest"						// default write key
 
@@ -255,6 +251,6 @@ func TestMultiKey( t *testing.T ) {
 	w.Stop()
 	err = w.Delete( true )			// force delete
 	if err != nil {
-		fmt.Fprintf( os.Stderr, "[WARN] mmulti key test: failed to delete the exchange: %s", err )
+		fmt.Fprintf( os.Stderr, "[WARN] mmulti key test: failed to delete the exchange: %s\n", err )
 	}
 }

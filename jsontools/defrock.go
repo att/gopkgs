@@ -46,7 +46,7 @@ import (
 
 // --------------------- public ----------------------------------------------------------------------
 /*
-	Take json in the form of string, *string or []byte and unencapsulate any embedded strings which 
+	Refrock takes json in the form of string, *string or []byte and unencapsulate any embedded strings which 
 	are json. The result is a string with valid json but with any embedded json strings in the original
 	made into a part of the resulting 'hierarchy'. This is a two step process which simply uses the 
 	Defrock_2_jif() and Frock_jmap() functions below.
@@ -61,7 +61,7 @@ func Refrock( jblob interface{} ) ( string, error ) {
 }
 
 /*
-	Take ehter json input (as string, *string or []byte), or a map[]interface{} and completey defrock 
+	Defrock_2_jif takes either json input (as string, *string or []byte), or a map[]interface{} and completely defrock 
 	it into a json inteface (jif).  This assumes that some strings may be json which should be recursively 
 	defrocked. Yes, what system might actually embed json as a string in json.... Openstack; grrrr.
 */
@@ -182,7 +182,7 @@ func frock_if( jif interface{} ) ( string ) {
 	return ""
 }
 /*
-	Accepts a jmap (keyed interface values) and generates the corresponding formatted (frocked) json
+	Frock_jmap accepts a jmap (keyed interface values) and generates the corresponding formatted (frocked) json
 	in a string.
 */
 func Frock_jmap( jif interface{} ) ( json string ) {

@@ -22,7 +22,7 @@
 
 	Mnemonic:	event.go
 	Abstract:	Event struct and related functions. The event struct is organised
-				with publically visable fields to allow for json unmarshalling and
+				with publically visible fields to allow for json unmarshalling and
 				to make it easier for the listener to process.  There are some 	
 				private fields which are visable only to this package (e.g. the 
 				related data block for replies).
@@ -103,15 +103,15 @@ func ( e *Event ) Get_msg( ) ( string ) {
 }
 
 /*
-	Build the path of this event.
+	Path returns the path of this event.
 */
 func ( e *Event ) Path() ( string ) {
 	return e.Event_type
 }
 
 /*
-	Send a reply back to the http requestor. This is a wrapper that puts a request 
-	on the dispatcher queue so that we serialise the access to the underlying
+	Reply sends a reply back to the http requestor. This is a wrapper that puts a 
+	request on the dispatcher queue so that we serialise the access to the underlying
 	data block. Status is presumed to be OK or ERROR or somesuch. msg is any
 	string that is a 'commment' and data is json or other data (not quoted in the
 	output).
@@ -135,6 +135,9 @@ func ( e *Event ) Reply( state string, msg string, data string ) {
 	cmsg.Send_req( disp_ch, nil, SEND_ACK, e, nil )            // queue the event for a reply
 }
 
+/*
+	String returns a string describing the instance of the structure.
+*/
 func ( e *Event ) String( ) ( string ) {
 	return fmt.Sprintf( "%s ack=%v", e.Event_type, e.Ack )
 }

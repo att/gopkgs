@@ -44,7 +44,7 @@
 	indicaed level is <= the current level in the bleater, or <= than the
 	parent level.  When a parent's level is changed, it is "broadcast" to
 	all children in an attempt to minimise the cycles needed to check for
-	each bleat (the assumption is that the parent level seldomly changes
+	each bleat (the assumption is that the parent level rarely changes
 	and pushing it is less expensive than constantly checking the parent
 	object's value).
 
@@ -138,7 +138,7 @@ func ( b *Bleater ) Baa( when uint, uformat string, va ...interface{} ) {
 }
 
 /*
-	Allows a caller to bleat messages belonging to a 'class' less often than every time called.
+	Baa_some allows a caller to bleat messages belonging to a 'class' less often than every time called.
 	The Baa_some function accepts additional parameters (class name, and frequency) and will
 	bleat the message on the first call, and then every frequency of calls there after.
 	Frequency is not saved with the class, so it is possible to change the frequency at any time.
@@ -166,7 +166,7 @@ func ( b *Bleater ) Baa_some( class string, freq int, when uint, uformat string,
 }
 
 /*
-	Allow a bleat_some class to be reset such that the next bleat_some() will
+	Baa_some_reset allows a bleat_some class to be reset such that the next bleat_some() will
 	cause the message to be written and the counter cycled.
 */
 func ( b *Bleater ) Baa_some_reset( class string ) {
@@ -246,7 +246,7 @@ func ( b *Bleater ) Set_target( new_target io.Writer, close_old bool ) {
 }
 
 /*
-	Creates a new file and truncates it. All subsequent Baa() calls will write to this file.
+	Create_target creates a new file and truncates it. All subsequent Baa() calls will write to this file.
 	The newly created file will be 'pushed' down into all child bleaters.
 */
 func ( b *Bleater ) Create_target( target_fname string, close_old bool ) ( err error ) {
@@ -269,7 +269,7 @@ func ( b *Bleater ) Create_target( target_fname string, close_old bool ) ( err e
 }
 
 /*
-	Opens the target file and appends to it. If the file doesn't exist, it creates it.
+	Append_target opens the target file and appends to it. If the file doesn't exist, it creates it.
 	The new file is pushed down into all child bleaters if they exist.
 */
 func ( b *Bleater ) Append_target( target_fname string, close_old bool ) ( err error ) {

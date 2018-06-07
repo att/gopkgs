@@ -22,7 +22,7 @@
 	This test is a bit different than most 'go test' function sets as the 
 	test verifies that the package can be used, but output from the test
 	is vetted by an external script which looks for various things, or the
-	absense of things, in the log files that are created. Specifically, 
+	absence of things, in the log files that are created. Specifically, 
 	the strings looked for in the output are:
 		'.*should show.*'			(these are counted)
 		'.*should NOT show.*'		(these cause an error if seen)

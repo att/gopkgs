@@ -19,7 +19,7 @@
 
 /*
 	Mnemonic:	security_test
-	Abstract: 	self test for security funcitons
+	Abstract: 	self test for security functions
 	Date:		06 June 2014
 	Author: 	E. Scott Daniels
 */
@@ -34,8 +34,6 @@ import (
 	"github.com/att/gopkgs/security"
 )
 
-
-//func Mk_cert( key_bits int, string *cert_name, dns_list []string, fname *string ) ( err error ) {
 /*
 	Test the creation of a cert and related key
 */
