@@ -64,6 +64,7 @@
 				30 Sep 2015 - Added FetchAllPorts()
 				17 Dec 2015 - Added an l3 list generator to list only those nodes marked as l3. Using
 					a full list (with openvswitch) was giving too much.
+				07 Jun 2018 - Correct inneffective assignment error.
 ------------------------------------------------------------------------------------------------
 */
 
@@ -118,11 +119,11 @@ func (o *Ostack) FetchAllPorts( destfile string ) (err error) {
 			req.Header.Add( "Content-Type", "application/json" )
 			req.Header.Add( "X-Auth-Token", o.pickToken() )
 			rsrc := &http.Client{}
-			resp, err := rsrc.Do( req )
-			if err == nil {
+			resp, nerr := rsrc.Do( req )
+			if nerr == nil {
 				defer resp.Body.Close()
-				outf, err := os.Create( destfile )
-				if err == nil {
+				outf, nerr := os.Create( destfile )
+				if nerr == nil {
 					defer outf.Close()
 					_, err = io.Copy(outf, resp.Body)
 				}
