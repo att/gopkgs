@@ -41,7 +41,7 @@
 	then can either listen directly on the lister.Port for 
 	amqp.Delivery messages, or can invoke listener.Eat() and
 	supply a channel where Eat() will write received messages
-	(alowing a central user function to process all messages from 
+	(allowing a central user function to process all messages from 
 	multiple listeners).
 
 	User programme creates a sender via Mk_mqwriter() which 
@@ -116,7 +116,7 @@ type Mq_writer struct {
 	auto_del bool
 	internal bool
 	stop	bool					// flag that the write goroutne should halt
-	quiet	bool					// if true, diagnostic messages are supressed
+	quiet	bool					// if true, diagnostic messages are suppressed
 	alive	bool					// true if the write connection is thought to b alive and messages can be sent
 	Notify chan string				// user can send request to us (quiet, stop, etc.)
 }
@@ -169,7 +169,7 @@ func (wrtr *Mq_writer) connect2( host string, port string, user string, pw strin
 
 /*
 	Reconnect atempts to establish the session assuming that the URL was already deined during the initial 
-	connection process. A reconnect attempt will try indefinately until the process is stopped, or a conection
+	connection process. A reconnect attempt will try indefinitely until the process is stopped, or a connection
 	is established.
 */
 func ( wrtr *Mq_writer ) reconnect( ) {

@@ -19,7 +19,7 @@
 
 /*
 	Mnemonic:	internal_test.go
-	Abstract:	Tests which drive internal funcitons and thus the package must
+	Abstract:	Tests which drive internal functions and thus the package must
 				be jsontools and not jsontools_test
 	Author:		E. Scott Daniels
 	Date:		5 June 2017

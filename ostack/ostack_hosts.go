@@ -21,7 +21,7 @@
 /*
 ------------------------------------------------------------------------------------------------
 	Mnemonic:	ostack_hosts
-	Abstract:	Functions to support getting physcial host and hypervisor maps and information.
+	Abstract:	Functions to support getting physical host and hypervisor maps and information.
 					
 	Date:		16 December 2013
 	Author:		E. Scott Daniels

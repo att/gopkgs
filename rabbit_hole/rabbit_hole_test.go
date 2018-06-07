@@ -24,7 +24,7 @@
 				main will write 10,000 messages and the reader is expected to receive all 10k.
 
 				If the environment variable RHT_PAUSE is non-empty (e.g. RHT_PAUSE=true) then
-				the writer will pause after wirting a few messages.  During the pause, the 
+				the writer will pause after writing a few messages.  During the pause, the 
 				rabbitMQ process can be cycled to force a disconnect and test the ability to 
 				reconnect both reader and writer. The expected message losss of one is considered
 				a pass; missing more messages would be a failure.  The underlying rabbit_hole does
@@ -189,7 +189,7 @@ func TestDelete( t *testing.T ) {
 }
 
 /*
-	Tests the ability to register muliple keys on the same queue bound to a direct
+	Tests the ability to register multiple keys on the same queue bound to a direct
 	exchange.  Reader should receive only 2 of the three messages sent. 
 */
 func TestMultiKey( t *testing.T ) {

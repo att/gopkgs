@@ -27,7 +27,7 @@ import (
 
 /*
 ---------------------------------------------------------------------------------------
-	Mnemonic:	tokenise_keep (split and keep separaters as individual tokens)
+	Mnemonic:	tokenise_keep (split and keep separators as individual tokens)
 	Date:		22 Apr 2012
 	Author: 	E. Scott Daniels
 	Mods:		01 May 2012 : Added escape character support
