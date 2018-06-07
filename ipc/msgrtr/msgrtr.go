@@ -28,6 +28,7 @@
 
 	Mods:		12 Nov 2015 - Added support to accept listener data and include that
 					when events are sent out.
+				07 Jun 2018 - Correct printf bug.
 */
 
 /*
@@ -215,7 +216,7 @@ func deal_with( out http.ResponseWriter, in *http.Request ) {
 
 	if( err != nil ) {													// missing or bad data -- punt early
 		sheep.Baa( 1, "msgrtr/http: missing or badly formatted data: %s: %s", in.Method, err )
-		fmt.Fprintf( out, `{ "status": "ERROR", "comment": "missing or badly formatted data: %s", err }` )	// error stuff back to user
+		fmt.Fprintf( out, `{ "status": "ERROR", "comment": "missing or badly formatted data: %s" }`, err )	// error stuff back to user
 		return
 	}
 

@@ -27,6 +27,7 @@
 	Date: 		20 January 2015
 
 	Mods:		13 Apr 2015 - Added explicit ssh command for rsync to use.
+				07 Jun 2018 - fix printf %s/v bug.
 
 	CAUTION:	This package reqires go 1.3.3 or later.
 */
@@ -41,7 +42,7 @@ import (
 )
 
 /*
-	Accepts the setup for rsync commands.  We assume src is one or more
+	Add_rsync accepts the setup for rsync commands.  We assume src is one or more
 	source files and dest_dir is the name of the directory on the remote
 	host.  When the rsync command is actually run, the two strings are
 	combined (unchanged) with user@host: inserted just before the dest
@@ -78,7 +79,7 @@ func ( b *Broker ) synch_host( host *string ) ( err error ) {
 
 	if b == nil || b.rsync_src == nil || b.rsync_dir == nil  || host == nil {
 		if b.verbose {
-			fmt.Fprintf( os.Stderr, "ssh_broker: synch_host giving up b is nil: %v; src is nil %s dir is nil %v; host is nil %v\n", b == nil, b.rsync_src == nil, b.rsync_dir == nil , host == nil )
+			fmt.Fprintf( os.Stderr, "ssh_broker: synch_host giving up b is nil: %v; src is nil %v dir is nil %v; host is nil %v\n", b == nil, b.rsync_src == nil, b.rsync_dir == nil , host == nil )
 		}
 		return
 	}

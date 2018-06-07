@@ -38,6 +38,7 @@ import (
 				30 Nov 2014 - Allows escaped quote.
 				09 Apr 2015 - Corrected problem where index was not being checked and range
 					was being busted causing a panic. Removed the 2k limit.
+				07 Jun 2018 : Remove unreachable code (keep vet happy)
 ---------------------------------------------------------------------------------------------
 */
 
@@ -168,7 +169,5 @@ func tokenise_all( buf string, sepchrs string, keep_empty bool ) (int,  []string
 		}
 
 	}	
-
-	return 0, nil				// unreacable and vet will complain, but without this older compilers refuse to compile!
 }
 

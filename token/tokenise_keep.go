@@ -32,6 +32,7 @@ import (
 	Author: 	E. Scott Daniels
 	Mods:		01 May 2012 : Added escape character support
 				03 Feb 2015 : Removed unreachable code.
+				07 Jun 2018 : Remove unreachable code (keep vet happy)
 ---------------------------------------------------------------------------------------
 */
 
@@ -89,6 +90,4 @@ func Tokenise_keep(  buf string, sepchrs string ) (int, []string) {
 		}
 	
 	}	
-
-	return 0, nil
 }

@@ -24,7 +24,7 @@
 	Date: 		17 January 2014
 	Author: 	E. Scott Daniels
 
-	Mods:
+	Mods:		07 Jun 2018 - Fix return bug (line 240)
 
 */
 
@@ -237,7 +237,7 @@ func (aif *Arista_api) Get_interfaces( ifstate string ) ( ifmap map[string]*Swif
 	for ik, _ := range ifaces {										// ifaces should be an array of struct
 		sif, ok := ifaces[ik].( map[string]interface{} )			// single interface data
 		if !ok {
-			fmt.Errorf( "single interface %s was not expected type", ik )
+			err = fmt.Errorf( "single interface %s was not expected type", ik )
 			return
 		}
 
