@@ -114,16 +114,16 @@ func (o *Ostack) FetchAllPorts( destfile string ) (err error) {
 			return
 		}
 		url := fmt.Sprintf( "%s/v2.0/ports", *o.nhost )
-		req, err := http.NewRequest( "GET", url, nil )
-		if err == nil {
+		req, nerr := http.NewRequest( "GET", url, nil )
+		if err = nerr; err == nil {
 			req.Header.Add( "Content-Type", "application/json" )
 			req.Header.Add( "X-Auth-Token", o.pickToken() )
 			rsrc := &http.Client{}
 			resp, nerr := rsrc.Do( req )
-			if nerr == nil {
+			if err = nerr; err == nil {
 				defer resp.Body.Close()
 				outf, nerr := os.Create( destfile )
-				if nerr == nil {
+				if err = nerr; err == nil {
 					defer outf.Close()
 					_, err = io.Copy(outf, resp.Body)
 				}
