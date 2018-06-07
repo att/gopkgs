@@ -25,7 +25,7 @@
 
 				If the environment variable RHT_PAUSE is non-empty (e.g. RHT_PAUSE=true) then
 				the writer will pause after wirting a few messages.  During the pause, the 
-				rabbitMQ process can e cycled to force a disconnect and test the ability to 
+				rabbitMQ process can be cycled to force a disconnect and test the ability to 
 				reconnect both reader and writer. The expected message losss of one is considered
 				a pass; missing more messages would be a failure.  The underlying rabbit_hole does
 				_not_ preserve messagess written during session outage; a singl message loss is
@@ -196,10 +196,6 @@ func TestMultiKey( t *testing.T ) {
 	pw := os.Getenv( "RHT_PW" )				// user name and password must come from environment
 	uname := os.Getenv( "RHT_USER" )
 	host := os.Getenv( "RHT_HOST" )
-	pause  := os.Getenv( "RHT_PAUSE" )
-	if pause == "0" {
-		pause = ""
-	}
 	ex_type := "direct+!du+ad"
 
 	

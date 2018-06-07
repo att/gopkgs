@@ -129,8 +129,9 @@ func (o *Ostack) FetchAllPorts( destfile string ) (err error) {
 			}
 		}
 	}
-	return
+	return err
 }
+
 func (o *Ostack) pickToken() string {
 	if o.token != nil {											// authorisation won't have a token
 		if len( *o.token ) > 100 {
@@ -143,7 +144,7 @@ func (o *Ostack) pickToken() string {
 }
 
 /*
-	Fetch info for the port identified by uuid.
+	FetchPortInfo returns info for the port identified by uuid.
  */
 func (o *Ostack) FetchPortInfo( uuid *string ) ( response *Ost_os_port, err error ) {
 	type simple_port_response struct {
@@ -170,7 +171,7 @@ func (o *Ostack) FetchPortInfo( uuid *string ) ( response *Ost_os_port, err erro
 	return
 }
 /*
-	Fetch host name for the port identified by uuid.
+	FetchHostInfo returns host name for the port identified by uuid.
  */
 func (o *Ostack) FetchHostInfo( uuid *string ) ( response *string, err error ) {
 	gresp, err := o.FetchPortInfo( uuid )
@@ -181,7 +182,7 @@ func (o *Ostack) FetchHostInfo( uuid *string ) ( response *string, err error ) {
 }
 
 /*
-	Given a gateway ID, make the call to dig out the external network id.
+	Gw2extid returns the external network ID given the gateway ID.
 */
 func (o *Ostack) Gw2extid( id *string ) ( extid *string, err error ) {
 	var (
@@ -232,7 +233,7 @@ func (o *Ostack) Gw2extid( id *string ) ( extid *string, err error ) {
 }
 
 /*
-	Given a gateway ID, make the call to dig out the physical host that the gateway lives on.
+	Gw2phost returns the physical host that the gateway (id) is running on.
 	(Gateway is Openstack's term for L3 router.)
 */
 func (o *Ostack) Gw2phost( id *string ) ( host *string, err error ) {
@@ -279,7 +280,7 @@ func (o *Ostack) Gw2phost( id *string ) ( host *string, err error ) {
 }
 
 /*
-	Generate a string containing a space separated list of physical host names which
+	List_net_hosts generates a string containing a space separated list of physical host names which
 	are associated with the particular type of agent(s) that are passed in.
 
 	Udup_list is a map of host names that have already been encountered (dups) and should be
@@ -346,7 +347,7 @@ func (o *Ostack) List_net_hosts( udup_list map[string]bool, limit2neutron bool )
 }
 
 /*
-	Generate a string containing a space separated list of physical host names which
+	List_l3_hosts generates a string containing a space separated list of physical host names which
 	are associated with only L3 hosts.
 
 	Udup_list is a map of host names that have already been encountered (dups) and should be
@@ -411,7 +412,7 @@ func (o *Ostack) List_l3_hosts( udup_list map[string]bool, limit2neutron bool ) 
 }
 
 /*
-	Generate a map that is keyed by the network name with each entry being a three tuple, space
+	Mk_netinfo_map generates a map that is keyed by the network name with each entry being a three tuple, space
 	separated, string of: physical net, type (gre,vlan,etc), and segment id.
 */
 func (o *Ostack) Mk_netinfo_map( ) ( nmap map[string]*string, err error ) {
@@ -536,7 +537,7 @@ func (o *Ostack) gwmac2xip(  umap_ad map[string]*string, umap_id map[string]*str
 }
 
 /*
-	Generates gateway [tenant/]ip to mac and mac to [tenant/]ip maps and gateway-id to mac and mac
+	Mk_gwmap generates a gateway [tenant/]ip to mac and mac to [tenant/]ip maps and gateway-id to mac and mac
 	to gateway-id maps.  Needs only one call to openstack to generate all maps.  A fifth map,
 	translating uuid to phost, is also generated.
 
@@ -598,7 +599,7 @@ func (o *Ostack) Mk_gwmaps( umac2ip map[string]*string,
 }
 
 /*
- 	Creates a list of IP addresses that are gateways.
+ 	Mk_gwlist creates a list of IP addresses that are gateways.
 */
 func (o *Ostack) Mk_gwlist( ) ( gwlist []string, err error ) {
 	var (
@@ -648,7 +649,7 @@ func (o *Ostack) Mk_gwlist( ) ( gwlist []string, err error ) {
 
 
 /*
- 	Creates several maps based on subnet information:
+ 	Mk_snlists creates several maps based on subnet information:
 		snlist	is a map of subnet information indexed by subnet ID. Each entry in the map is a string of space
 				separated values in the following order: Name, Tenant ID, CIDR, Gateway IP.
 		gw2cidr is a map of gateway project-id/ipaddress to cidr
