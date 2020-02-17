@@ -38,7 +38,8 @@ import (
 				30 Nov 2014 - Allows escaped quote.
 				09 Apr 2015 - Corrected problem where index was not being checked and range
 					was being busted causing a panic. Removed the 2k limit.
-				07 Jun 2018 : Remove unreachable code (keep vet happy)
+				11 Aug 2018 - Correct bug if string ends in single quote.
+				27 Aug 2018 - Correct bug when string has escaped characters.
 ---------------------------------------------------------------------------------------------
 */
 
@@ -128,6 +129,7 @@ func tokenise_all( buf string, sepchrs string, keep_empty bool ) (int,  []string
 
 			subbuf = subbuf[i+1:];			// skip what was added as token, and the sep
 		} else {
+
 			if q > 0 {						// stuf before quote -- capture it now
 				tokens[idx] = subbuf[0:q]
 			} else {
@@ -137,7 +139,8 @@ func tokenise_all( buf string, sepchrs string, keep_empty bool ) (int,  []string
 			subbuf = subbuf[q+1:];										// skip what we just snarfed, and opening quote
 			ttok := make( []byte, len( subbuf ) )						// work space to strip escape characters in
 			q = 0
-			for ttidx := 0; q < len( subbuf )  && subbuf[q] != '"'; ttidx++ { 		// find end trashing escape characters
+			ttidx := 0
+			for ttidx = 0; q < len( subbuf )  && subbuf[q] != '"'; ttidx++ { 		// find end trashing escape characters
 				if subbuf[q] == '\\' {
 					q++
 				}
@@ -145,9 +148,13 @@ func tokenise_all( buf string, sepchrs string, keep_empty bool ) (int,  []string
 				q++
 			}
 			if q > 0 {													// could have been ,foo""
-				tokens[idx] += string( ttok[0:q] )
+				tokens[idx] += string( ttok[0:ttidx] )
 			}
-			subbuf = subbuf[q+1:]
+			if q < len( subbuf ) - 1 {									// prevent bounds exception if single trailing quote
+				subbuf = subbuf[q+1:]
+			} else {
+				subbuf = ""
+			}
 			i = strings.IndexAny( subbuf, sepchrs )						// next sep, if there, past quoted stuff
 			q = 0
 			if q < i {
@@ -169,5 +176,7 @@ func tokenise_all( buf string, sepchrs string, keep_empty bool ) (int,  []string
 		}
 
 	}	
+
+	return 0, nil				// unreacable and vet will complain, but without this older compilers refuse to compile!
 }
 
