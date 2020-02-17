@@ -26,7 +26,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/att/gopkgs/token"
+	//"github.com/att/gopkgs/token"
+	"."
 )
 
 func TestToken_count( t *testing.T ) {
@@ -151,6 +152,25 @@ func TestToken_qsep_pop( t *testing.T ) {
 	str = `hello      "world"`									// lots of spaces -- result should be same as previous; 2 tokens
 	expect = "world"
 	fmt.Fprintf( os.Stderr, "testing: (%s)\n", str )
+	ntokens, tokens = token.Tokenise_qpopulated( str, " " )
+	if ntokens != 2 {
+		fmt.Fprintf( os.Stderr, "FAIL: expected 2 tokens bug %d came back\n", ntokens )
+		t.Fail()
+	}
+	if strings.Index( tokens[1], `"` ) >= 0 {
+		fmt.Fprintf( os.Stderr, "FAIL: token 2 contained quotes (%s) in (%s)\n", tokens[1], str )
+		t.Fail()
+	}
+	if tokens[1] != expect {
+		fmt.Fprintf( os.Stderr, "FAIL: token 2 expected to be 'world this is' but was '%s'\n", tokens[1] )
+		t.Fail()
+	}
+	fmt.Fprintf( os.Stderr, "expected: '%s' found: '%s got %d tokens'   [OK]\n", expect, tokens[1], ntokens )
+
+	//----------------------------------------------
+	str = `hello "world`									// test bug fix to prevent stack dump if missing quote
+	expect = "world"
+	fmt.Fprintf( os.Stderr, "testing: (%s)  (missing quote)\n", str )
 	ntokens, tokens = token.Tokenise_qpopulated( str, " " )
 	if ntokens != 2 {
 		fmt.Fprintf( os.Stderr, "FAIL: expected 2 tokens bug %d came back\n", ntokens )
